@@ -29,7 +29,7 @@ export default function Canvas() {
   const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
   const [activeTool, setActiveTool] = useState<string>("selection");
   const [initialData, setInitialData] = useState<any>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const isInitializedRef = useRef(false);
 
   const [selectedContainer, setSelectedContainer] = useState<{ rect: any; text: any } | null>(null);
   const [floatingPos, setFloatingPos] = useState<{ top: number; left: number } | null>(null);
@@ -725,7 +725,7 @@ export default function Canvas() {
   useEffect(() => {
     // If activeNoteId changed (or is null), reset initialization state
     if (activeNoteId !== initializedNoteIdRef.current) {
-      setIsInitialized(false);
+      isInitializedRef.current = false;
       setInitialData(null);
     }
 
@@ -735,7 +735,7 @@ export default function Canvas() {
     }
 
     // If already initialized for this activeNoteId, do not run initialization again
-    if (isInitialized && activeNoteId === initializedNoteIdRef.current) {
+    if (isInitializedRef.current && activeNoteId === initializedNoteIdRef.current) {
       return;
     }
 
@@ -746,6 +746,7 @@ export default function Canvas() {
     }
 
     initializedNoteIdRef.current = activeNoteId;
+    isInitializedRef.current = true;
 
     let elements: any[] = [];
     let appState: any = {};
@@ -824,9 +825,7 @@ export default function Canvas() {
       },
       files
     });
-    
-    setIsInitialized(true);
-  }, [activeNoteId, notes, isInitialized]);
+  }, [activeNoteId, notes]);
 
   // Flush any pending save immediately when switching active notes
   useEffect(() => {
@@ -855,7 +854,7 @@ export default function Canvas() {
   }, []);
 
   const handleCanvasChange = (elements: readonly any[], appState: any, files: any) => {
-    if (!activeNoteId || !isInitialized) return;
+    if (!activeNoteId || !isInitializedRef.current) return;
 
     if (appState?.activeTool?.type && appState.activeTool.type !== activeTool) {
       setActiveTool(appState.activeTool.type);
@@ -883,7 +882,9 @@ export default function Canvas() {
         }
 
         if (rectEl && textEl) {
-          setSelectedContainer({ rect: rectEl, text: textEl });
+          setSelectedContainer(prev =>
+            prev?.rect?.id === rectEl.id ? prev : { rect: rectEl, text: textEl }
+          );
 
           const zoom = appState.zoom?.value ?? 1;
           const scrollX = appState.scrollX ?? 0;
@@ -892,11 +893,12 @@ export default function Canvas() {
           const screenX = rectEl.x * zoom + scrollX;
           const screenY = rectEl.y * zoom + scrollY;
           const screenW = rectEl.width * zoom;
+          const newLeft = screenX + screenW / 2;
+          const newTop = screenY - 56;
 
-          setFloatingPos({
-            left: screenX + screenW / 2,
-            top: screenY - 56
-          });
+          setFloatingPos(prev =>
+            prev?.left === newLeft && prev?.top === newTop ? prev : { left: newLeft, top: newTop }
+          );
         } else {
           setSelectedContainer(null);
           setFloatingPos(null);
@@ -919,7 +921,7 @@ export default function Canvas() {
     debouncedSave(activeNoteId, [...elements], appState, files);
   };
 
-  if (!isInitialized || !initialData) {
+  if (!initialData) {
     return (
       <div className="canvas-container" style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", width: "100%" }}>
         <div className="empty-state">
