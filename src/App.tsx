@@ -359,6 +359,12 @@ function App() {
               setFirestoreUser(data || null);
             }
           }
+        }, (error) => {
+          console.warn("User doc snapshot error:", error.code, error.message);
+          if (isMounted) {
+            setUserTier("free");
+            setFirestoreUser(null);
+          }
         });
         unsubscribeUserDoc = unsub;
       } else {
