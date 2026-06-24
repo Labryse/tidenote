@@ -210,83 +210,85 @@ export default function CanvasToolbar({
 
   const handleAddStickyNote = () => {
     if (!excalidrawAPI) return;
-    try {
-      const { cx, cy } = getCanvasCenter();
-      const ts = Date.now();
-      const rid = `sn-rect-${ts}`;
-      const tid = `sn-text-${ts}-t`;
-      const existing = excalidrawAPI.getSceneElements() || [];
-      excalidrawAPI.updateScene({
-        elements: [
-          ...existing,
-          {
-            id: rid,
-            type: "rectangle",
-            x: cx - 100,
-            y: cy - 75,
-            width: 200,
-            height: 150,
-            angle: 0,
-            strokeColor: "#d4a017",
-            backgroundColor: "#FFE066",
-            fillStyle: "solid",
-            strokeWidth: 1,
-            strokeStyle: "solid",
-            roughness: 0,
-            opacity: 100,
-            groupIds: [],
-            frameId: null,
-            roundness: { type: 3, value: 8 },
-            seed: Math.floor(Math.random() * 999999),
-            version: 1,
-            versionNonce: Math.floor(Math.random() * 999999),
-            isDeleted: false,
-            boundElements: [{ id: tid, type: "text" }],
-            updated: ts,
-            link: null,
-            locked: false
-          },
-          {
-            id: tid,
-            type: "text",
-            x: cx - 80,
-            y: cy - 16,
-            width: 160,
-            height: 32,
-            angle: 0,
-            strokeColor: "#7a5c00",
-            backgroundColor: "transparent",
-            fillStyle: "solid",
-            strokeWidth: 1,
-            strokeStyle: "solid",
-            roughness: 0,
-            opacity: 100,
-            groupIds: [],
-            frameId: null,
-            roundness: null,
-            seed: Math.floor(Math.random() * 999999),
-            version: 1,
-            versionNonce: Math.floor(Math.random() * 999999),
-            isDeleted: false,
-            boundElements: null,
-            updated: ts,
-            link: null,
-            locked: false,
-            text: "Not...",
-            fontSize: 16,
-            fontFamily: selectedFont,
-            textAlign: "center",
-            verticalAlign: "middle",
-            containerId: rid,
-            originalText: "Not...",
-            lineHeight: 1.25,
-            autoResize: true
-          }
-        ]
-      });
-    } catch (err) {
-      console.error("Post-it eklenirken hata:", err);
-    }
+    setTimeout(() => {
+      try {
+        const { cx, cy } = getCanvasCenter();
+        const ts = Date.now();
+        const rid = `sn-rect-${ts}`;
+        const tid = `sn-text-${ts}-t`;
+        const existing = excalidrawAPI.getSceneElements() || [];
+        excalidrawAPI.updateScene({
+          elements: [
+            ...existing,
+            {
+              id: rid,
+              type: "rectangle",
+              x: cx - 100,
+              y: cy - 75,
+              width: 200,
+              height: 150,
+              angle: 0,
+              strokeColor: "#d4a017",
+              backgroundColor: "#FFE066",
+              fillStyle: "solid",
+              strokeWidth: 1,
+              strokeStyle: "solid",
+              roughness: 0,
+              opacity: 100,
+              groupIds: [],
+              frameId: null,
+              roundness: { type: 3, value: 8 },
+              seed: Math.floor(Math.random() * 999999),
+              version: 1,
+              versionNonce: Math.floor(Math.random() * 999999),
+              isDeleted: false,
+              boundElements: [{ id: tid, type: "text" }],
+              updated: ts,
+              link: null,
+              locked: false
+            },
+            {
+              id: tid,
+              type: "text",
+              x: cx - 80,
+              y: cy - 16,
+              width: 160,
+              height: 32,
+              angle: 0,
+              strokeColor: "#7a5c00",
+              backgroundColor: "transparent",
+              fillStyle: "solid",
+              strokeWidth: 1,
+              strokeStyle: "solid",
+              roughness: 0,
+              opacity: 100,
+              groupIds: [],
+              frameId: null,
+              roundness: null,
+              seed: Math.floor(Math.random() * 999999),
+              version: 1,
+              versionNonce: Math.floor(Math.random() * 999999),
+              isDeleted: false,
+              boundElements: null,
+              updated: ts,
+              link: null,
+              locked: false,
+              text: "Not...",
+              fontSize: 16,
+              fontFamily: selectedFont,
+              textAlign: "center",
+              verticalAlign: "middle",
+              containerId: rid,
+              originalText: "Not...",
+              lineHeight: 1.25,
+              autoResize: true
+            }
+          ]
+        });
+      } catch (err) {
+        console.error("Post-it eklenirken hata:", err);
+      }
+    }, 0);
   };
 
   const tools = [
