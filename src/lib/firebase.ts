@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, enableNetwork, disableNetwork } from "firebase/firestore";
+import { getFirestore, enableNetwork, disableNetwork, enableIndexedDbPersistence } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 
@@ -17,6 +17,14 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Cloud Firestore and export it
 export const db = getFirestore(app);
+
+enableIndexedDbPersistence(db).catch((err) => {
+  if (err.code === 'failed-precondition') {
+    console.warn('Offline persistence: birden fazla sekme açık');
+  } else if (err.code === 'unimplemented') {
+    console.warn('Offline persistence desteklenmiyor');
+  }
+});
 
 // Initialize Firebase Auth and export it
 export const auth = getAuth(app);
