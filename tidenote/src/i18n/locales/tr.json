@@ -1,0 +1,101 @@
+{
+  "sidebar": {
+    "newNote": "+ Yeni Not",
+    "newDocument": "Yeni Belge",
+    "newCanvas": "Yeni Canvas",
+    "untitledNote": "Başlıksız Not",
+    "untitledCanvas": "Başlıksız Canvas",
+    "noNotes": "Henüz not yok.\n+ ile oluştur."
+  },
+  "auth": {
+    "login": "Giriş Yap",
+    "register": "Kayıt Ol",
+    "loginSuccess": "Başarıyla giriş yapıldı.",
+    "registerSuccess": "Hesabınız başarıyla oluşturuldu.",
+    "email": "E-posta",
+    "password": "Şifre",
+    "passwordRepeat": "Şifre Tekrar",
+    "passwordMismatch": "Şifreler eşleşmiyor.",
+    "weakPassword": "Şifre en az 6 karakter olmalı.",
+    "emailInUse": "Bu e-posta zaten kayıtlı.",
+    "invalidCredentials": "E-posta veya şifre hatalı.",
+    "unknownError": "Bir hata oluştu. Lütfen tekrar dene.",
+    "logout": "Çıkış Yap"
+  },
+  "modal": {
+    "deleteTitle": "Notu Sil",
+    "deleteMessage": "Bu not kalıcı olarak silinecek. Emin misin?",
+    "cancel": "İptal",
+    "delete": "Sil"
+  },
+  "toast": {
+    "saveError": "Not kaydedilemedi.",
+    "deleteError": "Not silinemedi.",
+    "createError": "Not oluşturulamadı.",
+    "saveSuccess": "Kaydedildi.",
+    "createSuccess": "Not başarıyla oluşturuldu.",
+    "deleteSuccess": "Not başarıyla silindi.",
+    "loadError": "Notlar yüklenirken hata oluştu."
+  },
+  "editor": {
+    "placeholder": "Yazmaya başla veya '/' ile komut gir..."
+  },
+  "sidebar-extra": {
+    "saving": "Kaydediliyor..."
+  },
+  "language": {
+    "select": "Dil",
+    "tr": "TR",
+    "en": "EN"
+  },
+  "landing": {
+    "badge": "✦ Not alma yeniden tasarlandı",
+    "title": "Düşünceleriniz için\nsonsuz bir alan.",
+    "subtitle": "Blok editör ve sonsuz canvas bir arada. Notlarınız, çizimleriniz, fikirleriniz — tek yerde.",
+    "startFree": "Ücretsiz Başla",
+    "startFreeArrow": "Ücretsiz Başla →",
+    "howItWorks": "Nasıl Çalışır?",
+    "login": "Giriş Yap",
+    "goApp": "Uygulamaya Git",
+    "previewTitle": "Uygulama önizlemesi yakında",
+    "featuresTitle": "Her şey düşündüğünüzden daha kolay.",
+    "features": {
+      "editorTitle": "Blok Editör",
+      "editorDesc": "Slash komutuyla başlıklar, listeler, görev kutuları ekle. Blokları sürükleyip düzenle.",
+      "canvasTitle": "Sonsuz Canvas",
+      "canvasDesc": "Çiz, şekil ekle, diyagram oluştur. Sınır yok, zoom yok, kısıtlama yok.",
+      "syncTitle": "Bulut Senkronizasyon",
+      "syncDesc": "Telefon, tablet, bilgisayar — her cihazda anında erişim. Otomatik kaydedilir.",
+      "themeTitle": "Açık & Koyu Tema",
+      "themeDesc": "Gözünüzü yormayan, tercihlerinize göre değişen modern bir arayüz."
+    },
+    "pricingTitle": "Başlamak ücretsiz.",
+    "pricing": {
+      "free": "Ücretsiz",
+      "freeDesc": "$0 / ay",
+      "premium": "Premium",
+      "premiumDesc": "$2.99 / ay",
+      "popular": "En Popüler",
+      "freeBtn": "Hemen Başla",
+      "premiumBtn": "Premium'a Geç",
+      "fUnlimited": "Sınırsız not ve canvas",
+      "fStorage1": "1 GB bulut depolama",
+      "fStorage10": "10 GB bulut depolama",
+      "fCore": "Tüm temel özellikler",
+      "fThemes": "Açık & koyu tema",
+      "fApps": "Mobil & masaüstü uygulama",
+      "fEverything": "Ücretsiz plandaki her şey",
+      "fPdf": "PDF & toplu dışa aktarma",
+      "fHistory": "Sürüm geçmişi (yakında)",
+      "fSupport": "Öncelikli destek"
+    },
+    "footer": {
+      "privacy": "Gizlilik Politikası",
+      "terms": "Kullanım Şartları"
+    }
+  },
+  "common": {
+    "comingSoon": "Çok Yakında",
+    "backToHome": "Ana Sayfaya Dön"
+  }
+}

@@ -1,0 +1,462 @@
+{
+  "sidebar": {
+    "newNote": "Yeni Not",
+    "newDocument": "Yeni Belge",
+    "newCanvas": "Yeni Canvas",
+    "untitledNote": "Başlıksız Not",
+    "untitledCanvas": "Başlıksız Canvas",
+    "noNotes": "Henüz not yok.\n+ ile oluştur.",
+    "searchPlaceholder": "Notlarda ara...",
+    "sortBy": "Sırala",
+    "sortUpdated": "Son Güncelleme",
+    "sortCreated": "Oluşturma Tarihi",
+    "sortTitle": "Başlık (A-Z)",
+    "pinnedSection": "Sabitlenmiş",
+    "notesSection": "Notlar",
+    "favoritesSection": "Favoriler",
+    "archiveSection": "Arşiv",
+    "archiveTitle": "Arşivlenmiş Notlar",
+    "unarchive": "Arşivden Çıkar",
+    "deletePermanent": "Kalıcı Olarak Sil",
+    "allTags": "Tümü",
+    "addTag": "+ Etiket",
+    "tagPlaceholder": "Yeni etiket...",
+    "createFromTemplate": "Şablondan Oluştur"
+  },
+  "journal": {
+    "today": "Bugün",
+    "sidebarSuffix": "Journal",
+    "howFeel": "🌅 Bugün nasıl hissediyorum?",
+    "todo": "✅ Bugün yapacaklarım",
+    "notes": "💭 Notlar & Düşünceler",
+    "summary": "🌙 Günün özeti"
+  },
+  "quickCapture": {
+    "title": "Hızlı Not",
+    "placeholder": "Başlık...",
+    "bodyPlaceholder": "Ne düşünüyorsun? (opsiyonel)",
+    "save": "Kaydet",
+    "document": "Belge",
+    "canvas": "Canvas"
+  },
+  "auth": {
+    "login": "Giriş Yap",
+    "register": "Kayıt Ol",
+    "loginSuccess": "Başarıyla giriş yapıldı.",
+    "registerSuccess": "Hesabınız başarıyla oluşturuldu.",
+    "email": "E-posta",
+    "password": "Şifre",
+    "passwordRepeat": "Şifre Tekrar",
+    "passwordMismatch": "Şifreler eşleşmiyor.",
+    "weakPassword": "Şifre en az 6 karakter olmalı.",
+    "emailInUse": "Bu e-posta zaten kayıtlı.",
+    "invalidCredentials": "E-posta veya şifre hatalı.",
+    "unknownError": "Bir hata oluştu. Lütfen tekrar dene.",
+    "logout": "Çıkış Yap",
+    "continueWithGoogle": "Google ile devam et",
+    "or": "veya",
+    "verificationEmailSent": "Doğrulama maili gönderildi. Lütfen e-postanızı kontrol edin."
+  },
+  "modal": {
+    "deleteTitle": "Notu Sil",
+    "deleteMessage": "Bu not kalıcı olarak silinecek. Emin misin?",
+    "cancel": "İptal",
+    "delete": "Sil"
+  },
+  "toast": {
+    "saveError": "Not kaydedilemedi.",
+    "deleteError": "Not silinemedi.",
+    "createError": "Not oluşturulamadı.",
+    "saveSuccess": "Kaydedildi.",
+    "createSuccess": "Not başarıyla oluşturuldu.",
+    "deleteSuccess": "Not başarıyla silindi.",
+    "loadError": "Notlar yüklenirken hata oluştu."
+  },
+  "editor": {
+    "placeholder": "Yazmaya başla veya '/' ile komut gir...",
+    "tableOfContents": "İçindekiler",
+    "callout": {
+      "group": "Açıklamalar",
+      "infoTitle": "Bilgi Notu",
+      "infoSubtext": "Önemli bilgileri vurgulamak için mavi kutu",
+      "infoLabel": "BİLGİ NOTU",
+      "warningTitle": "Uyarı",
+      "warningSubtext": "Dikkat edilmesi gerekenleri belirtmek için sarı kutu",
+      "warningLabel": "UYARI",
+      "successTitle": "Başarı",
+      "successSubtext": "Başarılı işlemleri göstermek için yeşil kutu",
+      "successLabel": "BAŞARI",
+      "dangerTitle": "Hata",
+      "dangerSubtext": "Hataları veya tehlikeleri belirtmek için kırmızı kutu",
+      "dangerLabel": "HATA",
+      "tipTitle": "İpucu",
+      "tipSubtext": "Kullanışlı ipuçlarını göstermek için mor kutu",
+      "tipLabel": "İPUCU"
+    }
+  },
+  "sidebar-extra": {
+    "saving": "Kaydediliyor..."
+  },
+  "language": {
+    "select": "Dil",
+    "tr": "TR",
+    "en": "EN"
+  },
+  "landing": {
+    "badge": "✦ Not alma yeniden tasarlandı",
+    "title": "Düşünceleriniz için\nsonsuz bir alan.",
+    "subtitle": "Blok editör ve sonsuz canvas bir arada. Notlarınız, çizimleriniz, fikirleriniz — tek yerde.",
+    "startFree": "Ücretsiz Başla",
+    "startFreeArrow": "Ücretsiz Başla →",
+    "howItWorks": "Nasıl Çalışır?",
+    "login": "Giriş Yap",
+    "goApp": "Uygulamaya Git",
+    "previewTitle": "Uygulama önizlemesi yakında",
+    "featuresTitle": "Her şey düşündüğünüzden daha kolay.",
+    "features": {
+      "editorTitle": "Blok Editör",
+      "editorDesc": "Slash komutuyla başlıklar, listeler, görev kutuları ekle. Blokları sürükleyip düzenle.",
+      "canvasTitle": "Sonsuz Canvas",
+      "canvasDesc": "Çiz, şekil ekle, diyagram oluştur. Sınır yok, zoom yok, kısıtlama yok.",
+      "syncTitle": "Bulut Senkronizasyon",
+      "syncDesc": "Telefon, tablet, bilgisayar — her cihazda anında erişim. Otomatik kaydedilir.",
+      "themeTitle": "Açık & Koyu Tema",
+      "themeDesc": "Gözünüzü yormayan, tercihlerinize göre değişen modern bir arayüz."
+    },
+    "pricingTitle": "Başlamak ücretsiz.",
+    "pricing": {
+      "free": "Ücretsiz",
+      "freeDesc": "$0 / ay",
+      "premium": "Premium",
+      "premiumDesc": "$2.99 / ay",
+      "popular": "En Popüler",
+      "freeBtn": "Hemen Başla",
+      "premiumBtn": "Premium'a Geç",
+      "fUnlimited": "Sınırsız not ve canvas",
+      "fStorage1": "1 GB bulut depolama",
+      "fStorage10": "10 GB bulut depolama",
+      "fCore": "Tüm temel özellikler",
+      "fThemes": "Açık & koyu tema",
+      "fApps": "Mobil & masaüstü uygulama",
+      "fEverything": "Ücretsiz plandaki her şey",
+      "fPdf": "PDF & toplu dışa aktarma",
+      "fHistory": "Sürüm geçmişi (yakında)",
+      "fSupport": "Öncelikli destek"
+    },
+    "footer": {
+      "privacy": "Gizlilik Politikası",
+      "terms": "Kullanım Şartları"
+    }
+  },
+  "common": {
+    "comingSoon": "Çok Yakında",
+    "backToHome": "Ana Sayfaya Dön"
+  },
+  "emptyState": {
+    "title": "Notlarınız burada görünecek",
+    "description": "Sol panelden yeni bir belge veya canvas oluşturun. Düşünceleriniz, çizimleriniz ve fikirleriniz tek bir yerde."
+  },
+  "dashboard": {
+    "greeting": "Merhaba, {{name}}!",
+    "recentNotes": "SON NOTLAR",
+    "quickCreate": "Hızlı Oluştur"
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "account": "Hesap",
+    "appearance": "Görünüm",
+    "storage": "Depolama",
+    "billing": "Plan & Fatura",
+    "import": "İçe Aktar",
+    "about": "Hakkında",
+    "username": "Kullanıcı Adı",
+    "email": "E-posta Adresi",
+    "changePasswordTitle": "Şifre Değiştir",
+    "currentPassword": "Mevcut Şifre",
+    "newPassword": "Yeni Şifre",
+    "savePasswordBtn": "Şifreyi Güncelle",
+    "deleteAccountTitle": "Hesabı Sil",
+    "deleteAccountDesc": "Bu işlem geri alınamaz. Tüm notlarınız ve verileriniz kalıcı olarak silinecektir.",
+    "deleteAccountBtn": "Hesabımı Kalıcı Olarak Sil",
+    "deleteAccountConfirmMsg": "Hesabınızı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve tüm notlarınız kalıcı olarak silinecektir.",
+    "reauthRequired": "Güvenlik nedeniyle bu işlem için tekrar giriş yapmanız gerekir.",
+    "theme": "Arayüz Teması",
+    "language": "Dil",
+    "editorFontSize": "Editör Yazı Boyutu",
+    "fontSizeSmall": "Küçük",
+    "fontSizeMedium": "Orta",
+    "fontSizeLarge": "Büyük",
+    "listDensity": "Not Listesi Yoğunluğu",
+    "densityCompact": "Kompakt",
+    "densityNormal": "Normal",
+    "densityComfortable": "Rahat",
+    "usedSpace": "Kullanılan Alan",
+    "storageWarningBold": "Depolama alanınız dolmak üzere.",
+    "storageWarningText": "Yeni notlar oluşturmaya devam etmek için Premium'a geçin.",
+    "noteStatistics": "Not İstatistikleri",
+    "planActive": "Aktif",
+    "transparentPng": "Şeffaf PNG Dışa Aktarma",
+    "chooseFile": "Dosya Seç",
+    "importMdTitle": "Markdown Dosyası İçe Aktar (.md)",
+    "importMdDesc": "Bilgisayarınızdaki bir .md dosyasını seçerek TideNote içine aktarın.",
+    "importJsonTitle": "JSON İçe Aktar (TideNote formatı)",
+    "importJsonDesc": "TideNote yedek dosyalarınızı (.json) geri yükleyin.",
+    "importNotionTitle": "Notion'dan İçe Aktar",
+    "importNotionDesc": "Notion verilerinizi doğrudan TideNote içine gömün.",
+    "close": "Kapat",
+    "month": "ay",
+    "changePhotoTooltip": "Fotoğraf değiştir",
+    "imageTooLarge": "Dosya boyutu 2MB'den büyük olamaz",
+    "usernameRequired": "Kullanıcı adı boş olamaz",
+    "profileUpdated": "Profil güncellendi",
+    "saveProfile": "Kaydet",
+    "keyboardShortcuts": "Klavye Kısayolları"
+  },
+  "canvas": {
+    "tool": {
+      "select": "Seç",
+      "hand": "Kaydır",
+      "rectangle": "Dikdörtgen",
+      "diamond": "Elmas",
+      "ellipse": "Elips",
+      "arrow": "Ok",
+      "line": "Çizgi",
+      "freedraw": "Kalem",
+      "text": "Metin",
+      "image": "Görsel",
+      "eraser": "Silgi"
+    },
+    "toolbar": {
+      "changePosition": "Konumu Değiştir"
+    },
+    "position": {
+      "top": "Üst",
+      "bottom": "Alt",
+      "left": "Sol",
+      "right": "Sağ"
+    }
+  },
+  "topbar": {
+    "share_button": "Paylaş",
+    "link_copied": "Bağlantı kopyalandı"
+  },
+  "folders": {
+    "section": "KLASÖRLER",
+    "newFolder": "Yeni Klasör",
+    "untitledFolder": "Başlıksız Klasör",
+    "rename": "Yeniden Adlandır",
+    "addSubfolder": "Alt Klasör Ekle",
+    "delete": "Klasörü Sil",
+    "deleteConfirm": "Bu klasör ve alt klasörleri silinecek. İçindeki notlar klasörsüz kalacak. Emin misin?",
+    "unfoldered": "Klasörsüz Notlar",
+    "allNotes": "Tüm Notlar",
+    "moveHere": "Buraya Taşı"
+  },
+  "info": {
+    "title": "Not Bilgileri",
+    "mode": "Belge Modu",
+    "canvasModeLabel": "Sonsuz Tuval",
+    "documentModeLabel": "Belge",
+    "creator": "Oluşturan",
+    "createdAt": "Oluşturulma Tarihi",
+    "updatedAt": "Güncellenme Tarihi",
+    "wordCount": "Kelime Sayısı",
+    "tags": "Etiketler",
+    "noTags": "Etiket yok"
+  },
+  "privacy": {
+    "title": "Gizlilik Politikası",
+    "lastUpdated": "Son güncelleme: 22 Haziran 2026",
+    "tableOfContents": "İçindekiler",
+    "sections": {
+      "1": {
+        "title": "1. Genel Bakış",
+        "p1": "TideNote (\"biz\", \"uygulama\") olarak gizliliğinize saygı duyuyoruz. Bu politika, TideNote web sitesi, mobil uygulamaları ve masaüstü uygulaması (\"Hizmet\") aracılığıyla toplanan kişisel verilerin nasıl işlendiğini açıklamaktadır. Hizmetimizi kullanarak bu politikayı kabul etmiş olursunuz."
+      },
+      "2": {
+        "title": "2. Topladığımız Veriler",
+        "sub1_title": "2.1 Hesap Bilgileri",
+        "sub1_item1": "E-posta adresi (kayıt sırasında)",
+        "sub1_item2": "Kullanıcı adı / görünen ad",
+        "sub1_item3": "Profil fotoğrafı (Google ile girişte Google profilinizden, isteğe bağlı)",
+        "sub1_item4": "Şifre (yalnızca şifrelenmiş hash olarak saklanır, düz metin olarak asla)",
+        "sub2_title": "2.2 İçerik Verileri",
+        "sub2_item1": "Oluşturduğunuz notlar, belgeler ve canvas çizimleri",
+        "sub2_item2": "Etiketler, başlıklar ve organizasyon tercihleri",
+        "sub2_item3": "Dosya ve görseller (canvas'a eklediğiniz)",
+        "sub3_title": "2.3 Kullanım Verileri",
+        "sub3_item1": "Uygulama içi tercihlerin (tema, dil, editör boyutu) yerel depolamada tutulması",
+        "sub3_item2": "Hata ve çökme raporları (anonim)",
+        "sub4_title": "2.4 Teknik Veriler",
+        "sub4_item1": "IP adresi (Firebase altyapısı tarafından otomatik olarak işlenir)",
+        "sub4_item2": "Cihaz türü, işletim sistemi, tarayıcı bilgisi",
+        "sub4_item3": "Oturum açma zamanı ve tarih"
+      },
+      "3": {
+        "title": "3. Verileri Nasıl Kullanıyoruz",
+        "p1": "Verilerinizi şu amaçlarla kullanmaktayız:",
+        "item1": "Hesabınızı oluşturmak ve yönetmek",
+        "item2": "Notlarınızı cihazlar arasında senkronize etmek",
+        "item3": "Hizmet güvenliğini sağlamak",
+        "item4": "Premium aboneliği doğrulamak",
+        "item5": "Uygulama performansını ve hataları izlemek",
+        "item6": "Yasal yükümlülükleri yerine getirmek",
+        "p2": "Verilerinizi hiçbir zaman üçüncü taraflara satmıyoruz veya reklam amaçlı kullanmıyoruz."
+      },
+      "4": {
+        "title": "4. Üçüncü Taraf Hizmetler",
+        "sub1_title": "4.1 Google Firebase",
+        "sub1_p1": "Hizmetimiz Google Firebase altyapısını kullanır:",
+        "sub1_item1": "Firebase Authentication: Kimlik doğrulama",
+        "sub1_item2": "Cloud Firestore: Not verilerinin depolanması",
+        "sub1_item3": "Firebase Hosting: Web uygulamasının sunulması",
+        "sub1_p2": "Firebase'in kendi Gizlilik Politikası için: https://firebase.google.com/support/privacy",
+        "sub2_title": "4.2 Google ile Giriş",
+        "sub2_p1": "\"Google ile Giriş\" özelliğini kullanırsanız, Google profilinizden ad, e-posta ve profil fotoğrafı bilgilerinizi alırız. Google'ın Gizlilik Politikası geçerlidir: https://policies.google.com/privacy",
+        "sub3_title": "4.3 RevenueCat (Premium Abonelik)",
+        "sub3_p1": "Premium abonelik işlemleri için RevenueCat kullanılmaktadır. Ödeme bilgileriniz (kredi kartı vb.) hiçbir zaman bizim sunucularımızda saklanmaz; doğrudan Apple App Store veya Google Play Store tarafından işlenir. RevenueCat Gizlilik Politikası: https://www.revenuecat.com/privacy"
+      },
+      "5": {
+        "title": "5. Veri Saklama",
+        "p1": "Hesabınızı silene kadar verilerinizi saklarız.",
+        "p2": "Hesap silme işleminden sonra verileriniz 30 gün içinde sistemlerimizden kalıcı olarak silinir (yedek kopyalar dahil).",
+        "p3": "Yasal zorunluluk halinde bazı veriler daha uzun süre saklanabilir."
+      },
+      "6": {
+        "title": "6. Veri Güvenliği",
+        "p1": "Tüm veriler aktarım sırasında SSL/TLS ile şifrelenir.",
+        "p2": "Şifreler Firebase Authentication tarafından güvenli şekilde hashlenir, düz metin olarak asla saklanmaz.",
+        "p3": "Firebase Firestore güvenlik kuralları ile yalnızca kendi verilerinize erişebilirsiniz — başka kullanıcıların verileri okunamaz.",
+        "p4": "Güvenlik açıklarını bildirmek için: ulkartal@gmail.com"
+      },
+      "7": {
+        "title": "7. Haklarınız (KVKK / GDPR)",
+        "p1": "Kişisel verilerinizle ilgili şu haklara sahipsiniz:",
+        "item1": "Erişim: Hangi verilerinizi sakladığımızı öğrenme hakkı",
+        "item2": "Düzeltme: Yanlış verilerin düzeltilmesini isteme hakkı",
+        "item3": "Silme: Tüm verilerinizin ve hesabınızın silinmesini isteme hakkı (uygulama içi Ayarlar → Hesap → Hesabı Sil)",
+        "item4": "Taşınabilirlik: Verilerinizi dışa aktarma hakkı (Ayarlar → İçe Aktar / Dışa Aktar)",
+        "item5": "İtiraz: Veri işlemeye itiraz etme hakkı",
+        "p2": "Talepleriniz için: ulkartal@gmail.com"
+      },
+      "8": {
+        "title": "8. Çerezler ve Yerel Depolama",
+        "p1": "TideNote, üçüncü taraf reklam çerezleri kullanmaz. Yalnızca şunları saklarız:",
+        "item1": "Oturum bilgisi (Firebase Authentication)",
+        "item2": "Kullanıcı tercihleri (tema, dil, toolbar pozisyonu) — tarayıcı localStorage'ında, yalnızca cihazınızda"
+      },
+      "9": {
+        "title": "9. Çocukların Gizliliği",
+        "p1": "Hizmetimiz 13 yaşın altındaki çocuklara yönelik değildir. 13 yaşın altındaki birinin verilerini topladığımızı fark edersek, bu verileri derhal sileriz."
+      },
+      "10": {
+        "title": "10. Politika Değişiklikleri",
+        "p1": "Bu politikayı zaman zaman güncelleyebiliriz. Önemli değişikliklerde e-posta ile bildirim yapılır. Güncel politika her zaman bu sayfada yayınlanır."
+      },
+      "11": {
+        "title": "11. İletişim",
+        "p1": "Sorularınız için:",
+        "email": "E-posta: ulkartal@gmail.com",
+        "web": "Web: https://tidenote-22fde.web.app"
+      }
+    }
+  },
+  "terms": {
+    "title": "Kullanım Şartları",
+    "lastUpdated": "Son güncelleme: 22 Haziran 2026",
+    "tableOfContents": "İçindekiler",
+    "sections": {
+      "1": {
+        "title": "1. Şartların Kabulü",
+        "p1": "TideNote'u (\"Hizmet\") kullanarak bu Kullanım Şartları'nı (\"Şartlar\") kabul etmiş olursunuz. Bu şartları kabul etmiyorsanız Hizmetimizi kullanmayınız."
+      },
+      "2": {
+        "title": "2. Hizmet Açıklaması",
+        "p1": "TideNote; blok tabanlı not alma ve sonsuz canvas whiteboard özelliklerini tek bir uygulamada sunan, bulut tabanlı bir üretkenlik aracıdır. Web, iOS, Android ve masaüstü platformlarında kullanılabilir."
+      },
+      "3": {
+        "title": "3. Hesap Oluşturma ve Güvenlik",
+        "item1": "Hizmeti kullanmak için geçerli bir e-posta adresiyle hesap oluşturmanız gerekir",
+        "item2": "Hesap bilgilerinizin gizliliğinden ve hesabınızda gerçekleşen tüm işlemlerden siz sorumlusunuz",
+        "item3": "Şifrenizi kimseyle paylaşmayınız",
+        "item4": "Hesabınızda yetkisiz erişim fark ederseniz derhal bizimle iletişime geçiniz: ulkartal@gmail.com",
+        "item5": "Bir kişi yalnızca bir hesap oluşturabilir"
+      },
+      "4": {
+        "title": "4. Kabul Edilebilir Kullanım",
+        "p1": "Hizmetimizi aşağıdaki amaçlarla kullanamazsınız:",
+        "item1": "Yasadışı içerik oluşturma veya depolama",
+        "item2": "Başkalarının telif hakkı, ticari marka veya fikri mülkiyet haklarını ihlal etme",
+        "item3": "Zararlı yazılım, virüs veya kötü amaçlı kod dağıtma",
+        "item4": "Hizmetin normal işleyişini engelleme veya aşırı yük bindirme",
+        "item5": "Başka kullanıcıların verilerine izinsiz erişim deneme",
+        "item6": "Spam, phishing veya dolandırıcılık faaliyetleri",
+        "item7": "13 yaşın altındaki çocuklar tarafından kullanım",
+        "p2": "Bu kuralları ihlal eden hesaplar önceden bildirim yapılmaksızın askıya alınabilir veya kapatılabilir."
+      },
+      "5": {
+        "title": "5. Fikri Mülkiyet",
+        "sub1_title": "5.1 Sizin İçeriğiniz",
+        "sub1_p1": "Oluşturduğunuz notlar, çizimler ve diğer içerikler size aittir. TideNote bu içerikler üzerinde herhangi bir mülkiyet hakkı talep etmez.",
+        "sub1_p2": "TideNote'a yalnızca şu sınırlı lisansı verirsiniz: içeriğinizi size sunmak, senkronize etmek ve yedeklemek amacıyla işleme ve depolama hakkı.",
+        "sub2_title": "5.2 TideNote'un Fikri Mülkiyeti",
+        "sub2_p1": "Uygulama adı, logosu, tasarımı, kaynak kodu ve arayüzü TideNote'a aittir ve telif hakkı yasalarıyla korunmaktadır. Bu unsurları izinsiz kopyalayamaz, dağıtamaz veya türev çalışmalar oluşturamazsınız."
+      },
+      "6": {
+        "title": "6. Abonelik ve Ödeme",
+        "sub1_title": "6.1 Ücretsiz Plan",
+        "sub1_p1": "Temel özellikler ücretsiz olarak sunulmaktadır. Ücretsiz planda 1 GB bulut depolama sınırı uygulanır.",
+        "sub2_title": "6.2 Premium Abonelik",
+        "sub2_item1": "Aylık $2.99 (veya yerel para birimi eşdeğeri)",
+        "sub2_item2": "Abonelik, web'de Stripe, iOS'ta Apple App Store, Android'de Google Play Store üzerinden işlenir",
+        "sub2_item3": "Abonelik, iptal edilmediği sürece her ay otomatik olarak yenilenir",
+        "sub2_item4": "Fiyatlar önceden bildirilmek suretiyle değiştirilebilir",
+        "sub3_title": "6.3 İptal",
+        "sub3_item1": "Web: Ayarlar → Plan & Fatura üzerinden istediğiniz zaman iptal edebilirsiniz",
+        "sub3_item2": "iOS: App Store abonelik yönetiminden",
+        "sub3_item3": "Android: Google Play abonelik yönetiminden",
+        "sub3_p1": "İptal sonrası mevcut dönem sonuna kadar Premium özelliklerinden yararlanmaya devam edersiniz.",
+        "sub4_title": "6.4 İade Politikası",
+        "sub4_item1": "Web abonelikleri (Stripe): Satın alma tarihinden itibaren 7 gün içinde tam iade talep edebilirsiniz (ulkartal@gmail.com)",
+        "sub4_item2": "iOS abonelikleri: Apple'ın iade politikası geçerlidir",
+        "sub4_item3": "Android abonelikleri: Google Play'in iade politikası geçerlidir",
+        "sub4_p1": "7 günden sonra yapılan iade talepleri değerlendirmeye alınır ancak garanti edilmez."
+      },
+      "7": {
+        "title": "7. Hizmetin Değiştirilmesi ve Sonlandırılması",
+        "sub1_title": "7.1 Değişiklikler",
+        "sub1_p1": "TideNote, özellikleri, fiyatları veya hizmeti önceden bildirimde bulunarak değiştirme hakkını saklı tutar. Önemli değişiklikler en az 30 gün öncesinden duyurulur.",
+        "sub2_title": "7.2 Hesap Sonlandırma",
+        "sub2_item1": "Dilediğiniz zaman hesabınızı Ayarlar → Hesap → Hesabı Sil seçeneğiyle silebilirsiniz",
+        "sub2_item2": "TideNote, Kullanım Şartları ihlali durumunda hesabınızı önceden bildirim yapılmaksızın sonlandırabilir",
+        "sub2_item3": "Hesap silindiğinde tüm verileriniz 30 gün içinde kalıcı olarak silinir"
+      },
+      "8": {
+        "title": "8. Sorumluluk Reddi",
+        "p1": "Hizmet \"olduğu gibi\" sunulmaktadır. TideNote aşağıdakileri garanti etmez:",
+        "item1": "Hizmetin kesintisiz veya hatasız çalışacağını",
+        "item2": "Veri kaybı yaşanmayacağını",
+        "item3": "Hizmetin belirli bir amaca uygunluğunu",
+        "p2": "Veri kaybı riskine karşı önemli içeriklerinizi düzenli olarak dışa aktarmanızı (Ayarlar → Dışa Aktar) öneririz."
+      },
+      "9": {
+        "title": "9. Sorumluluk Sınırlaması",
+        "p1": "TideNote'un herhangi bir nedenle sorumlu tutulabileceği azami miktar, son 12 ayda ödediğiniz abonelik ücretini geçemez. TideNote; dolaylı, tesadüfi, özel veya sonuç olarak ortaya çıkan zararlardan sorumlu tutulamaz."
+      },
+      "10": {
+        "title": "10. Geçerli Hukuk",
+        "p1": "Bu Şartlar, Türkiye Cumhuriyeti yasalarına tabidir. Uyuşmazlıklarda İstanbul mahkemeleri yetkilidir."
+      },
+      "11": {
+        "title": "11. Şartlardaki Değişiklikler",
+        "p1": "Bu Şartları güncelleyebiliriz. Önemli değişikliklerde e-posta bildirimi yapılır. Değişikliklerden sonra Hizmeti kullanmaya devam etmeniz, yeni Şartları kabul ettiğiniz anlamına gelir."
+      },
+      "12": {
+        "title": "12. İletişim",
+        "p1": "Sorularınız için:",
+        "email": "E-posta: ulkartal@gmail.com",
+        "web": "Web: https://tidenote-22fde.web.app"
+      }
+    }
+  }
+}
