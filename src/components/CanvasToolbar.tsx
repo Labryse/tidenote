@@ -214,76 +214,144 @@ export default function CanvasToolbar({
       try {
         const { cx, cy } = getCanvasCenter();
         const ts = Date.now();
-        const rid = `sn-rect-${ts}`;
-        const tid = `sn-text-${ts}-t`;
+        const W = 200, H = 160;
+        const HEADER_H = 28;
+        const FOLD = 22;
+        const CR = 8;
+
+        // Random tilt ±1° to ±2°
+        const angleDeg = (Math.random() > 0.5 ? 1 : -1) * (1 + Math.random());
+        const angle = angleDeg * Math.PI / 180;
+
+        const x = cx - W / 2;
+        const y = cy - H / 2;
+        const gid = `sn-g-${ts}`;
+        const rnd = () => Math.floor(Math.random() * 999999);
+
+        const base = {
+          angle,
+          frameId: null,
+          isDeleted: false,
+          updated: ts,
+          link: null,
+          locked: false,
+          roughness: 0,
+          opacity: 100,
+          strokeStyle: "solid",
+          fillStyle: "solid",
+        };
+
         const existing = excalidrawAPI.getSceneElements() || [];
+        const bodyId = `sn-body-${ts}`;
+
         excalidrawAPI.updateScene({
           elements: [
             ...existing,
+            // 1. Shadow (rendered below everything)
             {
-              id: rid,
+              ...base,
+              id: `sn-shadow-${ts}`,
               type: "rectangle",
-              x: cx - 100,
-              y: cy - 75,
-              width: 200,
-              height: 150,
-              angle: 0,
-              strokeColor: "#d4a017",
-              backgroundColor: "#FFE066",
-              fillStyle: "solid",
-              strokeWidth: 1,
-              strokeStyle: "solid",
-              roughness: 0,
-              opacity: 100,
-              groupIds: [],
-              frameId: null,
-              roundness: { type: 3, value: 8 },
-              seed: Math.floor(Math.random() * 999999),
-              version: 1,
-              versionNonce: Math.floor(Math.random() * 999999),
-              isDeleted: false,
-              boundElements: [{ id: tid, type: "text" }],
-              updated: ts,
-              link: null,
-              locked: false
+              x: x + 5,
+              y: y + 6,
+              width: W,
+              height: H,
+              strokeColor: "transparent",
+              backgroundColor: "#1e293b",
+              opacity: 18,
+              strokeWidth: 0,
+              roundness: { type: 3, value: CR },
+              groupIds: [gid],
+              boundElements: null,
+              seed: rnd(), version: 1, versionNonce: rnd(),
             },
+            // 2. Main yellow body
             {
-              id: tid,
+              ...base,
+              id: bodyId,
+              type: "rectangle",
+              x, y,
+              width: W,
+              height: H,
+              strokeColor: "#C8960A",
+              backgroundColor: "#FFE566",
+              strokeWidth: 1.5,
+              roundness: { type: 3, value: CR },
+              groupIds: [gid],
+              boundElements: null,
+              seed: rnd(), version: 1, versionNonce: rnd(),
+            },
+            // 3. Darker header strip (inset by CR to avoid clipping rounded corners)
+            {
+              ...base,
+              id: `sn-header-${ts}`,
+              type: "rectangle",
+              x: x + CR,
+              y,
+              width: W - CR * 2,
+              height: HEADER_H,
+              strokeColor: "transparent",
+              backgroundColor: "#E6B800",
+              strokeWidth: 0,
+              roundness: null,
+              groupIds: [gid],
+              boundElements: null,
+              seed: rnd(), version: 1, versionNonce: rnd(),
+            },
+            // 4. Fold crease — diagonal line at top-right corner
+            {
+              ...base,
+              id: `sn-fold-${ts}`,
+              type: "line",
+              x: x + W - FOLD,
+              y,
+              width: FOLD,
+              height: FOLD,
+              strokeColor: "#9A7200",
+              backgroundColor: "transparent",
+              strokeWidth: 1.5,
+              roundness: null,
+              groupIds: [gid],
+              boundElements: null,
+              seed: rnd(), version: 1, versionNonce: rnd(),
+              points: [[0, 0], [FOLD, FOLD]],
+              lastCommittedPoint: null,
+              startBinding: null,
+              endBinding: null,
+              startArrowhead: null,
+              endArrowhead: null,
+            },
+            // 5. Text (standalone, positioned below header strip)
+            {
+              ...base,
+              id: `sn-text-${ts}`,
               type: "text",
-              x: cx - 80,
-              y: cy - 16,
-              width: 160,
-              height: 32,
-              angle: 0,
+              x: x + 10,
+              y: y + HEADER_H + 6,
+              width: W - 20,
+              height: H - HEADER_H - 14,
               strokeColor: "#7a5c00",
               backgroundColor: "transparent",
-              fillStyle: "solid",
               strokeWidth: 1,
-              strokeStyle: "solid",
-              roughness: 0,
-              opacity: 100,
-              groupIds: [],
-              frameId: null,
               roundness: null,
-              seed: Math.floor(Math.random() * 999999),
-              version: 1,
-              versionNonce: Math.floor(Math.random() * 999999),
-              isDeleted: false,
+              groupIds: [gid],
               boundElements: null,
-              updated: ts,
-              link: null,
-              locked: false,
+              seed: rnd(), version: 1, versionNonce: rnd(),
               text: "Not...",
               fontSize: 16,
               fontFamily: selectedFont,
-              textAlign: "center",
-              verticalAlign: "middle",
-              containerId: rid,
+              textAlign: "left",
+              verticalAlign: "top",
+              containerId: null,
               originalText: "Not...",
-              lineHeight: 1.25,
-              autoResize: true
-            }
-          ]
+              lineHeight: 1.35,
+              autoResize: true,
+            },
+          ],
+        });
+
+        excalidrawAPI.updateScene({
+          appState: { selectedElementIds: { [bodyId]: true } },
         });
       } catch (err) {
         console.error("Post-it eklenirken hata:", err);

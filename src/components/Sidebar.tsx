@@ -748,9 +748,9 @@ export default function Sidebar() {
           className={`folder-item${isActive ? " active" : ""}`}
           style={{ paddingLeft: `${8 + depth * 12}px` }}
           onClick={() => setActiveFolderId(isActive ? null : folder.id)}
-          onDragOver={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement).classList.add("drag-over"); }}
-          onDragLeave={(e) => { (e.currentTarget as HTMLElement).classList.remove("drag-over"); }}
-          onDrop={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement).classList.remove("drag-over"); handleDropNoteToFolder(folder.id); }}
+          onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; (e.currentTarget as HTMLElement).classList.add("drag-over"); }}
+          onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) { (e.currentTarget as HTMLElement).classList.remove("drag-over"); } }}
+          onDrop={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement).classList.remove("drag-over"); draggedNoteIdRef.current = draggedNoteIdRef.current || e.dataTransfer.getData("text/plain"); handleDropNoteToFolder(folder.id); }}
         >
           <button
             type="button"
@@ -1082,7 +1082,11 @@ export default function Sidebar() {
       className={`note-item ${activeNoteId === note.id ? "active" : ""}`}
       onClick={() => handleNoteSelect(note.id)}
       draggable={true}
-      onDragStart={() => { draggedNoteIdRef.current = note.id; }}
+      onDragStart={(e) => {
+        draggedNoteIdRef.current = note.id;
+        e.dataTransfer.setData("text/plain", note.id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
       onDragEnd={() => { draggedNoteIdRef.current = null; }}
     >
       <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "8px", flex: 1, minWidth: 0 }}>
@@ -1633,9 +1637,9 @@ export default function Sidebar() {
                 className={`folder-item${activeFolderId === "unfiled" ? " active" : ""}`}
                 style={{ paddingLeft: "8px" }}
                 onClick={() => setActiveFolderId(activeFolderId === "unfiled" ? null : "unfiled")}
-                onDragOver={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement).classList.add("drag-over"); }}
-                onDragLeave={(e) => { (e.currentTarget as HTMLElement).classList.remove("drag-over"); }}
-                onDrop={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement).classList.remove("drag-over"); handleDropNoteToFolder(null); }}
+                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; (e.currentTarget as HTMLElement).classList.add("drag-over"); }}
+                onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) { (e.currentTarget as HTMLElement).classList.remove("drag-over"); } }}
+                onDrop={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement).classList.remove("drag-over"); draggedNoteIdRef.current = draggedNoteIdRef.current || e.dataTransfer.getData("text/plain"); handleDropNoteToFolder(null); }}
               >
                 <span style={{ width: 10, display: "inline-block", flexShrink: 0 }} />
                 <FolderIcon size={13} className="folder-icon" style={{ opacity: 0.45 }} />
