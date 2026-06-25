@@ -132,6 +132,10 @@
       "popular": "Most Popular",
       "freeBtn": "Get Started",
       "premiumBtn": "Upgrade to Premium",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "yearlyBadge": "2 months free",
+      "yearlyDesc": "$24.99 / yr",
       "fUnlimited": "Unlimited notes and canvas",
       "fStorage1": "1 GB cloud storage",
       "fStorage10": "10 GB cloud storage",
@@ -210,7 +214,10 @@
     "usernameRequired": "Username cannot be empty",
     "profileUpdated": "Profile updated",
     "saveProfile": "Save",
-    "keyboardShortcuts": "Keyboard Shortcuts"
+    "keyboardShortcuts": "Keyboard Shortcuts",
+    "totalDocuments": "Total Documents",
+    "totalCanvas": "Total Canvas",
+    "year": "yr"
   },
   "canvas": {
     "tool": {

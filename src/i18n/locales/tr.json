@@ -132,6 +132,10 @@
       "popular": "En Popüler",
       "freeBtn": "Hemen Başla",
       "premiumBtn": "Premium'a Geç",
+      "monthly": "Aylık",
+      "yearly": "Yıllık",
+      "yearlyBadge": "2 ay ücretsiz",
+      "yearlyDesc": "$24.99 / yıl",
       "fUnlimited": "Sınırsız not ve canvas",
       "fStorage1": "1 GB bulut depolama",
       "fStorage10": "10 GB bulut depolama",
@@ -210,7 +214,10 @@
     "usernameRequired": "Kullanıcı adı boş olamaz",
     "profileUpdated": "Profil güncellendi",
     "saveProfile": "Kaydet",
-    "keyboardShortcuts": "Klavye Kısayolları"
+    "keyboardShortcuts": "Klavye Kısayolları",
+    "totalDocuments": "Toplam Belge",
+    "totalCanvas": "Toplam Canvas",
+    "year": "yıl"
   },
   "canvas": {
     "tool": {

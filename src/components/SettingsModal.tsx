@@ -39,6 +39,7 @@ export default function SettingsModal() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const importFileRef = useRef<HTMLInputElement>(null);
   const [isClosing, setIsClosing] = useState(false);
 
@@ -716,12 +717,12 @@ export default function SettingsModal() {
                 <div className="storage-stats-grid">
                   <div className="stat-item-box">
                     <FileText size={18} className="stat-icon" />
-                    <span className="stat-label">{t("sidebar.newDocument", "Belgeler")}</span>
+                    <span className="stat-label">{t("settings.totalDocuments", "Toplam Belge")}</span>
                     <span className="stat-value">{docCount}</span>
                   </div>
                   <div className="stat-item-box">
                     <Palette size={18} className="stat-icon" />
-                    <span className="stat-label">{t("sidebar.newCanvas", "Canvas'lar")}</span>
+                    <span className="stat-label">{t("settings.totalCanvas", "Toplam Canvas")}</span>
                     <span className="stat-value">{canvasCount}</span>
                   </div>
                   <div className="stat-item-box">
@@ -743,6 +744,23 @@ export default function SettingsModal() {
           {settingsTab === "billing" && (
             <div className="settings-pane">
               <h2 className="settings-pane-title">{t("settings.billing", "Plan & Fatura")}</h2>
+
+              {/* Billing cycle toggle */}
+              <div className="billing-cycle-toggle">
+                <button
+                  className={`billing-cycle-btn ${billingCycle === "monthly" ? "active" : ""}`}
+                  onClick={() => setBillingCycle("monthly")}
+                >
+                  {t("landing.pricing.monthly", "Aylık")}
+                </button>
+                <button
+                  className={`billing-cycle-btn ${billingCycle === "yearly" ? "active" : ""}`}
+                  onClick={() => setBillingCycle("yearly")}
+                >
+                  {t("landing.pricing.yearly", "Yıllık")}
+                  <span className="billing-yearly-badge">{t("landing.pricing.yearlyBadge", "2 ay ücretsiz")}</span>
+                </button>
+              </div>
 
               <div className="billing-plans-container">
                 {/* FREE PLAN */}
@@ -777,8 +795,17 @@ export default function SettingsModal() {
                     )}
                   </div>
                   <div className="plan-price-block">
-                    <span className="plan-price-amount">$2.99</span>
-                    <span className="plan-price-period">/{t("settings.month", "ay")}</span>
+                    {billingCycle === "yearly" ? (
+                      <>
+                        <span className="plan-price-amount">$24.99</span>
+                        <span className="plan-price-period">/{t("settings.year", "yıl")}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="plan-price-amount">$2.99</span>
+                        <span className="plan-price-period">/{t("settings.month", "ay")}</span>
+                      </>
+                    )}
                   </div>
                   <ul className="plan-features-list">
                     <li>• {t("landing.pricing.fStorage10", "10 GB Depolama")}</li>
