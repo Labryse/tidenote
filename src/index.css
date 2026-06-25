@@ -5979,9 +5979,38 @@ body {
 }
 
 .folder-item.drag-over {
-  background: rgba(8, 145, 178, 0.15);
+  background: rgba(8, 145, 178, 0.22);
   outline: 2px dashed var(--color-accent);
   outline-offset: -2px;
+  transform: scale(1.015);
+  transition: background 0.1s, transform 0.1s;
+}
+
+.folder-item.drop-highlight {
+  animation: folderDropPulse 0.55s ease-out forwards;
+}
+
+@keyframes folderDropPulse {
+  0%   { background: rgba(20, 184, 166, 0.45); outline: 2px solid #14b8a6; outline-offset: -2px; }
+  100% { background: transparent; outline-color: transparent; }
+}
+
+.folder-note-badge {
+  font-size: 10px;
+  background: var(--color-border);
+  color: var(--color-text-muted);
+  border-radius: 10px;
+  padding: 1px 5px;
+  min-width: 16px;
+  text-align: center;
+  line-height: 1.6;
+  flex-shrink: 0;
+  margin-left: 2px;
+}
+
+.folder-item.active .folder-note-badge {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
 }
 
 .folder-chevron-btn {
@@ -6694,7 +6723,7 @@ body {
   padding: 6px;
   min-width: 168px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-  z-index: 200;
+  z-index: 2000;
   white-space: nowrap;
 }
 .toolbar-font-dropdown.below {
@@ -6753,4 +6782,292 @@ body {
   padding: 4px 8px 2px;
   border-top: 1px solid var(--color-border);
   margin-top: 4px;
+}
+
+/* ==========================================
+   FLOATING PROPERTIES BAR
+   ========================================== */
+
+.floating-props-bar {
+  position: absolute;
+  z-index: 200;
+  background: rgba(20, 30, 50, 0.96);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  pointer-events: all;
+  white-space: nowrap;
+  animation: floatingBarIn 0.15s ease-out;
+}
+
+:root[data-theme="light"] .floating-props-bar {
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+}
+
+@keyframes floatingBarIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(6px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.floating-props-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.floating-props-btn:hover {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.floating-props-btn.danger:hover {
+  background: rgba(239,68,68,0.12);
+  color: #ef4444;
+}
+
+.floating-props-btn.locked {
+  color: var(--color-accent);
+}
+
+.floating-props-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--color-border);
+  margin: 0 3px;
+  flex-shrink: 0;
+}
+
+.floating-color-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.25);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: inline-block;
+  outline: none;
+  padding: 0;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.18);
+}
+
+/* Hide Excalidraw's built-in properties panel (appears on shape select) */
+.excalidraw .App-bottom-bar {
+  display: none !important;
+}
+
+/* ===== TASK 3: Hide Excalidraw left properties panel ===== */
+.excalidraw .layer-ui__sidebar,
+.excalidraw .App-menu__left,
+.excalidraw [class*="sidebar"]:not([class*="scroll-back"]),
+.excalidraw .panelColumn,
+.excalidraw .properties-content,
+.excalidraw section[aria-label*="haped"],
+.excalidraw section[aria-label*="troke"],
+.excalidraw section[aria-label*="olor"],
+.excalidraw section[aria-label*="ll"],
+.excalidraw section[aria-label*="pacity"],
+.excalidraw section[aria-label*="ont"] {
+  display: none !important;
+}
+
+/* ===== TASK 5: Hide hamburger / main menu button ===== */
+.excalidraw .App-menu_top .dropdown-menu-button,
+.excalidraw .App-menu-trigger,
+.excalidraw [data-testid="main-menu-trigger"],
+.excalidraw button[aria-label*="menu"],
+.excalidraw button[aria-label*="Menu"],
+.excalidraw button[title="Main menu"],
+.excalidraw button[title="Ana menü"],
+.excalidraw .main-menu-trigger {
+  display: none !important;
+}
+
+/* Floating color dot (label wrapper pattern) */
+.floating-color-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.35);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.3);
+  display: inline-block;
+  flex-shrink: 0;
+  transition: transform 0.12s;
+}
+.floating-color-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+  position: relative;
+}
+.floating-color-label:hover {
+  background: var(--color-accent-soft);
+}
+.floating-color-label:hover .floating-color-dot {
+  transform: scale(1.12);
+}
+.floating-color-label input[type="color"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+/* ===== TASK 4: Image Preview Modal ===== */
+.image-preview-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: imagePreviewFadeIn 0.18s ease-out forwards;
+}
+
+@keyframes imagePreviewFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.image-preview-img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.image-preview-close-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+  z-index: 100000;
+}
+
+.image-preview-close-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* ===== TASK 7: Floating bar extensions ===== */
+
+/* Opacity slider */
+.floating-opacity-wrap {
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  height: 28px;
+}
+
+.floating-opacity-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 64px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-border);
+  outline: none;
+  cursor: pointer;
+}
+
+.floating-opacity-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  cursor: pointer;
+  border: 2px solid rgba(255,255,255,0.5);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.25);
+}
+
+.floating-opacity-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  cursor: pointer;
+  border: 2px solid rgba(255,255,255,0.5);
+}
+
+/* Font family dropdown in floating bar */
+.floating-font-dropdown {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: rgba(20, 30, 50, 0.97);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  min-width: 140px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: floatingBarIn 0.15s ease-out;
+}
+
+:root[data-theme="light"] .floating-font-dropdown {
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.floating-font-option {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: var(--color-text-primary);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+  font-family: inherit;
+}
+
+.floating-font-option:hover {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.floating-font-option.active {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-weight: 600;
 }

@@ -77,23 +77,44 @@ export default function InfoModal() {
   };
 
   const getWordCount = (): number => {
-    if (!activeNote || activeNote.type === "canvas") return 0;
-    
+    if (!activeNote) return 0;
+
+    if (activeNote.type === "canvas") {
+      if (!activeNote.elements) return 0;
+      try {
+        const els: any[] = JSON.parse(activeNote.elements);
+        const text = els
+          .filter(el => el && el.type === "text" && typeof el.text === "string" && !el.isDeleted)
+          .map(el => el.text)
+          .join(" ");
+        const trimmed = text.trim();
+        return trimmed ? trimmed.split(/\s+/).filter(Boolean).length : 0;
+      } catch { return 0; }
+    }
+
     let blocks: any[] = [];
     if (typeof activeNote.content === "string") {
-      try {
-        blocks = JSON.parse(activeNote.content);
-      } catch {
-        blocks = [];
-      }
+      try { blocks = JSON.parse(activeNote.content); } catch { blocks = []; }
     } else if (Array.isArray(activeNote.content)) {
       blocks = activeNote.content;
     }
-    
+
     const text = extractTextFromBlocks(blocks);
     const trimmed = text.trim();
     if (!trimmed) return 0;
     return trimmed.split(/\s+/).filter(Boolean).length;
+  };
+
+  const getCanvasStats = () => {
+    if (!activeNote || activeNote.type !== "canvas" || !activeNote.elements) return null;
+    try {
+      const els: any[] = JSON.parse(activeNote.elements);
+      const active = els.filter(el => !el.isDeleted);
+      const shapes = active.filter(el => ["rectangle", "ellipse", "diamond", "line", "arrow"].includes(el.type)).length;
+      const images = active.filter(el => el.type === "image").length;
+      const texts = active.filter(el => el.type === "text").length;
+      return { shapes, images, texts };
+    } catch { return null; }
   };
 
   return (
@@ -131,6 +152,26 @@ export default function InfoModal() {
             <span className="info-modal-label">{t("info.wordCount", "Kelime Sayısı")}</span>
             <span className="info-modal-value">{getWordCount()}</span>
           </div>
+          {activeNote.type === "canvas" && (() => {
+            const stats = getCanvasStats();
+            if (!stats) return null;
+            return (
+              <>
+                <div className="info-modal-row">
+                  <span className="info-modal-label">{t("info.canvasShapes", "Şekil Sayısı")}</span>
+                  <span className="info-modal-value">{stats.shapes}</span>
+                </div>
+                <div className="info-modal-row">
+                  <span className="info-modal-label">{t("info.canvasImages", "Görsel Sayısı")}</span>
+                  <span className="info-modal-value">{stats.images}</span>
+                </div>
+                <div className="info-modal-row">
+                  <span className="info-modal-label">{t("info.canvasTexts", "Metin Sayısı")}</span>
+                  <span className="info-modal-value">{stats.texts}</span>
+                </div>
+              </>
+            );
+          })()}
           <div className="info-modal-row">
             <span className="info-modal-label">{t("info.tags", "Etiketler")}</span>
             <div className="info-modal-tags">

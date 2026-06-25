@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Excalidraw, MainMenu } from "@excalidraw/excalidraw";
+import { Excalidraw, MainMenu, FONT_FAMILY } from "@excalidraw/excalidraw";
 import LoadingSpinner from "./LoadingSpinner";
 import "@excalidraw/excalidraw/index.css";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
@@ -19,8 +19,22 @@ import {
   Trash,
   ArrowDown,
   ArrowUp,
-  ExternalLink
+  ExternalLink,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  X,
+  ChevronDown
 } from "lucide-react";
+
+const FLOATING_FONTS = [
+  { id: FONT_FAMILY.Helvetica as number, label: "Helvetica" },
+  { id: FONT_FAMILY["Liberation Sans"] as number, label: "Liberation Sans" },
+  { id: FONT_FAMILY.Nunito as number, label: "Nunito" },
+  { id: FONT_FAMILY.Excalifont as number, label: "Excalifont" },
+  { id: FONT_FAMILY["Comic Shanns"] as number, label: "Comic Shanns" },
+  { id: FONT_FAMILY.Cascadia as number, label: "Cascadia" },
+];
 
 export default function Canvas() {
   const { t, i18n } = useTranslation();
@@ -35,6 +49,10 @@ export default function Canvas() {
   const [floatingPos, setFloatingPos] = useState<{ top: number; left: number } | null>(null);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [isThreeDotsOpen, setIsThreeDotsOpen] = useState(false);
+  const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [isFontDropdownOpen, setIsFontDropdownOpen] = useState(false);
+  const fontDropdownRef = useRef<HTMLDivElement>(null);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [customBlockType, setCustomBlockTypeState] = useState<string | null>(null);
@@ -45,6 +63,7 @@ export default function Canvas() {
     customBlockTypeRef.current = type;
   };
 
+  const prevElementsCountRef = useRef(0);
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef<{ clientX: number; clientY: number; canvasX: number; canvasY: number } | null>(null);
   const [previewRect, setPreviewRect] = useState<{
@@ -287,13 +306,13 @@ export default function Canvas() {
       return;
     }
 
-    const defaultBg = theme === "dark" ? "rgba(39, 39, 42, 0.9)" : "rgba(244, 244, 245, 0.9)";
+    const defaultBg = theme === "dark" ? "#2A2A2A" : "#F0F0F0";
     const defaultStroke = theme === "dark" ? "#71717a" : "#d4d4d8";
 
     let text = i18n.language.startsWith("tr") ? "Yazmaya Başla..." : "Type '/' for commands...";
     let fontSize = 16;
-    let fontFamily = 1;
-    let textAlign: "left" | "center" | "right" = "left";
+    let fontFamily = FONT_FAMILY.Helvetica as number;
+    let textAlign: "left" | "center" | "right" = "center";
     let strokeColor = theme === "dark" ? "#f4f4f5" : "#18181b";
     let customLink: string | null = null;
 
@@ -572,47 +591,53 @@ export default function Canvas() {
     const { rect, text } = selectedContainer;
     const idSuffix = `${Date.now()}`;
     const newRectId = `rect-${idSuffix}`;
-    const newTextId = `text-${idSuffix}`;
     const newGroupId = `group-dup-${idSuffix}`;
-
     const existing = excalidrawAPI.getSceneElements();
-    const newRect = {
-      ...rect,
-      id: newRectId,
-      x: rect.x + 30,
-      y: rect.y + 30,
-      boundElements: [{ id: newTextId, type: "text" }],
-      groupIds: [newGroupId],
-      seed: Math.floor(Math.random() * 999999),
-      version: 1,
-      versionNonce: Math.floor(Math.random() * 999999),
-      updated: Date.now()
-    };
-    
-    const newText = {
-      ...text,
-      id: newTextId,
-      x: text ? text.x + 30 : rect.x + 46,
-      y: text ? text.y + 30 : rect.y + 46,
-      containerId: newRectId,
-      groupIds: [newGroupId],
-      seed: Math.floor(Math.random() * 999999),
-      version: 1,
-      versionNonce: Math.floor(Math.random() * 999999),
-      updated: Date.now()
-    };
+    const newElements: any[] = [];
 
-    excalidrawAPI.updateScene({
-      elements: [...existing, newRect, newText]
-    });
+    if (text) {
+      const newTextId = `text-${idSuffix}`;
+      newElements.push({
+        ...rect,
+        id: newRectId,
+        x: rect.x + 30,
+        y: rect.y + 30,
+        boundElements: [{ id: newTextId, type: "text" }],
+        groupIds: [newGroupId],
+        seed: Math.floor(Math.random() * 999999),
+        version: 1,
+        versionNonce: Math.floor(Math.random() * 999999),
+        updated: Date.now()
+      });
+      newElements.push({
+        ...text,
+        id: newTextId,
+        x: text.x + 30,
+        y: text.y + 30,
+        containerId: newRectId,
+        groupIds: [newGroupId],
+        seed: Math.floor(Math.random() * 999999),
+        version: 1,
+        versionNonce: Math.floor(Math.random() * 999999),
+        updated: Date.now()
+      });
+    } else {
+      newElements.push({
+        ...rect,
+        id: newRectId,
+        x: rect.x + 30,
+        y: rect.y + 30,
+        boundElements: null,
+        groupIds: [newGroupId],
+        seed: Math.floor(Math.random() * 999999),
+        version: 1,
+        versionNonce: Math.floor(Math.random() * 999999),
+        updated: Date.now()
+      });
+    }
 
-    excalidrawAPI.updateScene({
-      appState: {
-        selectedElementIds: {
-          [newRectId]: true
-        }
-      }
-    });
+    excalidrawAPI.updateScene({ elements: [...existing, ...newElements] });
+    excalidrawAPI.updateScene({ appState: { selectedElementIds: { [newRectId]: true } } });
   };
 
   const handleLayering = (action: "front" | "back") => {
@@ -637,6 +662,142 @@ export default function Canvas() {
     }
 
     excalidrawAPI.updateScene({ elements: updatedScene });
+  };
+
+  // Close font dropdown on outside click
+  useEffect(() => {
+    if (!isFontDropdownOpen) return;
+    const handleOutside = (e: MouseEvent) => {
+      if (fontDropdownRef.current && !fontDropdownRef.current.contains(e.target as Node)) {
+        setIsFontDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [isFontDropdownOpen]);
+
+  // ESC closes image preview
+  useEffect(() => {
+    if (!isImagePreviewOpen) return;
+    const handleKey = (e: KeyboardEvent) => { if (e.key === "Escape") setIsImagePreviewOpen(false); };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [isImagePreviewOpen]);
+
+  const updateStrokeWidth = (width: number) => {
+    if (!excalidrawAPI || !selectedContainer) return;
+    const { rect, text } = selectedContainer;
+    const elements = excalidrawAPI.getSceneElements();
+    const updated = elements.map((el: any) => {
+      if (el.id === rect.id || (text && el.id === text.id)) {
+        return { ...el, strokeWidth: width, updated: Date.now(), version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) };
+      }
+      return el;
+    });
+    excalidrawAPI.updateScene({ elements: updated });
+  };
+
+  const updateFillStyle = (fillStyle: string) => {
+    if (!excalidrawAPI || !selectedContainer) return;
+    const { rect } = selectedContainer;
+    const elements = excalidrawAPI.getSceneElements();
+    const updated = elements.map((el: any) => {
+      if (el.id === rect.id) {
+        return { ...el, fillStyle, updated: Date.now(), version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) };
+      }
+      return el;
+    });
+    excalidrawAPI.updateScene({ elements: updated });
+  };
+
+  const updateOpacity = (opacity: number) => {
+    if (!excalidrawAPI || !selectedContainer) return;
+    const { rect, text } = selectedContainer;
+    const elements = excalidrawAPI.getSceneElements();
+    const updated = elements.map((el: any) => {
+      if (el.id === rect.id || (text && el.id === text.id)) {
+        return { ...el, opacity, updated: Date.now(), version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) };
+      }
+      return el;
+    });
+    excalidrawAPI.updateScene({ elements: updated });
+  };
+
+  const updateFontFamily = (fontFamily: number) => {
+    if (!excalidrawAPI || !selectedContainer) return;
+    const { rect, text } = selectedContainer;
+    const targetId = text ? text.id : rect.id;
+    const elements = excalidrawAPI.getSceneElements();
+    const updated = elements.map((el: any) => {
+      if (el.id === targetId) {
+        return { ...el, fontFamily, updated: Date.now(), version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) };
+      }
+      return el;
+    });
+    excalidrawAPI.updateScene({ elements: updated });
+    try { excalidrawAPI.updateScene({ appState: { currentItemFontFamily: fontFamily } }); } catch (_) {}
+  };
+
+  const updateFontSize = (fontSize: number) => {
+    if (!excalidrawAPI || !selectedContainer) return;
+    const { rect, text } = selectedContainer;
+    const targetId = text ? text.id : rect.id;
+    const elements = excalidrawAPI.getSceneElements();
+    const updated = elements.map((el: any) => {
+      if (el.id === targetId) {
+        return { ...el, fontSize, updated: Date.now(), version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) };
+      }
+      return el;
+    });
+    excalidrawAPI.updateScene({ elements: updated });
+  };
+
+  const updateTextAlign = (textAlign: string) => {
+    if (!excalidrawAPI || !selectedContainer) return;
+    const { rect, text } = selectedContainer;
+    const targetId = text ? text.id : rect.id;
+    const elements = excalidrawAPI.getSceneElements();
+    const updated = elements.map((el: any) => {
+      if (el.id === targetId) {
+        return { ...el, textAlign, updated: Date.now(), version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) };
+      }
+      return el;
+    });
+    excalidrawAPI.updateScene({ elements: updated });
+  };
+
+  const updateCornerRadius = (rounded: boolean) => {
+    if (!excalidrawAPI || !selectedContainer) return;
+    const { rect } = selectedContainer;
+    const elements = excalidrawAPI.getSceneElements();
+    const updated = elements.map((el: any) => {
+      if (el.id === rect.id) {
+        return {
+          ...el,
+          roundness: rounded ? { type: 3, value: 10 } : null,
+          updated: Date.now(),
+          version: el.version + 1,
+          versionNonce: Math.floor(Math.random() * 999999)
+        };
+      }
+      return el;
+    });
+    excalidrawAPI.updateScene({ elements: updated });
+  };
+
+  const handleDoubleClick = () => {
+    if (!excalidrawAPI) return;
+    const appState = excalidrawAPI.getAppState();
+    const selectedIds = Object.keys(appState.selectedElementIds || {}).filter(id => appState.selectedElementIds[id]);
+    if (selectedIds.length !== 1) return;
+    const elements = excalidrawAPI.getSceneElements();
+    const el = elements.find((e: any) => e.id === selectedIds[0]);
+    if (!el || el.type !== "image" || !el.fileId) return;
+    const files = excalidrawAPI.getFiles();
+    const file = files[el.fileId];
+    if (!file || !file.dataURL) return;
+    setImagePreviewUrl(file.dataURL);
+    setIsImagePreviewOpen(true);
   };
 
   useEffect(() => {
@@ -822,6 +983,8 @@ export default function Canvas() {
         gridModeEnabled: false,
         viewBackgroundColor: "transparent",
         currentItemRoughness: 0,
+        currentItemFontFamily: FONT_FAMILY.Helvetica as number,
+        objectsSnapModeEnabled: true,
       },
       files
     });
@@ -860,49 +1023,65 @@ export default function Canvas() {
       setActiveTool(appState.activeTool.type);
     }
 
-    // Selection tracking
+    // Fix: restore transparent background when canvas is cleared (Ctrl+Backspace)
+    const activeEls = (elements as any[]).filter(e => !e.isDeleted);
+    const currentCount = activeEls.length;
+    if (prevElementsCountRef.current > 0 && currentCount === 0) {
+      setTimeout(() => {
+        if (excalidrawAPI) {
+          excalidrawAPI.updateScene({ appState: { viewBackgroundColor: "transparent" } });
+        }
+      }, 60);
+    }
+    prevElementsCountRef.current = currentCount;
+
+    // Selection tracking — works for all element types
     const selectedIds = Object.keys(appState.selectedElementIds || {}).filter(
       id => appState.selectedElementIds[id]
     );
 
-    if (selectedIds.length === 1 && excalidrawAPI) {
-      const selectedId = selectedIds[0];
-      const el = elements.find(e => e.id === selectedId && !e.isDeleted);
-      if (el) {
-        let rectEl = null;
-        let textEl = null;
+    if (selectedIds.length >= 1) {
+      const selEls = activeEls.filter(e => selectedIds.includes(e.id));
+      if (selEls.length > 0) {
+        const zoom = appState.zoom?.value ?? 1;
+        const scrollX = appState.scrollX ?? 0;
+        const scrollY = appState.scrollY ?? 0;
 
-        if (el.type === "rectangle" && el.boundElements?.some((be: any) => be.type === "text")) {
-          rectEl = el;
-          const textId = el.boundElements.find((be: any) => be.type === "text")?.id;
-          textEl = elements.find(e => e.id === textId && !e.isDeleted);
-        } else if (el.type === "text" && el.containerId) {
-          textEl = el;
-          rectEl = elements.find(e => e.id === el.containerId && !e.isDeleted);
+        // Bounding box of all selected elements
+        const minX = Math.min(...selEls.map(e => e.x ?? 0));
+        const minY = Math.min(...selEls.map(e => e.y ?? 0));
+        const maxX = Math.max(...selEls.map(e => (e.x ?? 0) + (e.width ?? 0)));
+
+        const screenMinX = minX * zoom + scrollX;
+        const screenMinY = minY * zoom + scrollY;
+        const screenMaxX = maxX * zoom + scrollX;
+
+        const newLeft = (screenMinX + screenMaxX) / 2;
+        const newTop = Math.max(8, screenMinY - 54);
+
+        setFloatingPos(prev =>
+          prev?.left === newLeft && prev?.top === newTop ? prev : { left: newLeft, top: newTop }
+        );
+
+        // Determine primary element for the floating bar
+        const primaryId = selectedIds[0];
+        let primaryEl = selEls.find(e => e.id === primaryId) ?? selEls[0];
+
+        // Prefer the rectangle when text inside a container is selected
+        if (primaryEl.type === "text" && primaryEl.containerId) {
+          const container = activeEls.find(e => e.id === primaryEl.containerId);
+          if (container) primaryEl = container;
         }
 
-        if (rectEl && textEl) {
-          setSelectedContainer(prev =>
-            prev?.rect?.id === rectEl.id ? prev : { rect: rectEl, text: textEl }
-          );
+        const textChild = primaryEl.boundElements
+          ? activeEls.find(e =>
+              primaryEl.boundElements.some((be: any) => be.type === "text" && be.id === e.id) && !e.isDeleted
+            ) ?? null
+          : null;
 
-          const zoom = appState.zoom?.value ?? 1;
-          const scrollX = appState.scrollX ?? 0;
-          const scrollY = appState.scrollY ?? 0;
-
-          const screenX = rectEl.x * zoom + scrollX;
-          const screenY = rectEl.y * zoom + scrollY;
-          const screenW = rectEl.width * zoom;
-          const newLeft = screenX + screenW / 2;
-          const newTop = screenY - 56;
-
-          setFloatingPos(prev =>
-            prev?.left === newLeft && prev?.top === newTop ? prev : { left: newLeft, top: newTop }
-          );
-        } else {
-          setSelectedContainer(null);
-          setFloatingPos(null);
-        }
+        setSelectedContainer(prev =>
+          prev?.rect?.id === primaryEl.id ? prev : { rect: primaryEl, text: textChild }
+        );
       } else {
         setSelectedContainer(null);
         setFloatingPos(null);
@@ -914,7 +1093,6 @@ export default function Canvas() {
 
     const currentStr = JSON.stringify(elements);
     if (currentStr === lastSavedRef.current) return;
-
     if (!elements || elements.length === 0) return;
 
     lastSavedRef.current = currentStr;
@@ -931,14 +1109,22 @@ export default function Canvas() {
     );
   }
 
+  const floatingBarIsShape = selectedContainer?.rect?.type === "rectangle" ||
+    selectedContainer?.rect?.type === "ellipse" ||
+    selectedContainer?.rect?.type === "diamond";
+  const floatingBarIsText = selectedContainer?.rect?.type === "text";
+  const floatingBarTextEl: any = selectedContainer?.text ||
+    (floatingBarIsText ? selectedContainer?.rect : null);
+
   return (
     <div className={`canvas-container ${customBlockType ? "custom-block-placement-active" : ""}`}>
-      <div 
+      <div
         ref={wrapperRef}
         className="canvas-wrapper"
         onPointerDownCapture={handlePointerDownCapture}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onDoubleClick={handleDoubleClick}
       >
         <Excalidraw
           key={activeNoteId}
@@ -987,7 +1173,221 @@ export default function Canvas() {
             }}
           />
         )}
+
+        {/* Floating Properties Bar */}
+        {selectedContainer && floatingPos && (
+          <div
+            className="floating-props-bar"
+            style={{ left: floatingPos.left, top: floatingPos.top, transform: "translateX(-50%)" }}
+            onPointerDown={e => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Duplicate */}
+            <button type="button" className="floating-props-btn" onClick={handleDuplicateContainer} title={i18n.language.startsWith("tr") ? "Çoğalt" : "Duplicate"}>
+              <Copy size={14} />
+            </button>
+            <div className="floating-props-sep" />
+            {/* Layer */}
+            <button type="button" className="floating-props-btn" onClick={() => handleLayering("front")} title={i18n.language.startsWith("tr") ? "Öne Getir" : "Bring to Front"}>
+              <ArrowUp size={14} />
+            </button>
+            <button type="button" className="floating-props-btn" onClick={() => handleLayering("back")} title={i18n.language.startsWith("tr") ? "Arkaya Gönder" : "Send to Back"}>
+              <ArrowDown size={14} />
+            </button>
+            <div className="floating-props-sep" />
+            {/* Lock */}
+            <button
+              type="button"
+              className={`floating-props-btn${selectedContainer.rect?.locked ? " locked" : ""}`}
+              onClick={handleToggleLock}
+              title={selectedContainer.rect?.locked ? (i18n.language.startsWith("tr") ? "Kilidi Aç" : "Unlock") : (i18n.language.startsWith("tr") ? "Kilitle" : "Lock")}
+            >
+              {selectedContainer.rect?.locked ? <Lock size={14} /> : <Unlock size={14} />}
+            </button>
+
+            {/* SHAPE PROPERTIES */}
+            {floatingBarIsShape && (
+              <>
+                <div className="floating-props-sep" />
+                {/* Stroke width */}
+                {[{ w: 1, h: 1 }, { w: 2, h: 2 }, { w: 4, h: 4 }].map(({ w, h }) => (
+                  <button
+                    key={w}
+                    type="button"
+                    className={`floating-props-btn ${selectedContainer.rect?.strokeWidth === w ? "active" : ""}`}
+                    onClick={() => updateStrokeWidth(w)}
+                    title={`${i18n.language.startsWith("tr") ? "Kontur" : "Stroke"} ${w}px`}
+                  >
+                    <span style={{ display: "block", width: 14, height: h, background: "currentColor", borderRadius: 1 }} />
+                  </button>
+                ))}
+                <div className="floating-props-sep" />
+                {/* Fill style */}
+                {[
+                  { style: "solid", symbol: "■", title: i18n.language.startsWith("tr") ? "Dolu" : "Solid" },
+                  { style: "hachure", symbol: "▤", title: i18n.language.startsWith("tr") ? "Taralı" : "Hachure" },
+                  { style: "dots", symbol: "⋯", title: i18n.language.startsWith("tr") ? "Noktalı" : "Dots" }
+                ].map(({ style, symbol, title }) => (
+                  <button
+                    key={style}
+                    type="button"
+                    className={`floating-props-btn ${selectedContainer.rect?.fillStyle === style ? "active" : ""}`}
+                    onClick={() => updateFillStyle(style)}
+                    title={title}
+                    style={{ fontSize: 12 }}
+                  >
+                    {symbol}
+                  </button>
+                ))}
+                <div className="floating-props-sep" />
+                {/* Fill & stroke color */}
+                <label className="floating-color-label" title={i18n.language.startsWith("tr") ? "Dolgu Rengi" : "Fill Color"}>
+                  <span className="floating-color-dot" style={{ background: selectedContainer.rect?.backgroundColor?.startsWith("#") ? selectedContainer.rect.backgroundColor : "#f4f4f5" }} />
+                  <input type="color" style={{ position: "absolute", opacity: 0, width: 0, height: 0, pointerEvents: "none" }}
+                    value={selectedContainer.rect?.backgroundColor?.startsWith("#") ? selectedContainer.rect.backgroundColor : "#f4f4f5"}
+                    onChange={e => updateContainerColor(e.target.value, selectedContainer.rect?.strokeColor || "#71717a")} />
+                </label>
+                <label className="floating-color-label" title={i18n.language.startsWith("tr") ? "Çerçeve Rengi" : "Stroke Color"}>
+                  <span className="floating-color-dot" style={{ background: selectedContainer.rect?.strokeColor?.startsWith("#") ? selectedContainer.rect.strokeColor : "#71717a" }} />
+                  <input type="color" style={{ position: "absolute", opacity: 0, width: 0, height: 0, pointerEvents: "none" }}
+                    value={selectedContainer.rect?.strokeColor?.startsWith("#") ? selectedContainer.rect.strokeColor : "#71717a"}
+                    onChange={e => updateContainerColor(selectedContainer.rect?.backgroundColor || "#f4f4f5", e.target.value)} />
+                </label>
+                <div className="floating-props-sep" />
+                {/* Opacity slider */}
+                <div className="floating-opacity-wrap" title={`${i18n.language.startsWith("tr") ? "Opaklık" : "Opacity"}: ${selectedContainer.rect?.opacity ?? 100}%`}>
+                  <input
+                    type="range" min={0} max={100} step={10}
+                    value={selectedContainer.rect?.opacity ?? 100}
+                    onChange={e => updateOpacity(Number(e.target.value))}
+                    className="floating-opacity-slider"
+                  />
+                </div>
+                <div className="floating-props-sep" />
+                {/* Corner radius toggle */}
+                <button
+                  type="button"
+                  className={`floating-props-btn ${selectedContainer.rect?.roundness ? "active" : ""}`}
+                  onClick={() => updateCornerRadius(!selectedContainer.rect?.roundness)}
+                  title={selectedContainer.rect?.roundness ? (i18n.language.startsWith("tr") ? "Keskin Köşe" : "Sharp Corner") : (i18n.language.startsWith("tr") ? "Yuvarlak Köşe" : "Round Corner")}
+                  style={{ fontSize: 14 }}
+                >
+                  {selectedContainer.rect?.roundness ? "○" : "□"}
+                </button>
+              </>
+            )}
+
+            {/* TEXT PROPERTIES */}
+            {(floatingBarIsText || !!selectedContainer.text) && floatingBarTextEl && (
+              <>
+                <div className="floating-props-sep" />
+                {/* Font family dropdown */}
+                <div ref={fontDropdownRef} style={{ position: "relative" }}>
+                  <button
+                    type="button"
+                    className={`floating-props-btn ${isFontDropdownOpen ? "active" : ""}`}
+                    style={{ width: 42, display: "flex", alignItems: "center", gap: 1 }}
+                    onClick={() => setIsFontDropdownOpen(!isFontDropdownOpen)}
+                    title={i18n.language.startsWith("tr") ? "Font Ailesi" : "Font Family"}
+                  >
+                    <span style={{ fontSize: 10 }}>Aa</span>
+                    <ChevronDown size={8} />
+                  </button>
+                  {isFontDropdownOpen && (
+                    <div className="floating-font-dropdown">
+                      {FLOATING_FONTS.map(f => (
+                        <button
+                          key={f.id}
+                          type="button"
+                          className={`floating-font-option ${floatingBarTextEl.fontFamily === f.id ? "active" : ""}`}
+                          onClick={() => { updateFontFamily(f.id); setIsFontDropdownOpen(false); }}
+                        >
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="floating-props-sep" />
+                {/* Font size */}
+                {[{ label: "S", size: 14 }, { label: "M", size: 20 }, { label: "L", size: 28 }, { label: "XL", size: 36 }].map(s => (
+                  <button
+                    key={s.label}
+                    type="button"
+                    className={`floating-props-btn ${floatingBarTextEl.fontSize === s.size ? "active" : ""}`}
+                    style={{ width: 26, fontSize: 9, fontWeight: 700 }}
+                    onClick={() => updateFontSize(s.size)}
+                    title={`${s.label} (${s.size}px)`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+                <div className="floating-props-sep" />
+                {/* Text align */}
+                {([["left", AlignLeft], ["center", AlignCenter], ["right", AlignRight]] as Array<[string, React.FC<{size: number}>]>).map(([align, Icon]) => (
+                  <button
+                    key={align}
+                    type="button"
+                    className={`floating-props-btn ${floatingBarTextEl.textAlign === align ? "active" : ""}`}
+                    onClick={() => updateTextAlign(align)}
+                    title={`${i18n.language.startsWith("tr") ? "Hizala" : "Align"}: ${align}`}
+                  >
+                    <Icon size={12} />
+                  </button>
+                ))}
+                <div className="floating-props-sep" />
+                {/* Text color */}
+                <label className="floating-color-label" title={i18n.language.startsWith("tr") ? "Metin Rengi" : "Text Color"}>
+                  <span className="floating-color-dot" style={{ background: floatingBarTextEl?.strokeColor?.startsWith("#") ? floatingBarTextEl.strokeColor : "#f4f4f5" }} />
+                  <input
+                    type="color"
+                    style={{ position: "absolute", opacity: 0, width: 0, height: 0, pointerEvents: "none" }}
+                    value={floatingBarTextEl?.strokeColor?.startsWith("#") ? floatingBarTextEl.strokeColor : "#f4f4f5"}
+                    onChange={e => {
+                      if (!excalidrawAPI) return;
+                      const els = excalidrawAPI.getSceneElements();
+                      const updated = els.map((el: any) =>
+                        el.id === floatingBarTextEl.id
+                          ? { ...el, strokeColor: e.target.value, updated: Date.now(), version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
+                          : el
+                      );
+                      excalidrawAPI.updateScene({ elements: updated });
+                    }}
+                  />
+                </label>
+              </>
+            )}
+
+            <div className="floating-props-sep" />
+            {/* Delete */}
+            <button type="button" className="floating-props-btn danger" onClick={handleDeleteContainer} title={i18n.language.startsWith("tr") ? "Sil" : "Delete"}>
+              <Trash size={14} />
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Image Preview Modal */}
+      {isImagePreviewOpen && imagePreviewUrl && (
+        <div
+          className="image-preview-overlay"
+          onClick={() => setIsImagePreviewOpen(false)}
+        >
+          <button
+            type="button"
+            className="image-preview-close-btn"
+            onClick={() => setIsImagePreviewOpen(false)}
+          >
+            <X size={20} />
+          </button>
+          <img
+            src={imagePreviewUrl}
+            className="image-preview-img"
+            onClick={e => e.stopPropagation()}
+            alt=""
+          />
+        </div>
+      )}
 
       <CanvasToolbar
         excalidrawAPI={excalidrawAPI}

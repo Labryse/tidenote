@@ -302,6 +302,8 @@ export default function Sidebar() {
   });
   const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null);
   const draggedNoteIdRef = useRef<string | null>(null);
+  const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
+  const [recentlyDroppedFolderId, setRecentlyDroppedFolderId] = useState<string | null>(null);
   const [isUnfiledSectionOpen, setIsUnfiledSectionOpen] = useState(false);
   const [colorPickerNoteId, setColorPickerNoteId] = useState<string | null>(null);
   const [colorPickerFolderId, setColorPickerFolderId] = useState<string | null>(null);
@@ -589,11 +591,7 @@ export default function Sidebar() {
   useEffect(() => {
     const handleFocus = () => {
       if (user) {
-        try {
-          enableNetwork(db).catch(console.error)
-        } catch (e) {
-          console.error("enableNetwork sync error:", e)
-        }
+        enableNetwork(db).catch(() => {});
       }
     }
     window.addEventListener('focus', handleFocus)
@@ -721,8 +719,14 @@ export default function Sidebar() {
   const handleDropNoteToFolder = async (folderId: string | null) => {
     const noteId = draggedNoteIdRef.current;
     if (!noteId) return;
+    draggedNoteIdRef.current = null;
+    setDragOverFolderId(null);
     try {
       await updateDoc(doc(db, "notes", noteId), { folderId: folderId ?? null });
+      if (folderId) {
+        setRecentlyDroppedFolderId(folderId);
+        setTimeout(() => setRecentlyDroppedFolderId(null), 600);
+      }
     } catch (error: any) {
       showToast(t("toast.saveError"));
     }
@@ -741,16 +745,31 @@ export default function Sidebar() {
     const isExpanded = expandedFolders.has(folder.id);
     const isActive = activeFolderId === folder.id;
     const folderColor = folder.color;
+    const notesInFolder = notes.filter(n => n.folderId === folder.id && !n.archived).length;
+    const isDragOver = dragOverFolderId === folder.id;
+    const isRecentDrop = recentlyDroppedFolderId === folder.id;
 
     return (
       <div key={folder.id}>
         <div
-          className={`folder-item${isActive ? " active" : ""}`}
+          className={`folder-item${isActive ? " active" : ""}${isDragOver ? " drag-over" : ""}${isRecentDrop ? " drop-highlight" : ""}`}
           style={{ paddingLeft: `${8 + depth * 12}px` }}
           onClick={() => setActiveFolderId(isActive ? null : folder.id)}
-          onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; (e.currentTarget as HTMLElement).classList.add("drag-over"); }}
-          onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) { (e.currentTarget as HTMLElement).classList.remove("drag-over"); } }}
-          onDrop={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement).classList.remove("drag-over"); draggedNoteIdRef.current = draggedNoteIdRef.current || e.dataTransfer.getData("text/plain"); handleDropNoteToFolder(folder.id); }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            if (dragOverFolderId !== folder.id) setDragOverFolderId(folder.id);
+          }}
+          onDragLeave={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+              setDragOverFolderId(null);
+            }
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            draggedNoteIdRef.current = draggedNoteIdRef.current || e.dataTransfer.getData("text/plain");
+            handleDropNoteToFolder(folder.id);
+          }}
         >
           <button
             type="button"
@@ -769,6 +788,9 @@ export default function Sidebar() {
             <FolderIcon size={13} className="folder-icon" style={folderColor ? { color: folderColor } : undefined} />
           )}
           <span className="folder-name">{folder.name}</span>
+          {notesInFolder > 0 && (
+            <span className="folder-note-badge">{notesInFolder}</span>
+          )}
           <button
             type="button"
             className="folder-menu-btn"

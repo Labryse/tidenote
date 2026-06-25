@@ -14,9 +14,7 @@ import {
   Frame,
   Eraser,
   GripVertical,
-  StickyNote,
   ChevronDown,
-  Plus,
   Link as LinkIcon,
   Paperclip,
   Code,
@@ -208,157 +206,6 @@ export default function CanvasToolbar({
     }
   };
 
-  const handleAddStickyNote = () => {
-    if (!excalidrawAPI) return;
-    setTimeout(() => {
-      try {
-        const { cx, cy } = getCanvasCenter();
-        const ts = Date.now();
-        const W = 200, H = 160;
-        const HEADER_H = 28;
-        const FOLD = 22;
-        const CR = 8;
-
-        // Random tilt ±1° to ±2°
-        const angleDeg = (Math.random() > 0.5 ? 1 : -1) * (1 + Math.random());
-        const angle = angleDeg * Math.PI / 180;
-
-        const x = cx - W / 2;
-        const y = cy - H / 2;
-        const gid = `sn-g-${ts}`;
-        const rnd = () => Math.floor(Math.random() * 999999);
-
-        const base = {
-          angle,
-          frameId: null,
-          isDeleted: false,
-          updated: ts,
-          link: null,
-          locked: false,
-          roughness: 0,
-          opacity: 100,
-          strokeStyle: "solid",
-          fillStyle: "solid",
-        };
-
-        const existing = excalidrawAPI.getSceneElements() || [];
-        const bodyId = `sn-body-${ts}`;
-
-        excalidrawAPI.updateScene({
-          elements: [
-            ...existing,
-            // 1. Shadow (rendered below everything)
-            {
-              ...base,
-              id: `sn-shadow-${ts}`,
-              type: "rectangle",
-              x: x + 5,
-              y: y + 6,
-              width: W,
-              height: H,
-              strokeColor: "transparent",
-              backgroundColor: "#1e293b",
-              opacity: 18,
-              strokeWidth: 0,
-              roundness: { type: 3, value: CR },
-              groupIds: [gid],
-              boundElements: null,
-              seed: rnd(), version: 1, versionNonce: rnd(),
-            },
-            // 2. Main yellow body
-            {
-              ...base,
-              id: bodyId,
-              type: "rectangle",
-              x, y,
-              width: W,
-              height: H,
-              strokeColor: "#C8960A",
-              backgroundColor: "#FFE566",
-              strokeWidth: 1.5,
-              roundness: { type: 3, value: CR },
-              groupIds: [gid],
-              boundElements: null,
-              seed: rnd(), version: 1, versionNonce: rnd(),
-            },
-            // 3. Darker header strip (inset by CR to avoid clipping rounded corners)
-            {
-              ...base,
-              id: `sn-header-${ts}`,
-              type: "rectangle",
-              x: x + CR,
-              y,
-              width: W - CR * 2,
-              height: HEADER_H,
-              strokeColor: "transparent",
-              backgroundColor: "#E6B800",
-              strokeWidth: 0,
-              roundness: null,
-              groupIds: [gid],
-              boundElements: null,
-              seed: rnd(), version: 1, versionNonce: rnd(),
-            },
-            // 4. Fold crease — diagonal line at top-right corner
-            {
-              ...base,
-              id: `sn-fold-${ts}`,
-              type: "line",
-              x: x + W - FOLD,
-              y,
-              width: FOLD,
-              height: FOLD,
-              strokeColor: "#9A7200",
-              backgroundColor: "transparent",
-              strokeWidth: 1.5,
-              roundness: null,
-              groupIds: [gid],
-              boundElements: null,
-              seed: rnd(), version: 1, versionNonce: rnd(),
-              points: [[0, 0], [FOLD, FOLD]],
-              lastCommittedPoint: null,
-              startBinding: null,
-              endBinding: null,
-              startArrowhead: null,
-              endArrowhead: null,
-            },
-            // 5. Text (standalone, positioned below header strip)
-            {
-              ...base,
-              id: `sn-text-${ts}`,
-              type: "text",
-              x: x + 10,
-              y: y + HEADER_H + 6,
-              width: W - 20,
-              height: H - HEADER_H - 14,
-              strokeColor: "#7a5c00",
-              backgroundColor: "transparent",
-              strokeWidth: 1,
-              roundness: null,
-              groupIds: [gid],
-              boundElements: null,
-              seed: rnd(), version: 1, versionNonce: rnd(),
-              text: "Not...",
-              fontSize: 16,
-              fontFamily: selectedFont,
-              textAlign: "left",
-              verticalAlign: "top",
-              containerId: null,
-              originalText: "Not...",
-              lineHeight: 1.35,
-              autoResize: true,
-            },
-          ],
-        });
-
-        excalidrawAPI.updateScene({
-          appState: { selectedElementIds: { [bodyId]: true } },
-        });
-      } catch (err) {
-        console.error("Post-it eklenirken hata:", err);
-      }
-    }, 0);
-  };
-
   const tools = [
     { type: "selection", icon: MousePointer2, label: t("canvas.tool.select", "Seç"), key: "V" },
     { type: "hand", icon: Hand, label: t("canvas.tool.hand", "Kaydır"), key: "H" },
@@ -370,7 +217,6 @@ export default function CanvasToolbar({
     { type: "line", icon: Minus, label: t("canvas.tool.line", "Çizgi"), key: "L" },
     null,
     { type: "freedraw", icon: Pencil, label: t("canvas.tool.freedraw", "Kalem"), key: "P" },
-    { type: "text", icon: Type, label: t("canvas.tool.text", "Metin"), key: "T" },
     { type: "image", icon: ImageIcon, label: t("canvas.tool.image", "Görsel"), key: "9" },
     { type: "frame", icon: Frame, label: t("canvas.tool.frame", "Çerçeve"), key: "F" },
     null,
@@ -460,7 +306,7 @@ export default function CanvasToolbar({
           );
         })}
 
-        {/* Plus / Content Block button */}
+        {/* T / Text button — opens content block mini bar */}
         <div className="toolbar-separator" />
         <div
           ref={miniBarRef}
@@ -469,16 +315,16 @@ export default function CanvasToolbar({
         >
           <button
             type="button"
-            className={`toolbar-btn toolbar-tool-btn tool-btn ${customBlockType ? "active" : ""}`}
+            className={`toolbar-btn toolbar-tool-btn tool-btn ${isMiniBarOpen || customBlockType ? "active" : ""}`}
             onClick={() => setIsMiniBarOpen(!isMiniBarOpen)}
-            title={t("canvas.contentBlock.pick", "İçerik Ekle (+)")}
+            title={t("canvas.tool.text", "Metin / İçerik (T)")}
           >
-            <Plus size={18} />
+            <Type size={18} />
           </button>
           {isMiniBarOpen && (
             <div className={`toolbar-minibar-dropdown ${fontDropdownClass}`}>
               <div className="toolbar-minibar-dropdown-title">
-                {t("canvas.contentBlock.label", "İçerik Ekle")}
+                {t("canvas.contentBlock.label", "Metin & İçerik")}
               </div>
               <div className="toolbar-minibar-options-grid">
                 <button
@@ -486,50 +332,9 @@ export default function CanvasToolbar({
                   className="toolbar-minibar-option"
                   onClick={() => {
                     setIsMiniBarOpen(false);
-                    if (excalidrawAPI) {
-                      excalidrawAPI.setActiveTool({ type: "image" });
-                    }
-                  }}
-                  title={t("canvas.block.image", "Görsel Ekle")}
-                >
-                  <ImageIcon size={16} />
-                  <span>{t("canvas.block.image", "Görsel")}</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="toolbar-minibar-option"
-                  onClick={() => {
-                    setIsMiniBarOpen(false);
-                    setCustomBlockType("link");
-                  }}
-                  title={t("canvas.block.link", "Link Ekle")}
-                >
-                  <LinkIcon size={16} />
-                  <span>{t("canvas.block.link", "Link")}</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="toolbar-minibar-option"
-                  onClick={() => {
-                    setIsMiniBarOpen(false);
-                    setCustomBlockType("file");
-                  }}
-                  title={t("canvas.block.file", "Dosya Ekle")}
-                >
-                  <Paperclip size={16} />
-                  <span>{t("canvas.block.file", "Dosya")}</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="toolbar-minibar-option"
-                  onClick={() => {
-                    setIsMiniBarOpen(false);
                     setCustomBlockType("text");
                   }}
-                  title={t("canvas.block.text", "Metin")}
+                  title={t("canvas.block.text", "Metin Kutusu")}
                 >
                   <Type size={16} />
                   <span>{t("canvas.block.text", "Metin")}</span>
@@ -538,10 +343,7 @@ export default function CanvasToolbar({
                 <button
                   type="button"
                   className="toolbar-minibar-option font-bold-badge"
-                  onClick={() => {
-                    setIsMiniBarOpen(false);
-                    setCustomBlockType("h1");
-                  }}
+                  onClick={() => { setIsMiniBarOpen(false); setCustomBlockType("h1"); }}
                   title="H1"
                 >
                   <span className="bold-label">H1</span>
@@ -551,10 +353,7 @@ export default function CanvasToolbar({
                 <button
                   type="button"
                   className="toolbar-minibar-option font-bold-badge"
-                  onClick={() => {
-                    setIsMiniBarOpen(false);
-                    setCustomBlockType("h2");
-                  }}
+                  onClick={() => { setIsMiniBarOpen(false); setCustomBlockType("h2"); }}
                   title="H2"
                 >
                   <span className="bold-label">H2</span>
@@ -564,10 +363,7 @@ export default function CanvasToolbar({
                 <button
                   type="button"
                   className="toolbar-minibar-option font-bold-badge"
-                  onClick={() => {
-                    setIsMiniBarOpen(false);
-                    setCustomBlockType("h3");
-                  }}
+                  onClick={() => { setIsMiniBarOpen(false); setCustomBlockType("h3"); }}
                   title="H3"
                 >
                   <span className="bold-label">H3</span>
@@ -577,23 +373,17 @@ export default function CanvasToolbar({
                 <button
                   type="button"
                   className="toolbar-minibar-option"
-                  onClick={() => {
-                    setIsMiniBarOpen(false);
-                    setCustomBlockType("code");
-                  }}
+                  onClick={() => { setIsMiniBarOpen(false); setCustomBlockType("code"); }}
                   title={t("canvas.block.code", "Kod Bloğu")}
                 >
                   <Code size={16} />
-                  <span>{t("canvas.block.code", "Kod Bloğu")}</span>
+                  <span>{t("canvas.block.code", "Kod")}</span>
                 </button>
 
                 <button
                   type="button"
                   className="toolbar-minibar-option"
-                  onClick={() => {
-                    setIsMiniBarOpen(false);
-                    setCustomBlockType("quote");
-                  }}
+                  onClick={() => { setIsMiniBarOpen(false); setCustomBlockType("quote"); }}
                   title={t("canvas.block.quote", "Alıntı")}
                 >
                   <Quote size={16} />
@@ -603,40 +393,51 @@ export default function CanvasToolbar({
                 <button
                   type="button"
                   className="toolbar-minibar-option"
-                  onClick={() => {
-                    setIsMiniBarOpen(false);
-                    setCustomBlockType("bullet");
-                  }}
+                  onClick={() => { setIsMiniBarOpen(false); setCustomBlockType("bullet"); }}
                   title={t("canvas.block.bullet", "Bullet Liste")}
                 >
                   <List size={16} />
-                  <span>{t("canvas.block.bullet", "Bullet Liste")}</span>
+                  <span>{t("canvas.block.bullet", "Bullet")}</span>
                 </button>
 
                 <button
                   type="button"
                   className="toolbar-minibar-option"
-                  onClick={() => {
-                    setIsMiniBarOpen(false);
-                    setCustomBlockType("numbered");
-                  }}
+                  onClick={() => { setIsMiniBarOpen(false); setCustomBlockType("numbered"); }}
                   title={t("canvas.block.numbered", "Numaralı Liste")}
                 >
                   <ListOrdered size={16} />
-                  <span>{t("canvas.block.numbered", "Numaralı Liste")}</span>
+                  <span>{t("canvas.block.numbered", "Numaralı")}</span>
                 </button>
 
                 <button
                   type="button"
                   className="toolbar-minibar-option"
-                  onClick={() => {
-                    setIsMiniBarOpen(false);
-                    setCustomBlockType("todo");
-                  }}
+                  onClick={() => { setIsMiniBarOpen(false); setCustomBlockType("todo"); }}
                   title={t("canvas.block.todo", "Yapılacaklar")}
                 >
                   <CheckSquare size={16} />
-                  <span>{t("canvas.block.todo", "Yapılacaklar")}</span>
+                  <span>{t("canvas.block.todo", "Yapılacak")}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="toolbar-minibar-option"
+                  onClick={() => { setIsMiniBarOpen(false); setCustomBlockType("link"); }}
+                  title={t("canvas.block.link", "Link")}
+                >
+                  <LinkIcon size={16} />
+                  <span>{t("canvas.block.link", "Link")}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="toolbar-minibar-option"
+                  onClick={() => { setIsMiniBarOpen(false); setCustomBlockType("file"); }}
+                  title={t("canvas.block.file", "Dosya")}
+                >
+                  <Paperclip size={16} />
+                  <span>{t("canvas.block.file", "Dosya")}</span>
                 </button>
               </div>
             </div>
@@ -681,16 +482,6 @@ export default function CanvasToolbar({
           )}
         </div>
 
-        {/* Sticky note */}
-        <div className="toolbar-separator" />
-        <button
-          type="button"
-          className="toolbar-btn toolbar-tool-btn tool-btn"
-          onClick={handleAddStickyNote}
-          title={t("canvas.tool.stickyNote", "Post-it Ekle")}
-        >
-          <StickyNote size={18} />
-        </button>
       </div>
     </div>
   );
