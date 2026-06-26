@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { App as CapacitorApp } from "@capacitor/app";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Editor from "./components/Editor";
@@ -264,6 +265,18 @@ function App() {
     setFirestoreUser
   } = useNoteStore();
   const [authChecking, setAuthChecking] = useState(true);
+
+  // Android hardware back button
+  useEffect(() => {
+    const handler = CapacitorApp.addListener("backButton", ({ canGoBack }) => {
+      if (canGoBack) {
+        window.history.back();
+      } else {
+        CapacitorApp.minimizeApp();
+      }
+    });
+    return () => { handler.then(h => h.remove()); };
+  }, []);
 
   // Sync theme attribute on document element
   useEffect(() => {

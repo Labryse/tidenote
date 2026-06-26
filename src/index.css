@@ -1504,6 +1504,7 @@ body {
 
   /* Overlay drawer sidebar */
   .sidebar {
+    display: none !important;
     position: fixed;
     top: 0;
     left: 0;
@@ -1511,15 +1512,19 @@ body {
     width: 280px;
     min-width: 280px;
     z-index: 100;
-    transform: translateX(-100%);
-    transition: transform 250ms ease;
     box-shadow: none;
     background: var(--color-bg-sidebar);
   }
 
   .sidebar.open {
-    transform: translateX(0);
+    display: flex !important;
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Main content takes full width on mobile */
+  .main-content {
+    width: 100% !important;
+    min-width: 0 !important;
   }
 
   /* Touch target sizes (HIG standards) */
@@ -7125,6 +7130,74 @@ body {
 }
 
 /* ==========================================
+   DASHBOARD MOBİL
+   ========================================== */
+@media (max-width: 768px) {
+  .dashboard-content {
+    padding: 24px 16px;
+    gap: 20px;
+  }
+
+  .dashboard-hero {
+    text-align: center;
+    align-items: center;
+  }
+
+  .dashboard-greeting {
+    font-size: 20px;
+  }
+
+  .dashboard-section {
+    width: 100%;
+  }
+
+  .quick-create-actions {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .recent-note-card {
+    padding: 12px;
+  }
+
+  .recent-note-title {
+    font-size: 13px;
+  }
+
+  .recent-note-date {
+    font-size: 11px;
+  }
+}
+
+/* ==========================================
+   CANVAS MOBİL
+   ========================================== */
+@media (max-width: 768px) {
+  .canvas-toolbar {
+    top: 52px !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: translateX(-50%) !important;
+    flex-direction: row !important;
+    max-width: calc(100vw - 24px);
+    overflow-x: auto;
+  }
+
+  .toolbar-drag-handle {
+    display: none;
+  }
+
+  .canvas-container {
+    padding-top: 60px;
+  }
+
+  .minimap-container {
+    display: none !important;
+  }
+}
+
+/* ==========================================
    TOUCH TARGETS (min 44x44px)
    ========================================== */
 .note-menu-btn,
@@ -7209,6 +7282,40 @@ body {
   .upgrade-modal-right {
     width: 100% !important;
     max-width: 100% !important;
+  }
+}
+
+/* ==========================================
+   GENEL MOBİL CSS
+   ========================================== */
+@media (max-width: 768px) {
+  /* Modal ve panel scroll */
+  .settings-modal-box,
+  .upgrade-modal,
+  .share-panel,
+  .confirm-modal-box,
+  .new-note-dropdown,
+  .note-menu-dropdown {
+    overflow-y: auto;
+  }
+
+  /* Minimum font boyutu */
+  body {
+    font-size: 14px;
+  }
+
+  /* Input zoom önleme (iOS) - minimum 16px */
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  /* Küçük label/hint metinler hariç genel font koruması */
+  .note-title,
+  .recent-note-title,
+  .dashboard-greeting {
+    font-size: revert;
   }
 }
 
