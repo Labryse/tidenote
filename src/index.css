@@ -1456,6 +1456,7 @@ body {
 
 .mobile-sidebar-overlay {
   display: none;
+  background: rgba(0, 0, 0, 0.5);
 }
 
 /* Breakpoint for screens less than 768px */
@@ -1498,7 +1499,7 @@ body {
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.5);
     z-index: 90;
   }
 
@@ -7454,5 +7455,122 @@ body {
     right: 0;
     max-height: 90dvh;
     overflow-y: auto;
+  }
+}
+
+/* ==========================================
+   1. KLAVİYE KISAYOLLARI MOBİL — GİZLE
+   ========================================== */
+@media (max-width: 768px) {
+  .shortcuts-section {
+    display: none !important;
+  }
+}
+
+/* ==========================================
+   2. EDİTÖR BAŞLIK FONT BOYUTLARI MOBİL
+   ========================================== */
+@media (max-width: 768px) {
+  [data-content-type=heading] {
+    --level: 1.75em !important;
+  }
+  [data-content-type=heading][data-level="2"] {
+    --level: 1.375em !important;
+  }
+  [data-content-type=heading][data-level="3"] {
+    --level: 1.125em !important;
+  }
+}
+
+/* ==========================================
+   3. SETTINGS MODAL MOBİL — YATAY TAB BAR
+   ========================================== */
+@media (max-width: 768px) {
+  .settings-modal-box {
+    flex-direction: column !important;
+  }
+
+  .settings-sidebar {
+    width: 100% !important;
+    min-width: unset !important;
+    height: auto !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--color-border) !important;
+    flex-direction: column !important;
+    padding: 8px 12px !important;
+    gap: 0 !important;
+    flex-shrink: 0;
+  }
+
+  .settings-user-profile {
+    display: none !important;
+  }
+
+  .settings-nav-links {
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch;
+    gap: 0 !important;
+    padding-bottom: 2px;
+  }
+
+  .settings-nav-links::-webkit-scrollbar {
+    display: none;
+  }
+
+  .settings-nav-item {
+    width: auto !important;
+    white-space: nowrap !important;
+    border-left: none !important;
+    border-bottom: 2px solid transparent !important;
+    border-radius: 0 !important;
+    padding: 10px 14px !important;
+    font-size: 13px !important;
+    flex-shrink: 0;
+  }
+
+  .settings-nav-item.active {
+    border-left: none !important;
+    border-bottom: 2px solid var(--color-accent) !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+
+  .settings-content {
+    padding: 20px 16px !important;
+    overflow-y: auto !important;
+    scroll-behavior: smooth;
+    flex: 1;
+  }
+
+  .settings-modal-close {
+    top: 10px !important;
+    right: 12px !important;
+  }
+}
+
+/* ==========================================
+   4. CANVAS TOOLBAR MOBİL — 32x32 BUTONLAR
+   ========================================== */
+@media (max-width: 768px) {
+  .canvas-toolbar .toolbar-btn,
+  .canvas-toolbar .toolbar-tool-btn {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    padding: 4px !important;
+  }
+
+  .canvas-toolbar {
+    overflow-x: auto !important;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .canvas-toolbar::-webkit-scrollbar {
+    display: none;
   }
 }

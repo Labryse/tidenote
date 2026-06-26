@@ -42,6 +42,7 @@ export default function SettingsModal() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const importFileRef = useRef<HTMLInputElement>(null);
   const [isClosing, setIsClosing] = useState(false);
+  const contentRef = useRef<HTMLElement>(null);
 
   const [displayName, setDisplayName] = useState("");
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -55,6 +56,13 @@ export default function SettingsModal() {
       setIsSettingsOpen(false);
     }, 200);
   };
+
+  // Scroll content to top on mobile when tab changes
+  useEffect(() => {
+    if (contentRef.current && window.innerWidth <= 768) {
+      contentRef.current.scrollTop = 0;
+    }
+  }, [settingsTab]);
 
   // Close Settings on ESC key press
   useEffect(() => {
@@ -420,7 +428,7 @@ export default function SettingsModal() {
         </aside>
 
         {/* Content Pane */}
-        <main className="settings-content">
+        <main className="settings-content" ref={contentRef}>
 
           {/* 1. ACCOUNT PAGE */}
           {settingsTab === "account" && (
