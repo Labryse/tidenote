@@ -28,12 +28,13 @@ import {
 } from "lucide-react";
 
 const FLOATING_FONTS = [
+  { id: FONT_FAMILY.Excalifont as number, label: "Excalifont" },
   { id: FONT_FAMILY.Helvetica as number, label: "Helvetica" },
   { id: FONT_FAMILY["Liberation Sans"] as number, label: "Liberation Sans" },
   { id: FONT_FAMILY.Nunito as number, label: "Nunito" },
-  { id: FONT_FAMILY.Excalifont as number, label: "Excalifont" },
   { id: FONT_FAMILY["Comic Shanns"] as number, label: "Comic Shanns" },
   { id: FONT_FAMILY.Cascadia as number, label: "Cascadia" },
+  { id: (FONT_FAMILY as any).Virgil ?? 1, label: "Virgil" },
 ];
 
 export default function Canvas() {
@@ -52,7 +53,11 @@ export default function Canvas() {
   const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [isFontDropdownOpen, setIsFontDropdownOpen] = useState(false);
+  const [fontDropdownFixedPos, setFontDropdownFixedPos] = useState<{left: number; bottom: number} | null>(null);
+  const [hasLockedElements, setHasLockedElements] = useState(false);
   const fontDropdownRef = useRef<HTMLDivElement>(null);
+  const fontBtnRef = useRef<HTMLButtonElement>(null);
+  const hasLockedElementsRef = useRef(false);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [customBlockType, setCustomBlockTypeState] = useState<string | null>(null);
@@ -668,8 +673,13 @@ export default function Canvas() {
   useEffect(() => {
     if (!isFontDropdownOpen) return;
     const handleOutside = (e: MouseEvent) => {
-      if (fontDropdownRef.current && !fontDropdownRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        fontDropdownRef.current && !fontDropdownRef.current.contains(target) &&
+        !(fontBtnRef.current && fontBtnRef.current.contains(target))
+      ) {
         setIsFontDropdownOpen(false);
+        setFontDropdownFixedPos(null);
       }
     };
     document.addEventListener("mousedown", handleOutside);
@@ -736,6 +746,11 @@ export default function Canvas() {
     });
     excalidrawAPI.updateScene({ elements: updated });
     try { excalidrawAPI.updateScene({ appState: { currentItemFontFamily: fontFamily } }); } catch (_) {}
+    // Optimistically update selectedContainer so the dropdown immediately reflects the chosen font
+    setSelectedContainer(text
+      ? { rect, text: { ...text, fontFamily } }
+      : { rect: { ...rect, fontFamily }, text: null }
+    );
   };
 
   const updateFontSize = (fontSize: number) => {
@@ -763,6 +778,43 @@ export default function Canvas() {
       }
       return el;
     });
+    excalidrawAPI.updateScene({ elements: updated });
+  };
+
+  const handleUnlockAll = () => {
+    if (!excalidrawAPI) return;
+    const elements = excalidrawAPI.getSceneElements();
+    const updated = elements.map((el: any) =>
+      el.locked
+        ? { ...el, locked: false, updated: Date.now(), version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
+        : el
+    );
+    excalidrawAPI.updateScene({ elements: updated });
+    hasLockedElementsRef.current = false;
+    setHasLockedElements(false);
+  };
+
+  const updateElementStrokeColor = (color: string) => {
+    if (!excalidrawAPI || !selectedContainer) return;
+    const { rect } = selectedContainer;
+    const elements = excalidrawAPI.getSceneElements();
+    const updated = elements.map((el: any) =>
+      el.id === rect.id
+        ? { ...el, strokeColor: color, updated: Date.now(), version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
+        : el
+    );
+    excalidrawAPI.updateScene({ elements: updated });
+  };
+
+  const updateStrokeStyle = (strokeStyle: string) => {
+    if (!excalidrawAPI || !selectedContainer) return;
+    const { rect } = selectedContainer;
+    const elements = excalidrawAPI.getSceneElements();
+    const updated = elements.map((el: any) =>
+      el.id === rect.id
+        ? { ...el, strokeStyle, updated: Date.now(), version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
+        : el
+    );
     excalidrawAPI.updateScene({ elements: updated });
   };
 
@@ -1079,16 +1131,24 @@ export default function Canvas() {
             ) ?? null
           : null;
 
-        setSelectedContainer(prev =>
-          prev?.rect?.id === primaryEl.id ? prev : { rect: primaryEl, text: textChild }
-        );
+        setSelectedContainer({ rect: primaryEl, text: textChild });
       } else {
         setSelectedContainer(null);
         setFloatingPos(null);
+        setIsFontDropdownOpen(false);
+        setFontDropdownFixedPos(null);
       }
     } else {
       setSelectedContainer(null);
       setFloatingPos(null);
+      setIsFontDropdownOpen(false);
+      setFontDropdownFixedPos(null);
+    }
+
+    const hasLocked = activeEls.some((e: any) => e.locked);
+    if (hasLocked !== hasLockedElementsRef.current) {
+      hasLockedElementsRef.current = hasLocked;
+      setHasLockedElements(hasLocked);
     }
 
     const currentStr = JSON.stringify(elements);
@@ -1113,6 +1173,9 @@ export default function Canvas() {
     selectedContainer?.rect?.type === "ellipse" ||
     selectedContainer?.rect?.type === "diamond";
   const floatingBarIsText = selectedContainer?.rect?.type === "text";
+  const floatingBarIsLine = selectedContainer?.rect?.type === "arrow" ||
+    selectedContainer?.rect?.type === "line";
+  const floatingBarIsFreedraw = selectedContainer?.rect?.type === "freedraw";
   const floatingBarTextEl: any = selectedContainer?.text ||
     (floatingBarIsText ? selectedContainer?.rect : null);
 
@@ -1281,33 +1344,27 @@ export default function Canvas() {
             {(floatingBarIsText || !!selectedContainer.text) && floatingBarTextEl && (
               <>
                 <div className="floating-props-sep" />
-                {/* Font family dropdown */}
-                <div ref={fontDropdownRef} style={{ position: "relative" }}>
-                  <button
-                    type="button"
-                    className={`floating-props-btn ${isFontDropdownOpen ? "active" : ""}`}
-                    style={{ width: 42, display: "flex", alignItems: "center", gap: 1 }}
-                    onClick={() => setIsFontDropdownOpen(!isFontDropdownOpen)}
-                    title={i18n.language.startsWith("tr") ? "Font Ailesi" : "Font Family"}
-                  >
-                    <span style={{ fontSize: 10 }}>Aa</span>
-                    <ChevronDown size={8} />
-                  </button>
-                  {isFontDropdownOpen && (
-                    <div className="floating-font-dropdown">
-                      {FLOATING_FONTS.map(f => (
-                        <button
-                          key={f.id}
-                          type="button"
-                          className={`floating-font-option ${floatingBarTextEl.fontFamily === f.id ? "active" : ""}`}
-                          onClick={() => { updateFontFamily(f.id); setIsFontDropdownOpen(false); }}
-                        >
-                          {f.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                {/* Font family dropdown button — dropdown renders outside floating bar via fixed position */}
+                <button
+                  ref={fontBtnRef}
+                  type="button"
+                  className={`floating-props-btn ${isFontDropdownOpen ? "active" : ""}`}
+                  style={{ width: 42, display: "flex", alignItems: "center", gap: 1 }}
+                  onClick={() => {
+                    if (isFontDropdownOpen) {
+                      setIsFontDropdownOpen(false);
+                      setFontDropdownFixedPos(null);
+                    } else if (fontBtnRef.current) {
+                      const r = fontBtnRef.current.getBoundingClientRect();
+                      setFontDropdownFixedPos({ left: r.left + r.width / 2, bottom: (visualViewport?.height ?? window.innerHeight) - r.top + 6 });
+                      setIsFontDropdownOpen(true);
+                    }
+                  }}
+                  title={i18n.language.startsWith("tr") ? "Font Ailesi" : "Font Family"}
+                >
+                  <span style={{ fontSize: 10 }}>Aa</span>
+                  <ChevronDown size={8} />
+                </button>
                 <div className="floating-props-sep" />
                 {/* Font size */}
                 {[{ label: "S", size: 14 }, { label: "M", size: 20 }, { label: "L", size: 28 }, { label: "XL", size: 36 }].map(s => (
@@ -1358,6 +1415,67 @@ export default function Canvas() {
               </>
             )}
 
+            {/* LINE / ARROW PROPERTIES */}
+            {floatingBarIsLine && (
+              <>
+                <div className="floating-props-sep" />
+                {[{ w: 1, h: 1 }, { w: 2, h: 2 }, { w: 4, h: 4 }].map(({ w, h }) => (
+                  <button
+                    key={w}
+                    type="button"
+                    className={`floating-props-btn ${selectedContainer.rect?.strokeWidth === w ? "active" : ""}`}
+                    onClick={() => updateStrokeWidth(w)}
+                    title={`${i18n.language.startsWith("tr") ? "Kalınlık" : "Stroke"} ${w}px`}
+                  >
+                    <span style={{ display: "block", width: 14, height: h, background: "currentColor", borderRadius: 1 }} />
+                  </button>
+                ))}
+                <div className="floating-props-sep" />
+                {[
+                  { style: "solid", label: "─", title: i18n.language.startsWith("tr") ? "Düz" : "Solid" },
+                  { style: "dashed", label: "╌", title: i18n.language.startsWith("tr") ? "Kesik" : "Dashed" },
+                  { style: "dotted", label: "···", title: i18n.language.startsWith("tr") ? "Noktalı" : "Dotted" },
+                ].map(({ style, label, title }) => (
+                  <button
+                    key={style}
+                    type="button"
+                    className={`floating-props-btn ${selectedContainer.rect?.strokeStyle === style ? "active" : ""}`}
+                    onClick={() => updateStrokeStyle(style)}
+                    title={title}
+                    style={{ fontSize: 12, letterSpacing: style === "dotted" ? 1 : 0 }}
+                  >
+                    {label}
+                  </button>
+                ))}
+                <div className="floating-props-sep" />
+                <label className="floating-color-label" title={i18n.language.startsWith("tr") ? "Renk" : "Color"}>
+                  <span className="floating-color-dot" style={{ background: selectedContainer.rect?.strokeColor?.startsWith("#") ? selectedContainer.rect.strokeColor : "#71717a" }} />
+                  <input
+                    type="color"
+                    style={{ position: "absolute", opacity: 0, width: 0, height: 0, pointerEvents: "none" }}
+                    value={selectedContainer.rect?.strokeColor?.startsWith("#") ? selectedContainer.rect.strokeColor : "#71717a"}
+                    onChange={e => updateElementStrokeColor(e.target.value)}
+                  />
+                </label>
+              </>
+            )}
+
+            {/* FREEDRAW PROPERTIES */}
+            {floatingBarIsFreedraw && (
+              <>
+                <div className="floating-props-sep" />
+                <label className="floating-color-label" title={i18n.language.startsWith("tr") ? "Kalem Rengi" : "Pen Color"}>
+                  <span className="floating-color-dot" style={{ background: selectedContainer.rect?.strokeColor?.startsWith("#") ? selectedContainer.rect.strokeColor : "#000000" }} />
+                  <input
+                    type="color"
+                    style={{ position: "absolute", opacity: 0, width: 0, height: 0, pointerEvents: "none" }}
+                    value={selectedContainer.rect?.strokeColor?.startsWith("#") ? selectedContainer.rect.strokeColor : "#000000"}
+                    onChange={e => updateElementStrokeColor(e.target.value)}
+                  />
+                </label>
+              </>
+            )}
+
             <div className="floating-props-sep" />
             {/* Delete */}
             <button type="button" className="floating-props-btn danger" onClick={handleDeleteContainer} title={i18n.language.startsWith("tr") ? "Sil" : "Delete"}>
@@ -1366,6 +1484,36 @@ export default function Canvas() {
           </div>
         )}
       </div>
+
+      {/* Fixed-position font dropdown — renders outside canvas-wrapper to escape overflow:hidden clipping */}
+      {isFontDropdownOpen && fontDropdownFixedPos && (
+        <div
+          ref={fontDropdownRef}
+          className="floating-font-dropdown"
+          style={{
+            position: "fixed",
+            left: fontDropdownFixedPos.left,
+            bottom: fontDropdownFixedPos.bottom,
+            transform: "translateX(-50%)",
+            top: "auto"
+          }}
+        >
+          {FLOATING_FONTS.map(f => (
+            <button
+              key={f.id}
+              type="button"
+              className={`floating-font-option ${floatingBarTextEl?.fontFamily === f.id ? "active" : ""}`}
+              onClick={() => {
+                updateFontFamily(f.id);
+                setIsFontDropdownOpen(false);
+                setFontDropdownFixedPos(null);
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Image Preview Modal */}
       {isImagePreviewOpen && imagePreviewUrl && (
@@ -1394,6 +1542,8 @@ export default function Canvas() {
         activeTool={activeTool}
         customBlockType={customBlockType}
         setCustomBlockType={setCustomBlockType}
+        hasLockedElements={hasLockedElements}
+        onUnlockAll={handleUnlockAll}
       />
       <Minimap excalidrawAPI={excalidrawAPI} />
     </div>

@@ -44,7 +44,7 @@ export default function AuthRedirectPage() {
     <div style={{
       display: "flex",
       width: "100vw",
-      minHeight: "100vh",
+      minHeight: "100dvh",
       background: "var(--color-bg-app)",
       fontFamily: "var(--font-sans)",
       position: "relative",

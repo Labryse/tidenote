@@ -21,7 +21,8 @@ import {
   Quote,
   List,
   ListOrdered,
-  CheckSquare
+  CheckSquare,
+  Unlock
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -30,6 +31,8 @@ interface CanvasToolbarProps {
   activeTool: string;
   customBlockType: string | null;
   setCustomBlockType: (type: string | null) => void;
+  hasLockedElements?: boolean;
+  onUnlockAll?: () => void;
 }
 
 // Excalidraw built-in fonts available in 0.18.x
@@ -45,11 +48,19 @@ const CANVAS_FONTS = [
 
 const DEFAULT_FONT = FONT_FAMILY.Helvetica as number;
 
+const PEN_COLORS = [
+  "#000000", "#ffffff", "#ef4444", "#f97316",
+  "#eab308", "#22c55e", "#3b82f6", "#8b5cf6",
+  "#ec4899", "#6b7280"
+];
+
 export default function CanvasToolbar({
   excalidrawAPI,
   activeTool,
   customBlockType,
-  setCustomBlockType
+  setCustomBlockType,
+  hasLockedElements = false,
+  onUnlockAll
 }: CanvasToolbarProps) {
   const { t } = useTranslation();
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -69,6 +80,9 @@ export default function CanvasToolbar({
   const [selectedFont, setSelectedFont] = useState<number>(DEFAULT_FONT);
   const [isFontPickerOpen, setIsFontPickerOpen] = useState(false);
   const [isMiniBarOpen, setIsMiniBarOpen] = useState(false);
+  const [penColor, setPenColor] = useState<string>("#000000");
+  const [isPenPaletteOpen, setIsPenPaletteOpen] = useState(false);
+  const penPaletteRef = useRef<HTMLDivElement>(null);
 
   // Close font picker on outside click
   useEffect(() => {
@@ -94,9 +108,21 @@ export default function CanvasToolbar({
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [isMiniBarOpen]);
 
+  // Close pen palette on outside click
+  useEffect(() => {
+    if (!isPenPaletteOpen) return;
+    const handleOutside = (e: MouseEvent) => {
+      if (penPaletteRef.current && !penPaletteRef.current.contains(e.target as Node)) {
+        setIsPenPaletteOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [isPenPaletteOpen]);
+
   const getNearestSnap = (mouseX: number, mouseY: number) => {
     const w = window.innerWidth;
-    const h = window.innerHeight;
+    const h = visualViewport?.height ?? window.innerHeight;
     const distances = {
       left: Math.abs(mouseX - 160),
       right: Math.abs(w - mouseX),
@@ -192,8 +218,18 @@ export default function CanvasToolbar({
     const scrollY = appState.scrollY ?? 0;
     return {
       cx: (-scrollX + window.innerWidth / 2) / zoom,
-      cy: (-scrollY + window.innerHeight / 2) / zoom
+      cy: (-scrollY + (visualViewport?.height ?? window.innerHeight) / 2) / zoom
     };
+  };
+
+  const handlePenColorSelect = (color: string) => {
+    setPenColor(color);
+    setIsPenPaletteOpen(false);
+    if (excalidrawAPI) {
+      try {
+        excalidrawAPI.updateScene({ appState: { currentItemStrokeColor: color } });
+      } catch (_) {}
+    }
   };
 
   const handleSelectFont = (fontId: number) => {
@@ -481,6 +517,65 @@ export default function CanvasToolbar({
             </div>
           )}
         </div>
+
+        {/* Pen color palette — visible when freedraw is active */}
+        {activeTool === "freedraw" && (
+          <>
+            <div className="toolbar-separator" />
+            <div ref={penPaletteRef} style={{ position: "relative" }}>
+              <button
+                type="button"
+                className={`toolbar-btn toolbar-tool-btn tool-btn ${isPenPaletteOpen ? "active" : ""}`}
+                onClick={() => setIsPenPaletteOpen(prev => !prev)}
+                title={t("canvas.tool.penColor", "Kalem Rengi")}
+              >
+                <span style={{
+                  display: "block",
+                  width: 14,
+                  height: 14,
+                  borderRadius: "50%",
+                  background: penColor,
+                  border: "2px solid rgba(128,128,128,0.5)",
+                  boxShadow: "0 0 0 1px rgba(0,0,0,0.25)"
+                }} />
+              </button>
+              {isPenPaletteOpen && (
+                <div className={`toolbar-pen-palette ${fontDropdownClass}`}>
+                  {PEN_COLORS.map(color => (
+                    <button
+                      key={color}
+                      type="button"
+                      className="toolbar-pen-swatch"
+                      style={{
+                        background: color,
+                        outline: penColor === color ? "2px solid var(--color-accent)" : "none",
+                        outlineOffset: "1px"
+                      }}
+                      onClick={() => handlePenColorSelect(color)}
+                      title={color}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Unlock All — visible when scene has locked elements */}
+        {hasLockedElements && onUnlockAll && (
+          <>
+            <div className="toolbar-separator" />
+            <button
+              type="button"
+              className="toolbar-btn toolbar-tool-btn tool-btn"
+              onClick={onUnlockAll}
+              title={t("canvas.tool.unlockAll", "Tüm Kilitleri Aç")}
+              style={{ color: "var(--color-accent)" }}
+            >
+              <Unlock size={18} />
+            </button>
+          </>
+        )}
 
       </div>
     </div>

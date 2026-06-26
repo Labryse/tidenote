@@ -7,11 +7,18 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https'
   },
+  android: {
+    allowMixedContent: true
+  },
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
-      backgroundColor: '#0F172A',
+      backgroundColor: '#0891B2',
       showSpinner: false
+    },
+    Keyboard: {
+      resize: 'body',
+      resizeOnFullScreen: true
     }
   }
 };

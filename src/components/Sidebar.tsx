@@ -6,7 +6,8 @@ import { useNoteStore, type Note, type Folder } from "../store/useNoteStore";
 import { useTranslation } from "react-i18next";
 import ConfirmModal from "./ConfirmModal";
 import { useNavigate } from "react-router-dom";
-import { FilePlus, PenSquare, LayoutTemplate, Users, CalendarDays, Lightbulb, Kanban, ChevronLeft, ChevronRight, ChevronDown, LogOut, MoreVertical, FolderPlus, Folder as FolderIcon, FolderOpen, Archive, Palette } from "lucide-react";
+import { FilePlus, PenSquare, LayoutTemplate, Users, CalendarDays, Lightbulb, Kanban, ChevronLeft, ChevronRight, ChevronDown, LogOut, MoreVertical, FolderPlus, Folder as FolderIcon, FolderOpen, Archive, Palette, Bug } from "lucide-react";
+import BugReportModal from "./BugReportModal";
 import { extractTextFromBlocks } from "../lib/searchUtils";
 import { getResolvedName, isElectron, getLogoSrc } from "../lib/utils";
 
@@ -293,6 +294,7 @@ export default function Sidebar() {
   } = useNoteStore();
 
   const [isTemplatesSubmenuOpen, setIsTemplatesSubmenuOpen] = useState(false);
+  const [isBugReportOpen, setIsBugReportOpen] = useState(false);
 
   // Folder tree state
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
@@ -1433,6 +1435,7 @@ export default function Sidebar() {
                 className="new-note-option templates-option"
                 onMouseEnter={() => setIsTemplatesSubmenuOpen(true)}
                 onMouseLeave={() => setIsTemplatesSubmenuOpen(false)}
+                onClick={() => setIsTemplatesSubmenuOpen(prev => !prev)}
               >
                 <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                   <LayoutTemplate size={14} style={{ flexShrink: 0 }} />
@@ -1784,6 +1787,16 @@ export default function Sidebar() {
 
             <button
               type="button"
+              className="sidebar-theme-toggle-btn"
+              onClick={() => setIsBugReportOpen(true)}
+              title="Bug Bildir"
+              aria-label="Bug Report"
+            >
+              <Bug size={18} />
+            </button>
+
+            <button
+              type="button"
               className="sidebar-settings-btn"
               onClick={() => setIsSettingsOpen(true)}
               title={t("settings.title", "Ayarlar")}
@@ -1906,6 +1919,9 @@ export default function Sidebar() {
         onConfirm={confirmDeleteFolder}
         onCancel={() => setDeletingFolderId(null)}
       />
+      {isBugReportOpen && (
+        <BugReportModal onClose={() => setIsBugReportOpen(false)} />
+      )}
     </aside>
   );
 }
