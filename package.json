@@ -121,7 +121,8 @@
     "publish": {
       "provider": "github",
       "owner": "Labryse",
-      "repo": "tidenote"
+      "repo": "tidenote",
+      "releaseType": "draft"
     }
   },
   "repository": {

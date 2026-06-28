@@ -48,6 +48,11 @@ export default function Canvas() {
 
   const [selectedContainer, setSelectedContainer] = useState<{ rect: any; text: any } | null>(null);
   const [floatingPos, setFloatingPos] = useState<{ top: number; left: number } | null>(null);
+  const [selectedIdsStr, setSelectedIdsStr] = useState<string>("");
+  const lastSelectedIdsStrRef = useRef<string>("");
+  const latestElementsRef = useRef<readonly any[]>([]);
+  const latestAppStateRef = useRef<any>(null);
+  const latestFilesRef = useRef<any>(null);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [isThreeDotsOpen, setIsThreeDotsOpen] = useState(false);
   const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
@@ -506,7 +511,7 @@ export default function Canvas() {
 
   const updateContainerColor = (bgColor: string, strokeColor: string) => {
     if (!excalidrawAPI || !selectedContainer) return;
-    const { rect } = selectedContainer;
+    const { rect, text } = selectedContainer;
     const elements = excalidrawAPI.getSceneElements();
     const updated = elements.map((el: any) => {
       if (el.id === rect.id) {
@@ -523,6 +528,10 @@ export default function Canvas() {
       return el;
     });
     excalidrawAPI.updateScene({ elements: updated });
+    setSelectedContainer({
+      rect: { ...rect, backgroundColor: bgColor, strokeColor: strokeColor, fillStyle: bgColor === "transparent" ? "hachure" : "solid" },
+      text
+    });
   };
 
   const handleAutoHeight = () => {
@@ -705,11 +714,15 @@ export default function Canvas() {
       return el;
     });
     excalidrawAPI.updateScene({ elements: updated });
+    setSelectedContainer({
+      rect: { ...rect, strokeWidth: width },
+      text: text ? { ...text, strokeWidth: width } : null
+    });
   };
 
   const updateFillStyle = (fillStyle: string) => {
     if (!excalidrawAPI || !selectedContainer) return;
-    const { rect } = selectedContainer;
+    const { rect, text } = selectedContainer;
     const elements = excalidrawAPI.getSceneElements();
     const updated = elements.map((el: any) => {
       if (el.id === rect.id) {
@@ -718,6 +731,10 @@ export default function Canvas() {
       return el;
     });
     excalidrawAPI.updateScene({ elements: updated });
+    setSelectedContainer({
+      rect: { ...rect, fillStyle },
+      text
+    });
   };
 
   const updateOpacity = (opacity: number) => {
@@ -731,6 +748,10 @@ export default function Canvas() {
       return el;
     });
     excalidrawAPI.updateScene({ elements: updated });
+    setSelectedContainer({
+      rect: { ...rect, opacity },
+      text: text ? { ...text, opacity } : null
+    });
   };
 
   const updateFontFamily = (fontFamily: number) => {
@@ -765,6 +786,10 @@ export default function Canvas() {
       return el;
     });
     excalidrawAPI.updateScene({ elements: updated });
+    setSelectedContainer(text
+      ? { rect, text: { ...text, fontSize } }
+      : { rect: { ...rect, fontSize }, text: null }
+    );
   };
 
   const updateTextAlign = (textAlign: string) => {
@@ -779,6 +804,10 @@ export default function Canvas() {
       return el;
     });
     excalidrawAPI.updateScene({ elements: updated });
+    setSelectedContainer(text
+      ? { rect, text: { ...text, textAlign } }
+      : { rect: { ...rect, textAlign }, text: null }
+    );
   };
 
   const handleUnlockAll = () => {
@@ -796,7 +825,7 @@ export default function Canvas() {
 
   const updateElementStrokeColor = (color: string) => {
     if (!excalidrawAPI || !selectedContainer) return;
-    const { rect } = selectedContainer;
+    const { rect, text } = selectedContainer;
     const elements = excalidrawAPI.getSceneElements();
     const updated = elements.map((el: any) =>
       el.id === rect.id
@@ -804,11 +833,15 @@ export default function Canvas() {
         : el
     );
     excalidrawAPI.updateScene({ elements: updated });
+    setSelectedContainer({
+      rect: { ...rect, strokeColor: color },
+      text
+    });
   };
 
   const updateStrokeStyle = (strokeStyle: string) => {
     if (!excalidrawAPI || !selectedContainer) return;
-    const { rect } = selectedContainer;
+    const { rect, text } = selectedContainer;
     const elements = excalidrawAPI.getSceneElements();
     const updated = elements.map((el: any) =>
       el.id === rect.id
@@ -816,11 +849,15 @@ export default function Canvas() {
         : el
     );
     excalidrawAPI.updateScene({ elements: updated });
+    setSelectedContainer({
+      rect: { ...rect, strokeStyle },
+      text
+    });
   };
 
   const updateCornerRadius = (rounded: boolean) => {
     if (!excalidrawAPI || !selectedContainer) return;
-    const { rect } = selectedContainer;
+    const { rect, text } = selectedContainer;
     const elements = excalidrawAPI.getSceneElements();
     const updated = elements.map((el: any) => {
       if (el.id === rect.id) {
@@ -835,6 +872,10 @@ export default function Canvas() {
       return el;
     });
     excalidrawAPI.updateScene({ elements: updated });
+    setSelectedContainer({
+      rect: { ...rect, roundness: rounded ? { type: 3, value: 10 } : null },
+      text
+    });
   };
 
   const handleDoubleClick = () => {
@@ -1071,6 +1112,11 @@ export default function Canvas() {
   const handleCanvasChange = (elements: readonly any[], appState: any, files: any) => {
     if (!activeNoteId || !isInitializedRef.current) return;
 
+    // Keep the latest values in refs to prevent stale closure issues in useEffect
+    latestElementsRef.current = elements;
+    latestAppStateRef.current = appState;
+    latestFilesRef.current = files;
+
     if (appState?.activeTool?.type && appState.activeTool.type !== activeTool) {
       setActiveTool(appState.activeTool.type);
     }
@@ -1091,8 +1137,40 @@ export default function Canvas() {
     const selectedIds = Object.keys(appState.selectedElementIds || {}).filter(
       id => appState.selectedElementIds[id]
     );
+    const sortedIdsStr = selectedIds.sort().join(",");
+
+    // Only update the selected IDs state when the selection list actually changes
+    if (sortedIdsStr !== lastSelectedIdsStrRef.current) {
+      lastSelectedIdsStrRef.current = sortedIdsStr;
+      setSelectedIdsStr(sortedIdsStr);
+    }
+
+    const hasLocked = activeEls.some((e: any) => e.locked);
+    if (hasLocked !== hasLockedElementsRef.current) {
+      hasLockedElementsRef.current = hasLocked;
+      setHasLockedElements(hasLocked);
+    }
+
+    const currentStr = JSON.stringify(elements);
+    if (currentStr === lastSavedRef.current) return;
+    if (!elements || elements.length === 0) return;
+
+    lastSavedRef.current = currentStr;
+    debouncedSave(activeNoteId, [...elements], appState, files);
+  };
+
+  // Position calculation and state updates for the floating properties bar
+  useEffect(() => {
+    const elements = latestElementsRef.current;
+    const appState = latestAppStateRef.current;
+    if (!elements || !appState) return;
+
+    const selectedIds = Object.keys(appState.selectedElementIds || {}).filter(
+      id => appState.selectedElementIds[id]
+    );
 
     if (selectedIds.length >= 1) {
+      const activeEls = elements.filter(e => !e.isDeleted);
       const selEls = activeEls.filter(e => selectedIds.includes(e.id));
       if (selEls.length > 0) {
         const zoom = appState.zoom?.value ?? 1;
@@ -1144,20 +1222,7 @@ export default function Canvas() {
       setIsFontDropdownOpen(false);
       setFontDropdownFixedPos(null);
     }
-
-    const hasLocked = activeEls.some((e: any) => e.locked);
-    if (hasLocked !== hasLockedElementsRef.current) {
-      hasLockedElementsRef.current = hasLocked;
-      setHasLockedElements(hasLocked);
-    }
-
-    const currentStr = JSON.stringify(elements);
-    if (currentStr === lastSavedRef.current) return;
-    if (!elements || elements.length === 0) return;
-
-    lastSavedRef.current = currentStr;
-    debouncedSave(activeNoteId, [...elements], appState, files);
-  };
+  }, [selectedIdsStr]);
 
   if (!initialData) {
     return (
