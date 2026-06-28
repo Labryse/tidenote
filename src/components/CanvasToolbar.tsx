@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { FONT_FAMILY } from "@excalidraw/excalidraw";
+import { Capacitor } from "@capacitor/core";
 import {
   MousePointer2,
   Hand,
@@ -78,6 +79,16 @@ export default function CanvasToolbar({
     return "top";
   });
   const [selectedFont, setSelectedFont] = useState<number>(DEFAULT_FONT);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(Capacitor.isNativePlatform() || window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
   const [isFontPickerOpen, setIsFontPickerOpen] = useState(false);
   const [isMiniBarOpen, setIsMiniBarOpen] = useState(false);
   const [penColor, setPenColor] = useState<string>("#000000");
@@ -263,7 +274,7 @@ export default function CanvasToolbar({
     if (excalidrawAPI) excalidrawAPI.setActiveTool({ type: toolType });
   };
 
-  const isVertical = snapZone === "left" || snapZone === "right";
+  const isVertical = (snapZone === "left" || snapZone === "right") && !isMobile;
 
   const fontDropdownClass =
     snapZone === "bottom" ? "above" :
@@ -309,9 +320,9 @@ export default function CanvasToolbar({
     <div
       className={`canvas-toolbar ${isVertical ? "vertical" : "horizontal"} ${isDragging ? "dragging" : ""}`}
       ref={toolbarRef}
-      onMouseDown={handleMouseDown}
-      onTouchStart={handleTouchStart}
-      style={activeStyle}
+      onMouseDown={isMobile ? undefined : handleMouseDown}
+      onTouchStart={isMobile ? undefined : handleTouchStart}
+      style={isMobile ? {} : activeStyle}
     >
       {/* Drag handle */}
       <div className="toolbar-drag-handle">

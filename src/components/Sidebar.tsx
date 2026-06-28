@@ -312,6 +312,22 @@ export default function Sidebar() {
   const nativeColorInputRef = useRef<HTMLInputElement>(null);
   const colorTargetRef = useRef<{ type: "note" | "folder"; id: string } | null>(null);
 
+  const touchStartXRef = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartXRef.current !== null) {
+      const diffX = touchStartXRef.current - e.changedTouches[0].clientX;
+      if (diffX > 50) {
+        setIsMobileSidebarOpen(false);
+      }
+      touchStartXRef.current = null;
+    }
+  };
+
   const handleEdgeDrag = (e: React.MouseEvent) => {
     const startX = e.clientX;
     
@@ -1330,7 +1346,11 @@ export default function Sidebar() {
   );
 
   return (
-    <aside className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""} ${isMobileSidebarOpen ? "open" : ""}`}>
+    <aside 
+      className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""} ${isMobileSidebarOpen ? "open" : ""}`}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Drag handle to collapse */}
       <div
         style={{
@@ -1856,8 +1876,13 @@ export default function Sidebar() {
                 <LogOut size={18} />
               </button>
             ) : (
-              <button className="sidebar-logout-btn" onClick={handleSignOut}>
-                {t("auth.logout")}
+              <button 
+                className="sidebar-logout-btn" 
+                onClick={handleSignOut}
+                title={t("auth.logout")}
+              >
+                <LogOut size={18} className="logout-icon" />
+                <span className="logout-text">{t("auth.logout")}</span>
               </button>
             )}
           </div>

@@ -7175,18 +7175,20 @@ body {
    ========================================== */
 @media (max-width: 768px) {
   .canvas-toolbar {
-    top: 52px !important;
+    position: fixed !important;
+    top: 60px !important;
     left: 50% !important;
     right: auto !important;
     bottom: auto !important;
     transform: translateX(-50%) !important;
     flex-direction: row !important;
-    max-width: calc(100vw - 24px);
-    overflow-x: auto;
+    width: auto !important;
+    max-width: 95vw !important;
+    overflow-x: auto !important;
   }
 
   .toolbar-drag-handle {
-    display: none;
+    display: none !important;
   }
 
   .canvas-container {
@@ -7557,11 +7559,11 @@ body {
 @media (max-width: 768px) {
   .canvas-toolbar .toolbar-btn,
   .canvas-toolbar .toolbar-tool-btn {
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px !important;
-    min-height: 32px !important;
-    padding: 4px !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    padding: 6px !important;
   }
 
   .canvas-toolbar {
@@ -7572,5 +7574,66 @@ body {
 
   .canvas-toolbar::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Sidebar footer bottom buttons touch target sizing */
+  .sidebar-footer-row {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .sidebar-theme-toggle-btn,
+  .sidebar-settings-btn,
+  .sidebar-logout-btn {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    padding: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 8px !important;
+    box-sizing: border-box !important;
+  }
+
+  .sidebar-profile-group {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .sidebar-avatar-container {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    margin: 0 !important;
+  }
+
+  .sidebar-avatar-img {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 50% !important;
+  }
+
+  .sidebar-user-name,
+  .sidebar-logout-btn .logout-text {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .sidebar-logout-btn .logout-icon {
+    display: none !important;
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
@@ -85,6 +85,22 @@ function WorkspaceApp() {
     isCanvasFullscreen,
     setIsCanvasFullscreen
   } = useNoteStore();
+
+  const touchStartXRef = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartXRef.current !== null) {
+      const diffX = touchStartXRef.current - e.changedTouches[0].clientX;
+      if (diffX > 50) {
+        setIsMobileSidebarOpen(false);
+      }
+      touchStartXRef.current = null;
+    }
+  };
 
   // Reset fullscreen when note ID changes
   useEffect(() => {
@@ -224,6 +240,8 @@ function WorkspaceApp() {
         <div 
           className="mobile-sidebar-overlay" 
           onClick={() => setIsMobileSidebarOpen(false)}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
         />
       )}
 
