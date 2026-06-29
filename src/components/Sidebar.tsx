@@ -311,6 +311,8 @@ export default function Sidebar() {
   const [colorPickerFolderId, setColorPickerFolderId] = useState<string | null>(null);
   const nativeColorInputRef = useRef<HTMLInputElement>(null);
   const colorTargetRef = useRef<{ type: "note" | "folder"; id: string } | null>(null);
+  const notesUnsubRef = useRef<(() => void) | null>(null);
+  const foldersUnsubRef = useRef<(() => void) | null>(null);
 
   const touchStartXRef = useRef<number | null>(null);
 
@@ -552,6 +554,11 @@ export default function Sidebar() {
   }, [isSortDropdownOpen]);
 
   useEffect(() => {
+    if (notesUnsubRef.current) {
+      notesUnsubRef.current();
+      notesUnsubRef.current = null;
+    }
+
     if (!user) {
       setNotes([])
       setIsLoading(false)
@@ -582,14 +589,24 @@ export default function Sidebar() {
       }
     })
 
+    notesUnsubRef.current = unsubscribe;
+
     return () => {
       isMounted = false;
-      unsubscribe();
-    }
+      if (notesUnsubRef.current) {
+        notesUnsubRef.current();
+        notesUnsubRef.current = null;
+      }
+    };
   }, [user?.uid]) // user.uid değişince yeniden kur, user objesi değil
 
   // Folders subscription
   useEffect(() => {
+    if (foldersUnsubRef.current) {
+      foldersUnsubRef.current();
+      foldersUnsubRef.current = null;
+    }
+
     if (!user) { setFolders([]); return; }
     let isMounted = true;
     const q = query(
@@ -600,9 +617,15 @@ export default function Sidebar() {
       if (!isMounted) return;
       setFolders(snap.docs.map(d => ({ id: d.id, ...d.data() } as Folder)));
     }, (err) => { console.error("folders onSnapshot error:", err); });
+
+    foldersUnsubRef.current = unsubscribe;
+
     return () => {
       isMounted = false;
-      unsubscribe();
+      if (foldersUnsubRef.current) {
+        foldersUnsubRef.current();
+        foldersUnsubRef.current = null;
+      }
     };
   }, [user?.uid]);
 

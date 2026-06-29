@@ -267,7 +267,12 @@ export default function Editor() {
       });
     } catch (error: any) {
       console.error("Error saving note to Firestore:", error);
-      useNoteStore.getState().showToast(t("toast.saveError"));
+      if (error.code === 'failed-precondition' || error.message?.includes('INTERNAL ASSERTION')) {
+        console.warn('Firestore connection issue, retrying...');
+        setTimeout(() => saveNoteToFirestore(noteId, document), 2000);
+      } else {
+        useNoteStore.getState().showToast(t("toast.saveError"));
+      }
     }
   };
 

@@ -109,11 +109,28 @@ export default function CanvasToolbar({
       })
     : [];
 
+  const getActiveTextElement = () => {
+    if (!excalidrawAPI || selectedElements.length !== 1) return null;
+    const first = selectedElements[0];
+    if (first.type === "text") return first;
+    
+    // If it's a shape container, check if it has a bound text child
+    if (first.boundElements) {
+      const allEls = excalidrawAPI.getSceneElements();
+      const textChild = allEls.find((e: any) =>
+        first.boundElements.some((be: any) => be.type === "text" && be.id === e.id) && !e.isDeleted
+      );
+      if (textChild) return textChild;
+    }
+    return null;
+  };
+
+  const activeText = getActiveTextElement();
+
   const updateTextProp = (prop: string, value: any) => {
-    if (!excalidrawAPI || selectedElements.length !== 1) return;
-    const txt = selectedElements[0];
+    if (!excalidrawAPI || !activeText) return;
     const updated = excalidrawAPI.getSceneElements().map((e: any) =>
-      e.id === txt.id
+      e.id === activeText.id
         ? { ...e, [prop]: value, updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
         : e
     );
@@ -1146,12 +1163,12 @@ export default function CanvasToolbar({
 
             {miniBarCategory === "selection" && (
               <div className="mini-bar-group">
-                {/* 1. TEXT ELEMENT SELECTED */}
-                {selectedElements.length === 1 && selectedElements[0].type === "text" && (
+                {/* 1. TEXT ELEMENT SELECTED OR CONTAINER WITH BOUND TEXT */}
+                {activeText && (
                   <>
                     {/* Font Dropdown */}
                     <select
-                      value={selectedElements[0].fontFamily}
+                      value={activeText.fontFamily}
                       onChange={e => updateTextProp("fontFamily", Number(e.target.value))}
                       className="mini-bar-select"
                       style={{
@@ -1175,7 +1192,7 @@ export default function CanvasToolbar({
                       <button
                         key={s.size}
                         type="button"
-                        className={`mini-bar-option-btn ${selectedElements[0].fontSize === s.size ? "active" : ""}`}
+                        className={`mini-bar-option-btn ${activeText.fontSize === s.size ? "active" : ""}`}
                         onClick={() => updateTextProp("fontSize", s.size)}
                         style={{ minWidth: "26px", fontSize: "10px", fontWeight: "bold" }}
                       >
@@ -1189,7 +1206,7 @@ export default function CanvasToolbar({
                       <button
                         key={align}
                         type="button"
-                        className={`mini-bar-btn ${selectedElements[0].textAlign === align ? "active" : ""}`}
+                        className={`mini-bar-btn ${activeText.textAlign === align ? "active" : ""}`}
                         onClick={() => updateTextProp("textAlign", align)}
                       >
                         <Icon size={16} />
@@ -1200,15 +1217,15 @@ export default function CanvasToolbar({
                     <div className="mini-bar-separator" />
                     <button
                       type="button"
-                      className={`mini-bar-btn ${selectedElements[0].fontWeight === "bold" ? "active" : ""}`}
-                      onClick={() => updateTextProp("fontWeight", selectedElements[0].fontWeight === "bold" ? "normal" : "bold")}
+                      className={`mini-bar-btn ${activeText.fontWeight === "bold" ? "active" : ""}`}
+                      onClick={() => updateTextProp("fontWeight", activeText.fontWeight === "bold" ? "normal" : "bold")}
                     >
                       <Bold size={16} />
                     </button>
                     <button
                       type="button"
-                      className={`mini-bar-btn ${selectedElements[0].fontStyle === "italic" ? "active" : ""}`}
-                      onClick={() => updateTextProp("fontStyle", selectedElements[0].fontStyle === "italic" ? "normal" : "italic")}
+                      className={`mini-bar-btn ${activeText.fontStyle === "italic" ? "active" : ""}`}
+                      onClick={() => updateTextProp("fontStyle", activeText.fontStyle === "italic" ? "normal" : "italic")}
                     >
                       <Italic size={16} />
                     </button>
@@ -1220,7 +1237,7 @@ export default function CanvasToolbar({
                         <button
                           key={`textstroke-${index}-${color}`}
                           type="button"
-                          className={`mini-bar-swatch ${selectedElements[0].strokeColor === color ? "active" : ""}`}
+                          className={`mini-bar-swatch ${activeText.strokeColor === color ? "active" : ""}`}
                           style={{ backgroundColor: color }}
                           onClick={() => updateTextProp("strokeColor", color)}
                         />
@@ -1228,7 +1245,7 @@ export default function CanvasToolbar({
                       <input
                         type="color"
                         className="mini-bar-color-input"
-                        value={selectedElements[0].strokeColor?.startsWith("#") ? selectedElements[0].strokeColor : "#000000"}
+                        value={activeText.strokeColor?.startsWith("#") ? activeText.strokeColor : "#000000"}
                         onChange={e => updateTextProp("strokeColor", e.target.value)}
                       />
                     </div>
@@ -1393,15 +1410,19 @@ export default function CanvasToolbar({
                     </div>
 
                     {/* Add Text */}
-                    <div className="mini-bar-separator" />
-                    <button
-                      type="button"
-                      className="mini-bar-btn"
-                      onClick={handleAddTextToShape}
-                      title={isTr ? "Metin Ekle" : "Add Text"}
-                    >
-                      <Type size={16} />
-                    </button>
+                    {!activeText && (
+                      <>
+                        <div className="mini-bar-separator" />
+                        <button
+                          type="button"
+                          className="mini-bar-btn"
+                          onClick={handleAddTextToShape}
+                          title={isTr ? "Metin Ekle" : "Add Text"}
+                        >
+                          <Type size={16} />
+                        </button>
+                      </>
+                    )}
 
                     {/* Cycle Shape Type */}
                     <div className="mini-bar-separator" />

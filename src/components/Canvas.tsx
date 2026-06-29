@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Excalidraw, MainMenu, FONT_FAMILY } from "@excalidraw/excalidraw";
 import LoadingSpinner from "./LoadingSpinner";
 import "@excalidraw/excalidraw/index.css";
@@ -45,7 +45,21 @@ export default function Canvas() {
   const { activeNoteId, notes, theme, setExcalidrawAPI: storeSetExcalidrawAPI } = useNoteStore();
   
   const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
-  const [activeTool, setActiveTool] = useState<string>("selection");
+  const excalidrawAPIRef = useRef<any>(null);
+  const [isEditingText, setIsEditingText] = useState(false);
+  const prevEditingRef = useRef<any>(null);
+
+  const [activeTool, setActiveToolState] = useState<string>("selection");
+  const activeToolRef = useRef<string>("selection");
+  const setActiveTool = useCallback((tool: string) => {
+    setActiveToolState(tool);
+    activeToolRef.current = tool;
+  }, []);
+
+  const themeRef = useRef(theme);
+  const activeNoteIdRef = useRef(activeNoteId);
+  useEffect(() => { themeRef.current = theme; }, [theme]);
+  useEffect(() => { activeNoteIdRef.current = activeNoteId; }, [activeNoteId]);
   const [initialData, setInitialData] = useState<any>(null);
   const isInitializedRef = useRef(false);
 
@@ -107,7 +121,7 @@ export default function Canvas() {
 
 
 
-  // Esc key cancels block placement mode
+  // Esc key cancels block placement mode & T/t key sets black stroke and font color for text tool
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && customBlockTypeRef.current) {
@@ -116,31 +130,32 @@ export default function Canvas() {
         isDraggingRef.current = false;
         dragStartRef.current = null;
       }
+      if ((e.key === "t" || e.key === "T") && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const activeElement = document.activeElement;
+        const isInput = activeElement && (
+          activeElement.tagName === "INPUT" ||
+          activeElement.tagName === "TEXTAREA" ||
+          activeElement.hasAttribute("contenteditable") ||
+          activeElement.classList.contains("excalidraw-texteditor")
+        );
+        if (!isInput && excalidrawAPI) {
+          excalidrawAPI.updateScene({
+            appState: {
+              currentItemStrokeColor: "#1a1a1a",
+              currentItemFontColor: "#1a1a1a"
+            }
+          });
+        }
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [excalidrawAPI]);
 
-  const handleExcalidrawPointerDown = (activeTool: any, pointerDownState: any) => {
-    try {
-      const selected = Object.keys(latestAppStateRef.current?.selectedElementIds || {}).filter(
-        id => latestAppStateRef.current?.selectedElementIds[id]
-      );
-      if (selected.length > 0) {
-        setIsDraggingElement(true);
-      }
-    } catch (_) {}
-  };
 
-  const handleExcalidrawPointerUp = () => {
-    setTimeout(() => {
-      setIsDraggingElement(false);
-      setPositionVersion(v => v + 1);
-    }, 50);
-  };
 
   const handlePointerDownCapture = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!customBlockTypeRef.current || !excalidrawAPI) return;
+    if (!customBlockTypeRef.current || customBlockTypeRef.current === "schema" || !excalidrawAPI) return;
 
     e.stopPropagation();
     e.preventDefault();
@@ -406,7 +421,7 @@ export default function Canvas() {
         width: finalW - 32,
         height: finalH - 32,
         angle: 0,
-        strokeColor: "#AAAAAA",
+        strokeColor: "#1a1a1a",
         backgroundColor: "transparent",
         fillStyle: "solid",
         strokeWidth: 1,
@@ -424,13 +439,13 @@ export default function Canvas() {
         updated: Date.now(),
         link: null,
         locked: false,
-        text: placeholderText,
+        text: "",
         fontSize: 16,
         fontFamily: FONT_FAMILY.Helvetica as number,
         textAlign: "center",
         verticalAlign: "middle",
         containerId: rectId,
-        originalText: placeholderText,
+        originalText: "",
         lineHeight: 1.3,
         autoResize: true
       };
@@ -1135,9 +1150,21 @@ export default function Canvas() {
   const lastSavedRef = useRef<string>("");
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSaveRef = useRef<{ noteId: string; elements: any[]; appState: any; files: any } | null>(null);
+  const isWritingRef = useRef<boolean>(false);
 
   // Direct sync function to save canvas to Firestore
   const saveCanvasToFirestore = async (noteId: string, elements: any[], appState: any, files: any) => {
+    if (isWritingRef.current) {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      saveTimeoutRef.current = setTimeout(() => {
+        saveCanvasToFirestore(noteId, elements, appState, files);
+      }, 500);
+      return;
+    }
+
+    isWritingRef.current = true;
     try {
       const cleanElements = JSON.parse(JSON.stringify(elements));
       const cleanAppState = JSON.parse(JSON.stringify({
@@ -1154,7 +1181,16 @@ export default function Canvas() {
       });
     } catch (error: any) {
       console.error("Error saving canvas to Firestore:", error);
-      useNoteStore.getState().showToast(t("toast.saveError"));
+      if (error.code === 'failed-precondition' || error.message?.includes('INTERNAL ASSERTION')) {
+        console.warn('Firestore connection issue, retrying...');
+        setTimeout(() => {
+          saveCanvasToFirestore(noteId, elements, appState, files);
+        }, 2000);
+      } else {
+        useNoteStore.getState().showToast(t("toast.saveError"));
+      }
+    } finally {
+      isWritingRef.current = false;
     }
   };
 
@@ -1170,7 +1206,7 @@ export default function Canvas() {
       await saveCanvasToFirestore(noteId, elements, appState, files);
       pendingSaveRef.current = null;
       saveTimeoutRef.current = null;
-    }, 1500);
+    }, 2000);
   };
 
   // Sync loaded note from store
@@ -1276,6 +1312,7 @@ export default function Canvas() {
         currentItemFontFamily: FONT_FAMILY.Helvetica as number,
         objectsSnapModeEnabled: true,
         currentItemStrokeColor: "transparent",
+        currentItemFontColor: "#1a1a1a",
         currentItemStrokeWidth: 0,
         currentItemFillStyle: "solid",
         currentItemBackgroundColor: theme === "dark" ? "#E8E8E8" : "#D0D0D0",
@@ -1348,149 +1385,6 @@ export default function Canvas() {
     } catch {}
   }, [excalidrawAPI, activeNoteId]);
 
-  const handleCanvasChange = (elements: readonly any[], appState: any, files: any) => {
-    if (!activeNoteId || !isInitializedRef.current) return;
-
-    // Keep the latest values in refs to prevent stale closure issues in useEffect
-    latestElementsRef.current = elements;
-    latestAppStateRef.current = appState;
-    latestFilesRef.current = files;
-
-    // Detect editingElement changes → immediately hide/restore floating toolbar
-    const currentlyEditing = !!appState.editingElement;
-    if (currentlyEditing !== isEditingRef.current) {
-      isEditingRef.current = currentlyEditing;
-      if (currentlyEditing) {
-        setFloatingPos(null);
-      } else {
-        setTimeout(() => setPositionVersion(v => v + 1), 100);
-      }
-    }
-
-    // Detect scroll/zoom changes to hide toolbar
-    const prevScrollZoom = lastScrollZoomRef.current;
-    const currentScrollX = appState?.scrollX ?? 0;
-    const currentScrollY = appState?.scrollY ?? 0;
-    const currentZoom = appState?.zoom?.value ?? 1;
-
-    if (
-      prevScrollZoom.scrollX !== currentScrollX ||
-      prevScrollZoom.scrollY !== currentScrollY ||
-      prevScrollZoom.zoom !== currentZoom
-    ) {
-      setIsScrollingOrZooming(true);
-
-      if (scrollZoomTimeoutRef.current) {
-        clearTimeout(scrollZoomTimeoutRef.current);
-      }
-      scrollZoomTimeoutRef.current = setTimeout(() => {
-        setIsScrollingOrZooming(false);
-        // Force recalculation by touching selectedIdsStr
-        setSelectedIdsStr(prev => prev + " ");
-      }, 300);
-
-      lastScrollZoomRef.current = {
-        scrollX: currentScrollX,
-        scrollY: currentScrollY,
-        zoom: currentZoom
-      };
-
-      // Save viewport to localStorage for refresh restore
-      try {
-        localStorage.setItem(
-          `canvas-viewport-${activeNoteId}`,
-          JSON.stringify({ scrollX: currentScrollX, scrollY: currentScrollY, zoom: currentZoom })
-        );
-      } catch {}
-    }
-
-    // Excalidraw placeholder swap logic
-    const prevEditingId = lastEditingTextElementIdRef.current;
-    const currentEditingId = appState?.editingElement?.id;
-    const isTr = i18n.language.startsWith("tr");
-    const placeholderText = isTr ? "Yazmaya Başla..." : "Type '/' for commands...";
-
-    // Case A: Just exited editing mode on a text element
-    if (prevEditingId && prevEditingId !== currentEditingId) {
-      const el = elements.find((e: any) => e.id === prevEditingId && !e.isDeleted);
-      if (el && el.type === "text" && (!el.text || el.text.trim() === "")) {
-        setTimeout(() => {
-          if (excalidrawAPI) {
-            excalidrawAPI.updateScene({
-              elements: excalidrawAPI.getSceneElements().map((e: any) => 
-                e.id === prevEditingId 
-                  ? { ...e, text: placeholderText, originalText: placeholderText, strokeColor: "#aaaaaa" } 
-                  : e
-              )
-            });
-          }
-        }, 50);
-      }
-    }
-
-    // Case B: Just entered editing mode on a text element containing placeholder
-    if (currentEditingId && currentEditingId !== prevEditingId) {
-      const el = elements.find((e: any) => e.id === currentEditingId && !e.isDeleted);
-      if (el && el.type === "text" && el.text === placeholderText) {
-        setTimeout(() => {
-          if (excalidrawAPI) {
-            const normalStrokeColor = theme === "dark" ? "#f4f4f5" : "#18181b";
-            excalidrawAPI.updateScene({
-              elements: excalidrawAPI.getSceneElements().map((e: any) => 
-                e.id === currentEditingId 
-                  ? { ...e, text: "", originalText: "", strokeColor: normalStrokeColor } 
-                  : e
-              )
-            });
-          }
-        }, 50);
-      }
-    }
-
-    lastEditingTextElementIdRef.current = currentEditingId;
-
-    if (appState?.activeTool?.type && appState.activeTool.type !== activeTool) {
-      setActiveTool(appState.activeTool.type);
-    }
-
-    // Fix: restore transparent background when canvas is cleared (Ctrl+Backspace)
-    const activeEls = (elements as any[]).filter(e => !e.isDeleted);
-    const currentCount = activeEls.length;
-    if (prevElementsCountRef.current > 0 && currentCount === 0) {
-      setTimeout(() => {
-        if (excalidrawAPI) {
-          excalidrawAPI.updateScene({ appState: { viewBackgroundColor: "transparent" } });
-        }
-      }, 60);
-    }
-    prevElementsCountRef.current = currentCount;
-
-    // Selection tracking — works for all element types
-    const selectedIds = Object.keys(appState.selectedElementIds || {}).filter(
-      id => appState.selectedElementIds[id]
-    );
-    const sortedIdsStr = selectedIds.sort().join(",");
-
-    // Only update the selected IDs state when the selection list actually changes
-    if (sortedIdsStr !== lastSelectedIdsStrRef.current) {
-      lastSelectedIdsStrRef.current = sortedIdsStr;
-      setSelectedIdsStr(sortedIdsStr);
-    }
-
-    const hasLocked = activeEls.some((e: any) => e.locked);
-    if (hasLocked !== hasLockedElementsRef.current) {
-      hasLockedElementsRef.current = hasLocked;
-      setHasLockedElements(hasLocked);
-    }
-
-    const currentStr = JSON.stringify(elements);
-    if (currentStr === lastSavedRef.current) return;
-    if (!elements || elements.length === 0) return;
-
-    lastSavedRef.current = currentStr;
-    debouncedSave(activeNoteId, [...elements], appState, files);
-  };
-
   const getElementDOMRect = (element: any, excalidrawAPI: any, containerRef: React.RefObject<HTMLDivElement | null>) => {
     if (!excalidrawAPI || !containerRef.current) return null;
     const appState = excalidrawAPI.getAppState();
@@ -1505,35 +1399,18 @@ export default function Canvas() {
     return { x, y, w, h, centerX: x + w/2, centerY: y + h/2 };
   };
 
-  // Position calculation and state updates for the floating properties bar
-  useEffect(() => {
-    const elements = latestElementsRef.current;
-    const appState = latestAppStateRef.current;
-    if (!elements || !appState || !wrapperRef.current) return;
-
-    const selectedIds = Object.keys(appState.selectedElementIds || {}).filter(
-      id => appState.selectedElementIds[id]
-    );
+  const updateToolbarPosition = (selectedIds: string[], elements: readonly any[], appState: any) => {
+    if (!elements || !appState || !wrapperRef.current || !excalidrawAPI) return;
 
     if (selectedIds.length >= 1) {
       const activeEls = elements.filter(e => !e.isDeleted);
       const selEls = activeEls.filter(e => selectedIds.includes(e.id));
       if (selEls.length > 0) {
-        const zoom = appState.zoom?.value ?? 1;
-        const scrollX = appState.scrollX ?? 0;
-        const scrollY = appState.scrollY ?? 0;
-
-        // Bounding box of all selected elements
-        const minX = Math.min(...selEls.map(e => e.x ?? 0));
-        const minY = Math.min(...selEls.map(e => e.y ?? 0));
-        const maxX = Math.max(...selEls.map(e => (e.x ?? 0) + (e.width ?? 0)));
-        const maxY = Math.max(...selEls.map(e => (e.y ?? 0) + (e.height ?? 0)));
-
         const unionEl = {
-          x: minX,
-          y: minY,
-          width: maxX - minX,
-          height: maxY - minY
+          x: Math.min(...selEls.map(e => e.x ?? 0)),
+          y: Math.min(...selEls.map(e => e.y ?? 0)),
+          width: Math.max(...selEls.map(e => (e.x ?? 0) + (e.width ?? 0))) - Math.min(...selEls.map(e => e.x ?? 0)),
+          height: Math.max(...selEls.map(e => (e.y ?? 0) + (e.height ?? 0))) - Math.min(...selEls.map(e => e.y ?? 0))
         };
 
         const domRect = getElementDOMRect(unionEl, excalidrawAPI, wrapperRef);
@@ -1558,9 +1435,14 @@ export default function Canvas() {
 
           // Hide toolbar if Excalidraw is in text editing mode
           if (!appState.editingElement) {
-            setFloatingPos({ left: toolbarLeft, top: toolbarTop });
+            const nextPos = { left: toolbarLeft, top: toolbarTop };
+            setFloatingPos(prev => {
+              if (!prev) return nextPos;
+              if (prev.left === nextPos.left && prev.top === nextPos.top) return prev;
+              return nextPos;
+            });
           } else {
-            setFloatingPos(null);
+            setFloatingPos(prev => prev === null ? prev : null);
           }
         }
 
@@ -1580,7 +1462,11 @@ export default function Canvas() {
             ) ?? null
           : null;
 
-        setSelectedContainer({ rect: primaryEl, text: textChild });
+        setSelectedContainer(prev => {
+          if (!prev) return { rect: primaryEl, text: textChild };
+          if (prev.rect?.id === primaryEl?.id && prev.text?.id === textChild?.id) return prev;
+          return { rect: primaryEl, text: textChild };
+        });
 
         // Calculate quick connect arrows positions if exactly 1 element is selected and it is a schema element
         if (selectedIds.length === 1) {
@@ -1592,37 +1478,263 @@ export default function Canvas() {
           ) {
             const domRectEl = getElementDOMRect(selEl, excalidrawAPI, wrapperRef);
             if (domRectEl) {
-              setQuickConnect({
+              const nextQuickConnect = {
                 selectedId: selEl.id,
                 type: selEl.type,
                 top: { x: domRectEl.centerX - 12, y: domRectEl.y - 20 - 24 },
                 bottom: { x: domRectEl.centerX - 12, y: domRectEl.y + domRectEl.h + 20 },
                 left: { x: domRectEl.x - 20 - 24, y: domRectEl.centerY - 12 },
                 right: { x: domRectEl.x + domRectEl.w + 20, y: domRectEl.centerY - 12 }
+              };
+              setQuickConnect(prev => {
+                if (!prev) return nextQuickConnect;
+                if (
+                  prev.selectedId === nextQuickConnect.selectedId &&
+                  prev.top.x === nextQuickConnect.top.x &&
+                  prev.top.y === nextQuickConnect.top.y &&
+                  prev.bottom.x === nextQuickConnect.bottom.x &&
+                  prev.bottom.y === nextQuickConnect.bottom.y &&
+                  prev.left.x === nextQuickConnect.left.x &&
+                  prev.left.y === nextQuickConnect.left.y &&
+                  prev.right.x === nextQuickConnect.right.x &&
+                  prev.right.y === nextQuickConnect.right.y
+                ) return prev;
+                return nextQuickConnect;
               });
             } else {
-              setQuickConnect(null);
+              setQuickConnect(prev => prev === null ? prev : null);
             }
           } else {
-            setQuickConnect(null);
+            setQuickConnect(prev => prev === null ? prev : null);
           }
         } else {
-          setQuickConnect(null);
+          setQuickConnect(prev => prev === null ? prev : null);
         }
       } else {
-        setSelectedContainer(null);
-        setFloatingPos(null);
-        setIsFontDropdownOpen(false);
-        setFontDropdownFixedPos(null);
-        setQuickConnect(null);
+        setSelectedContainer(prev => prev === null ? prev : null);
+        setFloatingPos(prev => prev === null ? prev : null);
+        setIsFontDropdownOpen(prev => prev === false ? prev : false);
+        setFontDropdownFixedPos(prev => prev === null ? prev : null);
+        setQuickConnect(prev => prev === null ? prev : null);
       }
     } else {
-      setSelectedContainer(null);
-      setFloatingPos(null);
-      setIsFontDropdownOpen(false);
-      setFontDropdownFixedPos(null);
-      setQuickConnect(null);
+      setSelectedContainer(prev => prev === null ? prev : null);
+      setFloatingPos(prev => prev === null ? prev : null);
+      setIsFontDropdownOpen(prev => prev === false ? prev : false);
+      setFontDropdownFixedPos(prev => prev === null ? prev : null);
+      setQuickConnect(prev => prev === null ? prev : null);
     }
+  };
+
+  const debouncedSaveRef = useRef(debouncedSave);
+  useEffect(() => {
+    debouncedSaveRef.current = debouncedSave;
+  });
+
+  const updateToolbarPositionRef = useRef(updateToolbarPosition);
+  useEffect(() => {
+    updateToolbarPositionRef.current = updateToolbarPosition;
+  });
+
+  const handleCanvasChange = useCallback((elements: readonly any[], appState: any, files: any) => {
+    if (!activeNoteIdRef.current || !isInitializedRef.current) return;
+
+    // Keep the latest values in refs to prevent stale closure issues in useEffect
+    latestElementsRef.current = elements;
+    latestAppStateRef.current = appState;
+    latestFilesRef.current = files;
+
+    const currentDragging = !!appState.draggingElement || !!appState.resizingElement;
+    setIsDraggingElement(prev => prev === currentDragging ? prev : currentDragging);
+
+    // Detect editingElement changes → immediately hide/restore floating toolbar
+    const currentlyEditing = !!appState.editingElement;
+    if (currentlyEditing !== isEditingRef.current) {
+      isEditingRef.current = currentlyEditing;
+      setIsEditingText(prev => prev === currentlyEditing ? prev : currentlyEditing);
+      if (currentlyEditing) {
+        setFloatingPos(prev => prev === null ? prev : null);
+        setQuickConnect(prev => prev === null ? prev : null);
+      } else {
+        setTimeout(() => setPositionVersion(v => v + 1), 100);
+      }
+    }
+
+    // DÜZELTME 4: metin ekleme bitince selectedElementIds'e bakarak toolbar'ı tekrar göster
+    const wasEditing = prevEditingRef.current !== null;
+    const isEditing = appState.editingElement !== null;
+    if (wasEditing && !isEditing) {
+      setTimeout(() => {
+        const selected = Object.keys(appState.selectedElementIds || {}).filter(
+          id => appState.selectedElementIds[id]
+        );
+        if (selected.length > 0) {
+          setPositionVersion(v => v + 1);
+        }
+      }, 100);
+    }
+    prevEditingRef.current = appState.editingElement || null;
+
+    // Detect scroll/zoom changes to hide toolbar
+    const prevScrollZoom = lastScrollZoomRef.current;
+    const currentScrollX = appState?.scrollX ?? 0;
+    const currentScrollY = appState?.scrollY ?? 0;
+    const currentZoom = appState?.zoom?.value ?? 1;
+
+    if (
+      prevScrollZoom.scrollX !== currentScrollX ||
+      prevScrollZoom.scrollY !== currentScrollY ||
+      prevScrollZoom.zoom !== currentZoom
+    ) {
+      setIsScrollingOrZooming(prev => prev === true ? prev : true);
+
+      if (scrollZoomTimeoutRef.current) {
+        clearTimeout(scrollZoomTimeoutRef.current);
+      }
+      scrollZoomTimeoutRef.current = setTimeout(() => {
+        setIsScrollingOrZooming(prev => prev === false ? prev : false);
+        // Force recalculation by touching selectedIdsStr
+        setSelectedIdsStr(prev => prev + " ");
+      }, 300);
+
+      lastScrollZoomRef.current = {
+        scrollX: currentScrollX,
+        scrollY: currentScrollY,
+        zoom: currentZoom
+      };
+
+      // Save viewport to localStorage for refresh restore
+      try {
+        localStorage.setItem(
+          `canvas-viewport-${activeNoteIdRef.current}`,
+          JSON.stringify({ scrollX: currentScrollX, scrollY: currentScrollY, zoom: currentZoom })
+        );
+      } catch {}
+    }
+
+    // Excalidraw placeholder swap logic
+    const prevEditingId = lastEditingTextElementIdRef.current;
+    const currentEditingId = appState?.editingElement?.id;
+    const isTr = i18n.language.startsWith("tr");
+    const placeholderText = isTr ? "Yazmaya Başla..." : "Type '/' for commands...";
+
+    // Case A: Just exited editing mode on a text element
+    if (prevEditingId && prevEditingId !== currentEditingId) {
+      const el = elements.find((e: any) => e.id === prevEditingId && !e.isDeleted);
+      if (el && el.type === "text" && (!el.text || el.text.trim() === "")) {
+        setTimeout(() => {
+          if (excalidrawAPIRef.current) {
+            excalidrawAPIRef.current.updateScene({
+              elements: excalidrawAPIRef.current.getSceneElements().map((e: any) => 
+                e.id === prevEditingId 
+                  ? { ...e, text: placeholderText, originalText: placeholderText, strokeColor: "#aaaaaa" } 
+                  : e
+              )
+            });
+          }
+        }, 50);
+      }
+    }
+
+    // Case B: Just entered editing mode on a text element containing placeholder
+    if (currentEditingId && currentEditingId !== prevEditingId) {
+      const el = elements.find((e: any) => e.id === currentEditingId && !e.isDeleted);
+      if (el && el.type === "text" && el.text === placeholderText) {
+        setTimeout(() => {
+          if (excalidrawAPIRef.current) {
+            const normalStrokeColor = themeRef.current === "dark" ? "#f4f4f5" : "#18181b";
+            excalidrawAPIRef.current.updateScene({
+              elements: excalidrawAPIRef.current.getSceneElements().map((e: any) => 
+                e.id === currentEditingId 
+                  ? { ...e, text: "", originalText: "", strokeColor: normalStrokeColor } 
+                  : e
+              )
+            });
+          }
+        }, 50);
+      }
+    }
+
+    lastEditingTextElementIdRef.current = currentEditingId;
+
+    if (appState?.activeTool?.type && appState.activeTool.type !== activeToolRef.current) {
+      setActiveTool(appState.activeTool.type);
+      if (appState.activeTool.type === "text" && excalidrawAPIRef.current) {
+        setTimeout(() => {
+          if (excalidrawAPIRef.current) {
+            excalidrawAPIRef.current.updateScene({
+              appState: {
+                currentItemStrokeColor: "#1a1a1a",
+                currentItemFontColor: "#1a1a1a"
+              }
+            });
+          }
+        }, 50);
+      }
+    }
+
+    // Fix: restore transparent background when canvas is cleared (Ctrl+Backspace)
+    const activeEls = (elements as any[]).filter(e => !e.isDeleted);
+    const currentCount = activeEls.length;
+    if (prevElementsCountRef.current > 0 && currentCount === 0) {
+      setTimeout(() => {
+        if (excalidrawAPIRef.current) {
+          excalidrawAPIRef.current.updateScene({ appState: { viewBackgroundColor: "transparent" } });
+        }
+      }, 60);
+    }
+    prevElementsCountRef.current = currentCount;
+
+    // Selection tracking — works for all element types
+    const selectedIds = Object.keys(appState.selectedElementIds || {}).filter(
+      id => appState.selectedElementIds[id]
+    );
+    const sortedIdsStr = selectedIds.sort().join(",");
+
+    // Only update the selected IDs state when the selection list actually changes
+    if (sortedIdsStr !== lastSelectedIdsStrRef.current) {
+      lastSelectedIdsStrRef.current = sortedIdsStr;
+      setSelectedIdsStr(sortedIdsStr);
+    }
+
+    // DÜZELTME 1: Update floating toolbar and selectedContainer inside onChange directly
+    if (currentlyEditing) {
+      setFloatingPos(prev => prev === null ? prev : null);
+      setQuickConnect(prev => prev === null ? prev : null);
+    } else if (selectedIds.length > 0) {
+      updateToolbarPositionRef.current(selectedIds, elements, appState);
+    } else {
+      setFloatingPos(prev => prev === null ? prev : null);
+      setSelectedContainer(prev => prev === null ? prev : null);
+      setQuickConnect(prev => prev === null ? prev : null);
+    }
+
+    const hasLocked = activeEls.some((e: any) => e.locked);
+    if (hasLocked !== hasLockedElementsRef.current) {
+      hasLockedElementsRef.current = hasLocked;
+      setHasLockedElements(prev => prev === hasLocked ? prev : hasLocked);
+    }
+
+    const currentStr = JSON.stringify(elements);
+    if (currentStr === lastSavedRef.current) return;
+    if (!elements || elements.length === 0) return;
+
+    lastSavedRef.current = currentStr;
+    debouncedSaveRef.current(activeNoteIdRef.current, [...elements], appState, files);
+  }, []);
+
+
+
+  // Position calculation and state updates for the floating properties bar
+  useEffect(() => {
+    const elements = latestElementsRef.current;
+    const appState = latestAppStateRef.current;
+    if (!elements || !appState) return;
+
+    const selectedIds = Object.keys(appState.selectedElementIds || {}).filter(
+      id => appState.selectedElementIds[id]
+    );
+    updateToolbarPosition(selectedIds, elements, appState);
   }, [selectedIdsStr, positionVersion]);
 
   const handleQuickConnect = (direction: "top" | "bottom" | "left" | "right") => {
@@ -1827,7 +1939,7 @@ export default function Canvas() {
     (floatingBarIsText ? selectedContainer?.rect : null);
 
   return (
-    <div className={`canvas-container ${customBlockType ? "custom-block-placement-active" : ""}`}>
+    <div className={`canvas-container ${customBlockType && customBlockType !== "schema" ? "custom-block-placement-active" : ""}`}>
       <div
         ref={wrapperRef}
         className="canvas-wrapper"
@@ -1840,14 +1952,14 @@ export default function Canvas() {
           key={activeNoteId}
           excalidrawAPI={(api) => {
             setExcalidrawAPI(api);
+            excalidrawAPIRef.current = api;
             storeSetExcalidrawAPI(api);
           }}
           initialData={initialData}
           onChange={handleCanvasChange}
           theme={theme}
           langCode={i18n.language.startsWith("tr") ? "tr-TR" : "en-US"}
-          onPointerDown={handleExcalidrawPointerDown}
-          onPointerUp={handleExcalidrawPointerUp}
+
           UIOptions={{
             canvasActions: {
               changeViewBackgroundColor: true,
@@ -1868,7 +1980,7 @@ export default function Canvas() {
           </MainMenu>
         </Excalidraw>
 
-        {quickConnect && !isDraggingElement && !isScrollingOrZooming && (
+        {quickConnect && !isDraggingElement && !isScrollingOrZooming && !isEditingText && (
           <>
             <button
               type="button"
@@ -2026,9 +2138,9 @@ export default function Canvas() {
         updateContainerColor={updateContainerColor}
         theme={theme}
         floatingPos={floatingPos}
-        isToolbarHidden={isDraggingElement || isScrollingOrZooming || !!(latestAppStateRef.current?.editingElement)}
+        isToolbarHidden={isDraggingElement || isScrollingOrZooming || isEditingText}
       />
-      <Minimap excalidrawAPI={excalidrawAPI} />
+      {!isEditingText && <Minimap excalidrawAPI={excalidrawAPI} />}
     </div>
   );
 }
