@@ -24,7 +24,10 @@ import {
   AlignCenter,
   AlignRight,
   X,
-  ChevronDown
+  ChevronDown,
+  ChevronUp,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 
 const FLOATING_FONTS = [
@@ -49,6 +52,7 @@ export default function Canvas() {
   const [selectedContainer, setSelectedContainer] = useState<{ rect: any; text: any } | null>(null);
   const [floatingPos, setFloatingPos] = useState<{ top: number; left: number } | null>(null);
   const [selectedIdsStr, setSelectedIdsStr] = useState<string>("");
+  const [isDraggingElement, setIsDraggingElement] = useState(false);
   const lastSelectedIdsStrRef = useRef<string>("");
   const latestElementsRef = useRef<readonly any[]>([]);
   const latestAppStateRef = useRef<any>(null);
@@ -63,6 +67,24 @@ export default function Canvas() {
   const fontDropdownRef = useRef<HTMLDivElement>(null);
   const fontBtnRef = useRef<HTMLButtonElement>(null);
   const hasLockedElementsRef = useRef(false);
+  const lastEditingTextElementIdRef = useRef<string | null>(null);
+  const [quickConnect, setQuickConnect] = useState<{
+    selectedId: string;
+    type: string;
+    top: { x: number; y: number };
+    bottom: { x: number; y: number };
+    left: { x: number; y: number };
+    right: { x: number; y: number };
+  } | null>(null);
+  const lastScrollZoomRef = useRef<{ scrollX: number; scrollY: number; zoom: number }>({
+    scrollX: 0,
+    scrollY: 0,
+    zoom: 1
+  });
+  const isEditingRef = useRef(false);
+  const [isScrollingOrZooming, setIsScrollingOrZooming] = useState(false);
+  const scrollZoomTimeoutRef = useRef<any>(null);
+  const [positionVersion, setPositionVersion] = useState(0);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [customBlockType, setCustomBlockTypeState] = useState<string | null>(null);
@@ -83,6 +105,8 @@ export default function Canvas() {
     h: number;
   } | null>(null);
 
+
+
   // Esc key cancels block placement mode
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -97,6 +121,24 @@ export default function Canvas() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  const handleExcalidrawPointerDown = (activeTool: any, pointerDownState: any) => {
+    try {
+      const selected = Object.keys(latestAppStateRef.current?.selectedElementIds || {}).filter(
+        id => latestAppStateRef.current?.selectedElementIds[id]
+      );
+      if (selected.length > 0) {
+        setIsDraggingElement(true);
+      }
+    } catch (_) {}
+  };
+
+  const handleExcalidrawPointerUp = () => {
+    setTimeout(() => {
+      setIsDraggingElement(false);
+      setPositionVersion(v => v + 1);
+    }, 50);
+  };
+
   const handlePointerDownCapture = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!customBlockTypeRef.current || !excalidrawAPI) return;
 
@@ -105,15 +147,15 @@ export default function Canvas() {
 
     const rect = e.currentTarget.getBoundingClientRect();
     const appState = excalidrawAPI.getAppState();
-    const zoom = appState.zoom?.value ?? 1;
+    const z = appState.zoom?.value ?? 1;
     const scrollX = appState.scrollX ?? 0;
     const scrollY = appState.scrollY ?? 0;
 
+    const canvasX = (e.clientX - rect.left - scrollX * z) / z;
+    const canvasY = (e.clientY - rect.top - scrollY * z) / z;
+
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
-
-    const canvasX = (-scrollX + clickX) / zoom;
-    const canvasY = (-scrollY + clickY) / zoom;
 
     isDraggingRef.current = true;
     dragStartRef.current = {
@@ -167,20 +209,15 @@ export default function Canvas() {
 
     const rect = e.currentTarget.getBoundingClientRect();
     const appState = excalidrawAPI.getAppState();
-    const zoom = appState.zoom?.value ?? 1;
+    const z = appState.zoom?.value ?? 1;
     const scrollX = appState.scrollX ?? 0;
     const scrollY = appState.scrollY ?? 0;
 
     const startCanvasX = dragStartRef.current.canvasX;
     const startCanvasY = dragStartRef.current.canvasY;
 
-    const currentClientX = e.clientX;
-    const currentClientY = e.clientY;
-    const currentX = currentClientX - rect.left;
-    const currentY = currentClientY - rect.top;
-
-    const currentCanvasX = (-scrollX + currentX) / zoom;
-    const currentCanvasY = (-scrollY + currentY) / zoom;
+    const currentCanvasX = (e.clientX - rect.left - scrollX * z) / z;
+    const currentCanvasY = (e.clientY - rect.top - scrollY * z) / z;
 
     const x = Math.min(startCanvasX, currentCanvasX);
     const y = Math.min(startCanvasY, currentCanvasY);
@@ -319,126 +356,212 @@ export default function Canvas() {
     const defaultBg = theme === "dark" ? "#2A2A2A" : "#F0F0F0";
     const defaultStroke = theme === "dark" ? "#71717a" : "#d4d4d8";
 
-    let text = i18n.language.startsWith("tr") ? "Yazmaya Başla..." : "Type '/' for commands...";
+    let text = "";
     let fontSize = 16;
     let fontFamily = FONT_FAMILY.Helvetica as number;
     let textAlign: "left" | "center" | "right" = "center";
     let strokeColor = theme === "dark" ? "#f4f4f5" : "#18181b";
     let customLink: string | null = null;
 
-    if (type === "h1") {
-      fontSize = 36;
-      text = i18n.language.startsWith("tr") ? "Başlık 1" : "Heading 1";
-    } else if (type === "h2") {
-      fontSize = 28;
-      text = i18n.language.startsWith("tr") ? "Başlık 2" : "Heading 2";
-    } else if (type === "h3") {
-      fontSize = 22;
-      text = i18n.language.startsWith("tr") ? "Başlık 3" : "Heading 3";
-    } else if (type === "code") {
-      fontFamily = 3;
-      text = `// Code block\nfunction init() {\n  console.log("Hello World");\n}`;
-      strokeColor = "#0f766e";
-    } else if (type === "quote") {
-      text = i18n.language.startsWith("tr") ? "Alıntı metni..." : "Quote text...";
-      strokeColor = theme === "dark" ? "#a1a1aa" : "#4b5563";
-    } else if (type === "bullet") {
-      text = `• ${i18n.language.startsWith("tr") ? "Liste elemanı" : "List item"}`;
-    } else if (type === "numbered") {
-      text = `1. ${i18n.language.startsWith("tr") ? "Liste elemanı" : "List item"}`;
-    } else if (type === "todo") {
-      text = i18n.language.startsWith("tr") ? "Yapılacak iş..." : "To-do task...";
-    } else if (type === "link") {
-      const url = window.prompt(i18n.language.startsWith("tr") ? "Link URL'sini girin:" : "Enter Link URL:", "https://");
-      if (!url) return;
-      let label = window.prompt(i18n.language.startsWith("tr") ? "Metin girin (isteğe bağlı):" : "Enter Text (optional):", "Link");
-      if (!label) label = url;
-      text = `${label}\n${url}`;
-      strokeColor = "#2563eb";
-      customLink = url;
-    }
 
-    const containerRect = {
-      id: rectId,
-      type: "rectangle",
-      x,
-      y,
-      width: finalW,
-      height: finalH,
-      angle: 0,
-      strokeColor: defaultStroke,
-      backgroundColor: defaultBg,
-      fillStyle: "solid",
-      strokeWidth: 1.5,
-      strokeStyle: "solid",
-      roughness: 0,
-      opacity: 100,
-      groupIds: [groupId],
-      frameId: null,
-      roundness: { type: 3, value: 10 },
-      seed: Math.floor(Math.random() * 999999),
-      version: 1,
-      versionNonce: Math.floor(Math.random() * 999999),
-      isDeleted: false,
-      boundElements: [{ id: textId, type: "text" }],
-      updated: Date.now(),
-      link: customLink,
-      locked: false,
-      customType: type
-    };
 
-    const boundText = {
-      id: textId,
-      type: "text",
-      x: x + 16,
-      y: y + 16,
-      width: finalW - 32,
-      height: finalH - 32,
-      angle: 0,
-      strokeColor,
-      backgroundColor: "transparent",
-      fillStyle: "solid",
-      strokeWidth: 1,
-      strokeStyle: "solid",
-      roughness: 0,
-      opacity: 100,
-      groupIds: [groupId],
-      frameId: null,
-      roundness: null,
-      seed: Math.floor(Math.random() * 999999),
-      version: 1,
-      versionNonce: Math.floor(Math.random() * 999999),
-      isDeleted: false,
-      boundElements: null,
-      updated: Date.now(),
-      link: customLink,
-      locked: false,
-      text,
-      fontSize,
-      fontFamily,
-      textAlign,
-      verticalAlign: "middle",
-      containerId: rectId,
-      originalText: text,
-      lineHeight: 1.3,
-      autoResize: true
-    };
+    if (type === "text") {
+      const isTr = i18n.language.startsWith("tr");
+      const placeholderText = isTr ? "Yazmaya Başla..." : "Type '/' for commands...";
 
-    elementsToAppend.push(containerRect, boundText);
-
-    if (type === "quote") {
-      elementsToAppend.push({
-        id: `quote-line-${idSuffix}`,
-        type: "line",
-        x: x + 12,
-        y: y + 12,
-        width: 0,
-        height: finalH - 24,
+      const containerRect = {
+        id: rectId,
+        type: "rectangle",
+        x,
+        y,
+        width: finalW,
+        height: finalH,
         angle: 0,
-        strokeColor: "#9ca3af",
+        strokeColor: "#CCCCCC",
+        backgroundColor: theme === "dark" ? "#2A2A2A" : "#F5F5F5",
+        fillStyle: "solid",
+        strokeWidth: 1,
+        strokeStyle: "solid",
+        roughness: 0,
+        opacity: 100,
+        groupIds: [],
+        frameId: null,
+        roundness: { type: 3, value: 8 },
+        seed: Math.floor(Math.random() * 999999),
+        version: 1,
+        versionNonce: Math.floor(Math.random() * 999999),
+        isDeleted: false,
+        boundElements: [{ id: textId, type: "text" }],
+        updated: Date.now(),
+        link: null,
+        locked: false,
+        customType: "text"
+      };
+
+      const boundText = {
+        id: textId,
+        type: "text",
+        x: x + 16,
+        y: y + 16,
+        width: finalW - 32,
+        height: finalH - 32,
+        angle: 0,
+        strokeColor: "#AAAAAA",
         backgroundColor: "transparent",
         fillStyle: "solid",
-        strokeWidth: 3.5,
+        strokeWidth: 1,
+        strokeStyle: "solid",
+        roughness: 0,
+        opacity: 100,
+        groupIds: [],
+        frameId: null,
+        roundness: null,
+        seed: Math.floor(Math.random() * 999999),
+        version: 1,
+        versionNonce: Math.floor(Math.random() * 999999),
+        isDeleted: false,
+        boundElements: null,
+        updated: Date.now(),
+        link: null,
+        locked: false,
+        text: placeholderText,
+        fontSize: 16,
+        fontFamily: FONT_FAMILY.Helvetica as number,
+        textAlign: "center",
+        verticalAlign: "middle",
+        containerId: rectId,
+        originalText: placeholderText,
+        lineHeight: 1.3,
+        autoResize: true
+      };
+
+      elementsToAppend.push(containerRect, boundText);
+    } else if (type === "postit") {
+      const isTr = i18n.language.startsWith("tr");
+      const placeholderText = isTr ? "Not yaz..." : "Write a note...";
+
+      const singleTextEl = {
+        id: textId,
+        type: "text",
+        x,
+        y,
+        width: finalW || 150,
+        height: finalH || 150,
+        angle: 0,
+        strokeColor: "#854d0e",
+        backgroundColor: "#fef08a",
+        fillStyle: "solid",
+        strokeWidth: 0,
+        strokeStyle: "solid",
+        roughness: 1,
+        opacity: 100,
+        groupIds: [],
+        frameId: null,
+        roundness: null,
+        seed: Math.floor(Math.random() * 999999),
+        version: 1,
+        versionNonce: Math.floor(Math.random() * 999999),
+        isDeleted: false,
+        boundElements: null,
+        updated: Date.now(),
+        link: null,
+        locked: false,
+        text: placeholderText,
+        fontSize: 16,
+        fontFamily: FONT_FAMILY.Helvetica as number,
+        textAlign: "center",
+        verticalAlign: "middle",
+        containerId: null,
+        originalText: placeholderText,
+        lineHeight: 1.3,
+        padding: 20
+      };
+
+      elementsToAppend.push(singleTextEl);
+    } else {
+      // Set type properties
+      if (type === "h1") {
+        fontSize = 36;
+        text = i18n.language.startsWith("tr") ? "Başlık 1" : "Heading 1";
+      } else if (type === "h2") {
+        fontSize = 28;
+        text = i18n.language.startsWith("tr") ? "Başlık 2" : "Heading 2";
+      } else if (type === "h3") {
+        fontSize = 22;
+        text = i18n.language.startsWith("tr") ? "Başlık 3" : "Heading 3";
+      } else if (type === "h4") {
+        fontSize = 18;
+        text = i18n.language.startsWith("tr") ? "Başlık 4" : "Heading 4";
+      } else if (type === "h5") {
+        fontSize = 16;
+        text = i18n.language.startsWith("tr") ? "Başlık 5" : "Heading 5";
+      } else if (type === "h6") {
+        fontSize = 14;
+        text = i18n.language.startsWith("tr") ? "Başlık 6" : "Heading 6";
+      } else if (type === "code") {
+        fontFamily = 3;
+        text = `// Code block\nfunction init() {\n  console.log("Hello World");\n}`;
+        strokeColor = "#0f766e";
+      } else if (type === "quote") {
+        text = i18n.language.startsWith("tr") ? "Alıntı metni..." : "Quote text...";
+        strokeColor = theme === "dark" ? "#a1a1aa" : "#4b5563";
+      } else if (type === "bullet") {
+        text = `• ${i18n.language.startsWith("tr") ? "Liste elemanı" : "List item"}`;
+      } else if (type === "numbered") {
+        text = `1. ${i18n.language.startsWith("tr") ? "Liste elemanı" : "List item"}`;
+      } else if (type === "todo") {
+        text = i18n.language.startsWith("tr") ? "Yapılacak iş..." : "To-do task...";
+      } else if (type === "link") {
+        const url = window.prompt(i18n.language.startsWith("tr") ? "Link URL'sini girin:" : "Enter Link URL:", "https://");
+        if (!url) return;
+        let label = window.prompt(i18n.language.startsWith("tr") ? "Metin girin (isteğe bağlı):" : "Enter Text (optional):", "Link");
+        if (!label) label = url;
+        text = `${label}\n${url}`;
+        strokeColor = "#2563eb";
+        customLink = url;
+      }
+
+      const containerRect = {
+        id: rectId,
+        type: "rectangle",
+        x,
+        y,
+        width: finalW,
+        height: finalH,
+        angle: 0,
+        strokeColor: defaultStroke,
+        backgroundColor: defaultBg,
+        fillStyle: "solid",
+        strokeWidth: 1.5,
+        strokeStyle: "solid",
+        roughness: 0,
+        opacity: 100,
+        groupIds: [groupId],
+        frameId: null,
+        roundness: { type: 3, value: 10 },
+        seed: Math.floor(Math.random() * 999999),
+        version: 1,
+        versionNonce: Math.floor(Math.random() * 999999),
+        isDeleted: false,
+        boundElements: [{ id: textId, type: "text" }],
+        updated: Date.now(),
+        link: customLink,
+        locked: false,
+        customType: type
+      };
+
+      const boundText = {
+        id: textId,
+        type: "text",
+        x: x + 16,
+        y: y + 16,
+        width: finalW - 32,
+        height: finalH - 32,
+        angle: 0,
+        strokeColor,
+        backgroundColor: "transparent",
+        fillStyle: "solid",
+        strokeWidth: 1,
         strokeStyle: "solid",
         roughness: 0,
         opacity: 100,
@@ -451,49 +574,90 @@ export default function Canvas() {
         isDeleted: false,
         boundElements: null,
         updated: Date.now(),
-        link: null,
+        link: customLink,
         locked: false,
-        points: [[0, 0], [0, finalH - 24]],
-        lastCommittedPoint: null,
-        startBinding: null,
-        endBinding: null,
-        startArrowhead: null,
-        endArrowhead: null
-      });
-      boundText.x += 12;
-      boundText.width -= 12;
-    }
+        text,
+        fontSize,
+        fontFamily,
+        textAlign,
+        verticalAlign: "middle",
+        containerId: rectId,
+        originalText: text,
+        lineHeight: 1.3,
+        autoResize: true
+      };
 
-    if (type === "todo") {
-      elementsToAppend.push({
-        id: `todo-chk-${idSuffix}`,
-        type: "rectangle",
-        x: x + 16,
-        y: y + (finalH - 18) / 2,
-        width: 18,
-        height: 18,
-        angle: 0,
-        strokeColor: theme === "dark" ? "#a1a1aa" : "#4b5563",
-        backgroundColor: "#ffffff",
-        fillStyle: "solid",
-        strokeWidth: 1.5,
-        strokeStyle: "solid",
-        roughness: 0,
-        opacity: 100,
-        groupIds: [groupId],
-        frameId: null,
-        roundness: { type: 3, value: 4 },
-        seed: Math.floor(Math.random() * 999999),
-        version: 1,
-        versionNonce: Math.floor(Math.random() * 999999),
-        isDeleted: false,
-        boundElements: null,
-        updated: Date.now(),
-        link: null,
-        locked: false
-      });
-      boundText.x += 28;
-      boundText.width -= 28;
+      elementsToAppend.push(containerRect, boundText);
+
+      if (type === "quote") {
+        elementsToAppend.push({
+          id: `quote-line-${idSuffix}`,
+          type: "line",
+          x: x + 12,
+          y: y + 12,
+          width: 0,
+          height: finalH - 24,
+          angle: 0,
+          strokeColor: "#9ca3af",
+          backgroundColor: "transparent",
+          fillStyle: "solid",
+          strokeWidth: 3.5,
+          strokeStyle: "solid",
+          roughness: 0,
+          opacity: 100,
+          groupIds: [groupId],
+          frameId: null,
+          roundness: null,
+          seed: Math.floor(Math.random() * 999999),
+          version: 1,
+          versionNonce: Math.floor(Math.random() * 999999),
+          isDeleted: false,
+          boundElements: null,
+          updated: Date.now(),
+          link: null,
+          locked: false,
+          points: [[0, 0], [0, finalH - 24]],
+          lastCommittedPoint: null,
+          startBinding: null,
+          endBinding: null,
+          startArrowhead: null,
+          endArrowhead: null
+        });
+        boundText.x += 12;
+        boundText.width -= 12;
+      }
+
+      if (type === "todo") {
+        elementsToAppend.push({
+          id: `todo-chk-${idSuffix}`,
+          type: "rectangle",
+          x: x + 16,
+          y: y + (finalH - 18) / 2,
+          width: 18,
+          height: 18,
+          angle: 0,
+          strokeColor: theme === "dark" ? "#a1a1aa" : "#4b5563",
+          backgroundColor: "#ffffff",
+          fillStyle: "solid",
+          strokeWidth: 1.5,
+          strokeStyle: "solid",
+          roughness: 0,
+          opacity: 100,
+          groupIds: [groupId],
+          frameId: null,
+          roundness: { type: 3, value: 4 },
+          seed: Math.floor(Math.random() * 999999),
+          version: 1,
+          versionNonce: Math.floor(Math.random() * 999999),
+          isDeleted: false,
+          boundElements: null,
+          updated: Date.now(),
+          link: null,
+          locked: false
+        });
+        boundText.x += 28;
+        boundText.width -= 28;
+      }
     }
 
     excalidrawAPI.updateScene({
@@ -503,10 +667,27 @@ export default function Canvas() {
     excalidrawAPI.updateScene({
       appState: {
         selectedElementIds: {
-          [rectId]: true
+          [(type === "text" || type === "postit") ? textId : rectId]: true
         }
       }
     });
+
+    if (["text", "postit", "h1", "h2", "h3", "h4", "h5", "h6"].includes(type)) {
+      const textElement = (type === "text" || type === "postit") 
+        ? elementsToAppend[0] 
+        : elementsToAppend[1]; // boundText for shape groups
+        
+      setTimeout(() => {
+        if (excalidrawAPI) {
+          excalidrawAPI.updateScene({
+            appState: {
+              editingElement: textElement,
+              selectedElementIds: { [textElement.id]: true }
+            }
+          });
+        }
+      }, 50);
+    }
   };
 
   const updateContainerColor = (bgColor: string, strokeColor: string) => {
@@ -885,12 +1066,29 @@ export default function Canvas() {
     if (selectedIds.length !== 1) return;
     const elements = excalidrawAPI.getSceneElements();
     const el = elements.find((e: any) => e.id === selectedIds[0]);
-    if (!el || el.type !== "image" || !el.fileId) return;
-    const files = excalidrawAPI.getFiles();
-    const file = files[el.fileId];
-    if (!file || !file.dataURL) return;
-    setImagePreviewUrl(file.dataURL);
-    setIsImagePreviewOpen(true);
+    if (!el) return;
+
+    if (el.type === "image" && el.fileId) {
+      const files = excalidrawAPI.getFiles();
+      const file = files[el.fileId];
+      if (!file || !file.dataURL) return;
+      setImagePreviewUrl(file.dataURL);
+      setIsImagePreviewOpen(true);
+      return;
+    }
+
+    if (el.type === "rectangle" || el.type === "ellipse" || el.type === "diamond") {
+      const activeEls = elements.filter((e: any) => !e.isDeleted);
+      const textEl = activeEls.find((e: any) => e.type === "text" && e.containerId === el.id);
+      if (textEl) {
+        excalidrawAPI.updateScene({
+          appState: {
+            editingElement: textEl,
+            selectedElementIds: { [textEl.id]: true }
+          }
+        });
+      }
+    }
   };
 
   useEffect(() => {
@@ -1075,9 +1273,13 @@ export default function Canvas() {
         ...appState,
         gridModeEnabled: false,
         viewBackgroundColor: "transparent",
-        currentItemRoughness: 0,
         currentItemFontFamily: FONT_FAMILY.Helvetica as number,
         objectsSnapModeEnabled: true,
+        currentItemStrokeColor: "transparent",
+        currentItemStrokeWidth: 0,
+        currentItemFillStyle: "solid",
+        currentItemBackgroundColor: theme === "dark" ? "#E8E8E8" : "#D0D0D0",
+        currentItemRoughness: 0
       },
       files
     });
@@ -1106,8 +1308,45 @@ export default function Canvas() {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
+      if (scrollZoomTimeoutRef.current) {
+        clearTimeout(scrollZoomTimeoutRef.current);
+      }
     };
   }, []);
+
+  // Synchronize shape background color style when theme changes
+  useEffect(() => {
+    if (!excalidrawAPI) return;
+    excalidrawAPI.updateScene({
+      appState: {
+        currentItemBackgroundColor: theme === "dark" ? "#E8E8E8" : "#D0D0D0"
+      }
+    });
+  }, [theme, excalidrawAPI]);
+
+  // Restore saved viewport (scroll + zoom) when excalidrawAPI becomes ready
+  useEffect(() => {
+    if (!excalidrawAPI || !activeNoteId) return;
+    const key = `canvas-viewport-${activeNoteId}`;
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        const { scrollX, scrollY, zoom } = JSON.parse(saved);
+        // Use a timeout to let Excalidraw finish initializing before overriding scroll
+        setTimeout(() => {
+          try {
+            excalidrawAPI.updateScene({
+              appState: {
+                scrollX: scrollX ?? 0,
+                scrollY: scrollY ?? 0,
+                zoom: { value: zoom ?? 1 }
+              }
+            });
+          } catch {}
+        }, 200);
+      }
+    } catch {}
+  }, [excalidrawAPI, activeNoteId]);
 
   const handleCanvasChange = (elements: readonly any[], appState: any, files: any) => {
     if (!activeNoteId || !isInitializedRef.current) return;
@@ -1116,6 +1355,99 @@ export default function Canvas() {
     latestElementsRef.current = elements;
     latestAppStateRef.current = appState;
     latestFilesRef.current = files;
+
+    // Detect editingElement changes → immediately hide/restore floating toolbar
+    const currentlyEditing = !!appState.editingElement;
+    if (currentlyEditing !== isEditingRef.current) {
+      isEditingRef.current = currentlyEditing;
+      if (currentlyEditing) {
+        setFloatingPos(null);
+      } else {
+        setTimeout(() => setPositionVersion(v => v + 1), 100);
+      }
+    }
+
+    // Detect scroll/zoom changes to hide toolbar
+    const prevScrollZoom = lastScrollZoomRef.current;
+    const currentScrollX = appState?.scrollX ?? 0;
+    const currentScrollY = appState?.scrollY ?? 0;
+    const currentZoom = appState?.zoom?.value ?? 1;
+
+    if (
+      prevScrollZoom.scrollX !== currentScrollX ||
+      prevScrollZoom.scrollY !== currentScrollY ||
+      prevScrollZoom.zoom !== currentZoom
+    ) {
+      setIsScrollingOrZooming(true);
+
+      if (scrollZoomTimeoutRef.current) {
+        clearTimeout(scrollZoomTimeoutRef.current);
+      }
+      scrollZoomTimeoutRef.current = setTimeout(() => {
+        setIsScrollingOrZooming(false);
+        // Force recalculation by touching selectedIdsStr
+        setSelectedIdsStr(prev => prev + " ");
+      }, 300);
+
+      lastScrollZoomRef.current = {
+        scrollX: currentScrollX,
+        scrollY: currentScrollY,
+        zoom: currentZoom
+      };
+
+      // Save viewport to localStorage for refresh restore
+      try {
+        localStorage.setItem(
+          `canvas-viewport-${activeNoteId}`,
+          JSON.stringify({ scrollX: currentScrollX, scrollY: currentScrollY, zoom: currentZoom })
+        );
+      } catch {}
+    }
+
+    // Excalidraw placeholder swap logic
+    const prevEditingId = lastEditingTextElementIdRef.current;
+    const currentEditingId = appState?.editingElement?.id;
+    const isTr = i18n.language.startsWith("tr");
+    const placeholderText = isTr ? "Yazmaya Başla..." : "Type '/' for commands...";
+
+    // Case A: Just exited editing mode on a text element
+    if (prevEditingId && prevEditingId !== currentEditingId) {
+      const el = elements.find((e: any) => e.id === prevEditingId && !e.isDeleted);
+      if (el && el.type === "text" && (!el.text || el.text.trim() === "")) {
+        setTimeout(() => {
+          if (excalidrawAPI) {
+            excalidrawAPI.updateScene({
+              elements: excalidrawAPI.getSceneElements().map((e: any) => 
+                e.id === prevEditingId 
+                  ? { ...e, text: placeholderText, originalText: placeholderText, strokeColor: "#aaaaaa" } 
+                  : e
+              )
+            });
+          }
+        }, 50);
+      }
+    }
+
+    // Case B: Just entered editing mode on a text element containing placeholder
+    if (currentEditingId && currentEditingId !== prevEditingId) {
+      const el = elements.find((e: any) => e.id === currentEditingId && !e.isDeleted);
+      if (el && el.type === "text" && el.text === placeholderText) {
+        setTimeout(() => {
+          if (excalidrawAPI) {
+            const normalStrokeColor = theme === "dark" ? "#f4f4f5" : "#18181b";
+            excalidrawAPI.updateScene({
+              elements: excalidrawAPI.getSceneElements().map((e: any) => 
+                e.id === currentEditingId 
+                  ? { ...e, text: "", originalText: "", strokeColor: normalStrokeColor } 
+                  : e
+              )
+            });
+          }
+        }, 50);
+      }
+    }
+
+    lastEditingTextElementIdRef.current = currentEditingId;
 
     if (appState?.activeTool?.type && appState.activeTool.type !== activeTool) {
       setActiveTool(appState.activeTool.type);
@@ -1159,11 +1491,25 @@ export default function Canvas() {
     debouncedSave(activeNoteId, [...elements], appState, files);
   };
 
+  const getElementDOMRect = (element: any, excalidrawAPI: any, containerRef: React.RefObject<HTMLDivElement | null>) => {
+    if (!excalidrawAPI || !containerRef.current) return null;
+    const appState = excalidrawAPI.getAppState();
+    const container = containerRef.current.getBoundingClientRect();
+    const z = appState.zoom.value;
+    
+    const x = container.left + element.x * z + appState.scrollX * z;
+    const y = container.top + element.y * z + appState.scrollY * z;
+    const w = element.width * z;
+    const h = element.height * z;
+    
+    return { x, y, w, h, centerX: x + w/2, centerY: y + h/2 };
+  };
+
   // Position calculation and state updates for the floating properties bar
   useEffect(() => {
     const elements = latestElementsRef.current;
     const appState = latestAppStateRef.current;
-    if (!elements || !appState) return;
+    if (!elements || !appState || !wrapperRef.current) return;
 
     const selectedIds = Object.keys(appState.selectedElementIds || {}).filter(
       id => appState.selectedElementIds[id]
@@ -1181,17 +1527,42 @@ export default function Canvas() {
         const minX = Math.min(...selEls.map(e => e.x ?? 0));
         const minY = Math.min(...selEls.map(e => e.y ?? 0));
         const maxX = Math.max(...selEls.map(e => (e.x ?? 0) + (e.width ?? 0)));
+        const maxY = Math.max(...selEls.map(e => (e.y ?? 0) + (e.height ?? 0)));
 
-        const screenMinX = minX * zoom + scrollX;
-        const screenMinY = minY * zoom + scrollY;
-        const screenMaxX = maxX * zoom + scrollX;
+        const unionEl = {
+          x: minX,
+          y: minY,
+          width: maxX - minX,
+          height: maxY - minY
+        };
 
-        const newLeft = (screenMinX + screenMaxX) / 2;
-        const newTop = Math.max(8, screenMinY - 54);
+        const domRect = getElementDOMRect(unionEl, excalidrawAPI, wrapperRef);
+        if (domRect) {
+          const toolbarWidth = 240;
+          const toolbarHeight = 44;
+          const rect = wrapperRef.current.getBoundingClientRect();
 
-        setFloatingPos(prev =>
-          prev?.left === newLeft && prev?.top === newTop ? prev : { left: newLeft, top: newTop }
-        );
+          let toolbarLeft = domRect.centerX - toolbarWidth / 2;
+          let toolbarTop: number;
+
+          // If element is near top of viewport, show toolbar below
+          if (domRect.y < rect.top + 100) {
+            toolbarTop = domRect.y + domRect.h + 12;
+          } else {
+            toolbarTop = domRect.y - toolbarHeight - 12;
+          }
+
+          // Clamp to screen bounds
+          toolbarLeft = Math.min(Math.max(toolbarLeft, rect.left + 10), rect.left + rect.width - toolbarWidth - 10);
+          toolbarTop = Math.min(Math.max(toolbarTop, rect.top + 10), rect.top + rect.height - toolbarHeight - 10);
+
+          // Hide toolbar if Excalidraw is in text editing mode
+          if (!appState.editingElement) {
+            setFloatingPos({ left: toolbarLeft, top: toolbarTop });
+          } else {
+            setFloatingPos(null);
+          }
+        }
 
         // Determine primary element for the floating bar
         const primaryId = selectedIds[0];
@@ -1210,19 +1581,230 @@ export default function Canvas() {
           : null;
 
         setSelectedContainer({ rect: primaryEl, text: textChild });
+
+        // Calculate quick connect arrows positions if exactly 1 element is selected and it is a schema element
+        if (selectedIds.length === 1) {
+          const selEl = selEls[0];
+          if (
+            selEl &&
+            (selEl.type === "rectangle" || selEl.type === "ellipse" || selEl.type === "diamond") &&
+            selEl.customData?.isSchemaElement === true
+          ) {
+            const domRectEl = getElementDOMRect(selEl, excalidrawAPI, wrapperRef);
+            if (domRectEl) {
+              setQuickConnect({
+                selectedId: selEl.id,
+                type: selEl.type,
+                top: { x: domRectEl.centerX - 12, y: domRectEl.y - 20 - 24 },
+                bottom: { x: domRectEl.centerX - 12, y: domRectEl.y + domRectEl.h + 20 },
+                left: { x: domRectEl.x - 20 - 24, y: domRectEl.centerY - 12 },
+                right: { x: domRectEl.x + domRectEl.w + 20, y: domRectEl.centerY - 12 }
+              });
+            } else {
+              setQuickConnect(null);
+            }
+          } else {
+            setQuickConnect(null);
+          }
+        } else {
+          setQuickConnect(null);
+        }
       } else {
         setSelectedContainer(null);
         setFloatingPos(null);
         setIsFontDropdownOpen(false);
         setFontDropdownFixedPos(null);
+        setQuickConnect(null);
       }
     } else {
       setSelectedContainer(null);
       setFloatingPos(null);
       setIsFontDropdownOpen(false);
       setFontDropdownFixedPos(null);
+      setQuickConnect(null);
     }
-  }, [selectedIdsStr]);
+  }, [selectedIdsStr, positionVersion]);
+
+  const handleQuickConnect = (direction: "top" | "bottom" | "left" | "right") => {
+    if (!excalidrawAPI || !quickConnect) return;
+    const elements = excalidrawAPI.getSceneElements();
+    const selEl = elements.find((e: any) => e.id === quickConnect.selectedId && !e.isDeleted);
+    if (!selEl) return;
+
+    const w = 140;
+    const h = 60;
+    let newX = selEl.x;
+    let newY = selEl.y;
+
+    const selCx = selEl.x + selEl.width / 2;
+    const selCy = selEl.y + selEl.height / 2;
+
+    if (direction === "top") {
+      newX = selCx - w / 2;
+      newY = selEl.y - 200 - h;
+    } else if (direction === "bottom") {
+      newX = selCx - w / 2;
+      newY = selEl.y + selEl.height + 200;
+    } else if (direction === "left") {
+      newX = selEl.x - 200 - w;
+      newY = selCy - h / 2;
+    } else if (direction === "right") {
+      newX = selEl.x + selEl.width + 200;
+      newY = selCy - h / 2;
+    }
+
+    const rectId = `rect-${Math.floor(Math.random() * 999999)}`;
+    const textId = `text-${Math.floor(Math.random() * 999999)}`;
+
+    const newRect = {
+      id: rectId,
+      type: "rectangle",
+      x: newX,
+      y: newY,
+      width: w,
+      height: h,
+      angle: 0,
+      strokeColor: "#CCCCCC",
+      backgroundColor: theme === "dark" ? "#2A2A2A" : "#F5F5F5",
+      fillStyle: "solid",
+      strokeWidth: 1,
+      strokeStyle: "solid",
+      roughness: 0,
+      opacity: 100,
+      groupIds: [],
+      frameId: null,
+      roundness: { type: 3, value: 8 },
+      seed: Math.floor(Math.random() * 999999),
+      version: 1,
+      versionNonce: Math.floor(Math.random() * 999999),
+      isDeleted: false,
+      boundElements: [{ id: textId, type: "text" }],
+      updated: Date.now(),
+      link: null,
+      locked: false,
+      customType: "text",
+      customData: { isSchemaElement: true }
+    };
+
+    const isTr = i18n.language.startsWith("tr");
+    const placeholderText = isTr ? "Yazmaya Başla..." : "Type '/' for commands...";
+
+    const newText = {
+      id: textId,
+      type: "text",
+      x: newX + 16,
+      y: newY + 16,
+      width: w - 32,
+      height: h - 32,
+      angle: 0,
+      strokeColor: "#AAAAAA",
+      backgroundColor: "transparent",
+      fillStyle: "solid",
+      strokeWidth: 1,
+      strokeStyle: "solid",
+      roughness: 0,
+      opacity: 100,
+      groupIds: [],
+      frameId: null,
+      roundness: null,
+      seed: Math.floor(Math.random() * 999999),
+      version: 1,
+      versionNonce: Math.floor(Math.random() * 999999),
+      isDeleted: false,
+      boundElements: null,
+      updated: Date.now(),
+      link: null,
+      locked: false,
+      text: placeholderText,
+      fontSize: 16,
+      fontFamily: FONT_FAMILY.Helvetica as number,
+      textAlign: "center",
+      verticalAlign: "middle",
+      containerId: rectId,
+      originalText: placeholderText,
+      lineHeight: 1.3,
+      autoResize: true
+    };
+
+    let startPoint: [number, number] = [0, 0];
+    let endPoint: [number, number] = [0, 0];
+
+    if (direction === "top") {
+      startPoint = [selCx, selEl.y];
+      endPoint = [selCx, newY + h];
+    } else if (direction === "bottom") {
+      startPoint = [selCx, selEl.y + selEl.height];
+      endPoint = [selCx, newY];
+    } else if (direction === "left") {
+      startPoint = [selEl.x, selCy];
+      endPoint = [newX + w, selCy];
+    } else if (direction === "right") {
+      startPoint = [selEl.x + selEl.width, selCy];
+      endPoint = [newX, selCy];
+    }
+
+    const arrowId = `arrow-${Math.floor(Math.random() * 999999)}`;
+    const newArrow = {
+      id: arrowId,
+      type: "arrow",
+      x: startPoint[0],
+      y: startPoint[1],
+      width: Math.abs(endPoint[0] - startPoint[0]),
+      height: Math.abs(endPoint[1] - startPoint[1]),
+      angle: 0,
+      strokeColor: "#0891B2",
+      backgroundColor: "transparent",
+      fillStyle: "solid",
+      strokeWidth: 1.5,
+      strokeStyle: "solid",
+      roughness: 0,
+      opacity: 100,
+      groupIds: [],
+      frameId: null,
+      roundness: { type: 2 },
+      seed: Math.floor(Math.random() * 999999),
+      version: 1,
+      versionNonce: Math.floor(Math.random() * 999999),
+      isDeleted: false,
+      boundElements: null,
+      updated: Date.now(),
+      link: null,
+      locked: false,
+      points: [[0, 0], [endPoint[0] - startPoint[0], endPoint[1] - startPoint[1]]],
+      lastCommittedPoint: null,
+      startBinding: { elementId: selEl.id, focus: 0, gap: 4 },
+      endBinding: { elementId: rectId, focus: 0, gap: 4 },
+      startArrowhead: null,
+      endArrowhead: null
+    };
+
+    if (!selEl.boundElements) selEl.boundElements = [];
+    selEl.boundElements.push({ id: arrowId, type: "arrow" });
+
+    newRect.boundElements.push({ id: arrowId, type: "arrow" });
+
+    const updatedElements = [
+      ...elements.map((e: any) => e.id === selEl.id ? selEl : e),
+      newRect,
+      newText,
+      newArrow
+    ];
+
+    excalidrawAPI.updateScene({ elements: updatedElements });
+
+    setTimeout(() => {
+      try {
+        excalidrawAPI.updateScene({
+          appState: {
+            editingElement: newText,
+            selectedElementIds: { [rectId]: false, [textId]: true }
+          }
+        });
+      } catch (err) {
+        console.error("Failed to enter edit mode:", err);
+      }
+    }, 100);
+  };
 
   if (!initialData) {
     return (
@@ -1264,6 +1846,8 @@ export default function Canvas() {
           onChange={handleCanvasChange}
           theme={theme}
           langCode={i18n.language.startsWith("tr") ? "tr-TR" : "en-US"}
+          onPointerDown={handleExcalidrawPointerDown}
+          onPointerUp={handleExcalidrawPointerUp}
           UIOptions={{
             canvasActions: {
               changeViewBackgroundColor: true,
@@ -1284,6 +1868,109 @@ export default function Canvas() {
           </MainMenu>
         </Excalidraw>
 
+        {quickConnect && !isDraggingElement && !isScrollingOrZooming && (
+          <>
+            <button
+              type="button"
+              className="quick-connect-btn top"
+              style={{
+                position: "fixed",
+                left: `${quickConnect.top.x}px`,
+                top: `${quickConnect.top.y}px`,
+                width: "24px",
+                height: "24px",
+                borderRadius: "50%",
+                backgroundColor: "#ffffff",
+                border: "1.5px solid #0891b2",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#0891b2",
+                cursor: "pointer",
+                zIndex: 999,
+                padding: 0
+              }}
+              onClick={() => handleQuickConnect("top")}
+            >
+              <ChevronUp size={14} />
+            </button>
+            <button
+              type="button"
+              className="quick-connect-btn bottom"
+              style={{
+                position: "fixed",
+                left: `${quickConnect.bottom.x}px`,
+                top: `${quickConnect.bottom.y}px`,
+                width: "24px",
+                height: "24px",
+                borderRadius: "50%",
+                backgroundColor: "#ffffff",
+                border: "1.5px solid #0891b2",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#0891b2",
+                cursor: "pointer",
+                zIndex: 999,
+                padding: 0
+              }}
+              onClick={() => handleQuickConnect("bottom")}
+            >
+              <ChevronDown size={14} />
+            </button>
+            <button
+              type="button"
+              className="quick-connect-btn left"
+              style={{
+                position: "fixed",
+                left: `${quickConnect.left.x}px`,
+                top: `${quickConnect.left.y}px`,
+                width: "24px",
+                height: "24px",
+                borderRadius: "50%",
+                backgroundColor: "#ffffff",
+                border: "1.5px solid #0891b2",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#0891b2",
+                cursor: "pointer",
+                zIndex: 999,
+                padding: 0
+              }}
+              onClick={() => handleQuickConnect("left")}
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <button
+              type="button"
+              className="quick-connect-btn right"
+              style={{
+                position: "fixed",
+                left: `${quickConnect.right.x}px`,
+                top: `${quickConnect.right.y}px`,
+                width: "24px",
+                height: "24px",
+                borderRadius: "50%",
+                backgroundColor: "#ffffff",
+                border: "1.5px solid #0891b2",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#0891b2",
+                cursor: "pointer",
+                zIndex: 999,
+                padding: 0
+              }}
+              onClick={() => handleQuickConnect("right")}
+            >
+              <ChevronRight size={14} />
+            </button>
+          </>
+        )}
+
+
+
         {previewRect && (
           <div
             className="canvas-block-drag-preview"
@@ -1302,283 +1989,8 @@ export default function Canvas() {
           />
         )}
 
-        {/* Floating Properties Bar */}
-        {selectedContainer && floatingPos && (
-          <div
-            className="floating-props-bar"
-            style={{ left: floatingPos.left, top: floatingPos.top, transform: "translateX(-50%)" }}
-            onPointerDown={e => e.stopPropagation()}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Duplicate */}
-            <button type="button" className="floating-props-btn" onClick={handleDuplicateContainer} title={i18n.language.startsWith("tr") ? "Çoğalt" : "Duplicate"}>
-              <Copy size={14} />
-            </button>
-            <div className="floating-props-sep" />
-            {/* Layer */}
-            <button type="button" className="floating-props-btn" onClick={() => handleLayering("front")} title={i18n.language.startsWith("tr") ? "Öne Getir" : "Bring to Front"}>
-              <ArrowUp size={14} />
-            </button>
-            <button type="button" className="floating-props-btn" onClick={() => handleLayering("back")} title={i18n.language.startsWith("tr") ? "Arkaya Gönder" : "Send to Back"}>
-              <ArrowDown size={14} />
-            </button>
-            <div className="floating-props-sep" />
-            {/* Lock */}
-            <button
-              type="button"
-              className={`floating-props-btn${selectedContainer.rect?.locked ? " locked" : ""}`}
-              onClick={handleToggleLock}
-              title={selectedContainer.rect?.locked ? (i18n.language.startsWith("tr") ? "Kilidi Aç" : "Unlock") : (i18n.language.startsWith("tr") ? "Kilitle" : "Lock")}
-            >
-              {selectedContainer.rect?.locked ? <Lock size={14} /> : <Unlock size={14} />}
-            </button>
-
-            {/* SHAPE PROPERTIES */}
-            {floatingBarIsShape && (
-              <>
-                <div className="floating-props-sep" />
-                {/* Stroke width */}
-                {[{ w: 1, h: 1 }, { w: 2, h: 2 }, { w: 4, h: 4 }].map(({ w, h }) => (
-                  <button
-                    key={w}
-                    type="button"
-                    className={`floating-props-btn ${selectedContainer.rect?.strokeWidth === w ? "active" : ""}`}
-                    onClick={() => updateStrokeWidth(w)}
-                    title={`${i18n.language.startsWith("tr") ? "Kontur" : "Stroke"} ${w}px`}
-                  >
-                    <span style={{ display: "block", width: 14, height: h, background: "currentColor", borderRadius: 1 }} />
-                  </button>
-                ))}
-                <div className="floating-props-sep" />
-                {/* Fill style */}
-                {[
-                  { style: "solid", symbol: "■", title: i18n.language.startsWith("tr") ? "Dolu" : "Solid" },
-                  { style: "hachure", symbol: "▤", title: i18n.language.startsWith("tr") ? "Taralı" : "Hachure" },
-                  { style: "dots", symbol: "⋯", title: i18n.language.startsWith("tr") ? "Noktalı" : "Dots" }
-                ].map(({ style, symbol, title }) => (
-                  <button
-                    key={style}
-                    type="button"
-                    className={`floating-props-btn ${selectedContainer.rect?.fillStyle === style ? "active" : ""}`}
-                    onClick={() => updateFillStyle(style)}
-                    title={title}
-                    style={{ fontSize: 12 }}
-                  >
-                    {symbol}
-                  </button>
-                ))}
-                <div className="floating-props-sep" />
-                {/* Fill & stroke color */}
-                <label className="floating-color-label" title={i18n.language.startsWith("tr") ? "Dolgu Rengi" : "Fill Color"}>
-                  <span className="floating-color-dot" style={{ background: selectedContainer.rect?.backgroundColor?.startsWith("#") ? selectedContainer.rect.backgroundColor : "#f4f4f5" }} />
-                  <input type="color" style={{ position: "absolute", opacity: 0, width: 0, height: 0, pointerEvents: "none" }}
-                    value={selectedContainer.rect?.backgroundColor?.startsWith("#") ? selectedContainer.rect.backgroundColor : "#f4f4f5"}
-                    onChange={e => updateContainerColor(e.target.value, selectedContainer.rect?.strokeColor || "#71717a")} />
-                </label>
-                <label className="floating-color-label" title={i18n.language.startsWith("tr") ? "Çerçeve Rengi" : "Stroke Color"}>
-                  <span className="floating-color-dot" style={{ background: selectedContainer.rect?.strokeColor?.startsWith("#") ? selectedContainer.rect.strokeColor : "#71717a" }} />
-                  <input type="color" style={{ position: "absolute", opacity: 0, width: 0, height: 0, pointerEvents: "none" }}
-                    value={selectedContainer.rect?.strokeColor?.startsWith("#") ? selectedContainer.rect.strokeColor : "#71717a"}
-                    onChange={e => updateContainerColor(selectedContainer.rect?.backgroundColor || "#f4f4f5", e.target.value)} />
-                </label>
-                <div className="floating-props-sep" />
-                {/* Opacity slider */}
-                <div className="floating-opacity-wrap" title={`${i18n.language.startsWith("tr") ? "Opaklık" : "Opacity"}: ${selectedContainer.rect?.opacity ?? 100}%`}>
-                  <input
-                    type="range" min={0} max={100} step={10}
-                    value={selectedContainer.rect?.opacity ?? 100}
-                    onChange={e => updateOpacity(Number(e.target.value))}
-                    className="floating-opacity-slider"
-                  />
-                </div>
-                <div className="floating-props-sep" />
-                {/* Corner radius toggle */}
-                <button
-                  type="button"
-                  className={`floating-props-btn ${selectedContainer.rect?.roundness ? "active" : ""}`}
-                  onClick={() => updateCornerRadius(!selectedContainer.rect?.roundness)}
-                  title={selectedContainer.rect?.roundness ? (i18n.language.startsWith("tr") ? "Keskin Köşe" : "Sharp Corner") : (i18n.language.startsWith("tr") ? "Yuvarlak Köşe" : "Round Corner")}
-                  style={{ fontSize: 14 }}
-                >
-                  {selectedContainer.rect?.roundness ? "○" : "□"}
-                </button>
-              </>
-            )}
-
-            {/* TEXT PROPERTIES */}
-            {(floatingBarIsText || !!selectedContainer.text) && floatingBarTextEl && (
-              <>
-                <div className="floating-props-sep" />
-                {/* Font family dropdown button — dropdown renders outside floating bar via fixed position */}
-                <button
-                  ref={fontBtnRef}
-                  type="button"
-                  className={`floating-props-btn ${isFontDropdownOpen ? "active" : ""}`}
-                  style={{ width: 42, display: "flex", alignItems: "center", gap: 1 }}
-                  onClick={() => {
-                    if (isFontDropdownOpen) {
-                      setIsFontDropdownOpen(false);
-                      setFontDropdownFixedPos(null);
-                    } else if (fontBtnRef.current) {
-                      const r = fontBtnRef.current.getBoundingClientRect();
-                      setFontDropdownFixedPos({ left: r.left + r.width / 2, bottom: (visualViewport?.height ?? window.innerHeight) - r.top + 6 });
-                      setIsFontDropdownOpen(true);
-                    }
-                  }}
-                  title={i18n.language.startsWith("tr") ? "Font Ailesi" : "Font Family"}
-                >
-                  <span style={{ fontSize: 10 }}>Aa</span>
-                  <ChevronDown size={8} />
-                </button>
-                <div className="floating-props-sep" />
-                {/* Font size */}
-                {[{ label: "S", size: 14 }, { label: "M", size: 20 }, { label: "L", size: 28 }, { label: "XL", size: 36 }].map(s => (
-                  <button
-                    key={s.label}
-                    type="button"
-                    className={`floating-props-btn ${floatingBarTextEl.fontSize === s.size ? "active" : ""}`}
-                    style={{ width: 26, fontSize: 9, fontWeight: 700 }}
-                    onClick={() => updateFontSize(s.size)}
-                    title={`${s.label} (${s.size}px)`}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-                <div className="floating-props-sep" />
-                {/* Text align */}
-                {([["left", AlignLeft], ["center", AlignCenter], ["right", AlignRight]] as Array<[string, React.FC<{size: number}>]>).map(([align, Icon]) => (
-                  <button
-                    key={align}
-                    type="button"
-                    className={`floating-props-btn ${floatingBarTextEl.textAlign === align ? "active" : ""}`}
-                    onClick={() => updateTextAlign(align)}
-                    title={`${i18n.language.startsWith("tr") ? "Hizala" : "Align"}: ${align}`}
-                  >
-                    <Icon size={12} />
-                  </button>
-                ))}
-                <div className="floating-props-sep" />
-                {/* Text color */}
-                <label className="floating-color-label" title={i18n.language.startsWith("tr") ? "Metin Rengi" : "Text Color"}>
-                  <span className="floating-color-dot" style={{ background: floatingBarTextEl?.strokeColor?.startsWith("#") ? floatingBarTextEl.strokeColor : "#f4f4f5" }} />
-                  <input
-                    type="color"
-                    style={{ position: "absolute", opacity: 0, width: 0, height: 0, pointerEvents: "none" }}
-                    value={floatingBarTextEl?.strokeColor?.startsWith("#") ? floatingBarTextEl.strokeColor : "#f4f4f5"}
-                    onChange={e => {
-                      if (!excalidrawAPI) return;
-                      const els = excalidrawAPI.getSceneElements();
-                      const updated = els.map((el: any) =>
-                        el.id === floatingBarTextEl.id
-                          ? { ...el, strokeColor: e.target.value, updated: Date.now(), version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
-                          : el
-                      );
-                      excalidrawAPI.updateScene({ elements: updated });
-                    }}
-                  />
-                </label>
-              </>
-            )}
-
-            {/* LINE / ARROW PROPERTIES */}
-            {floatingBarIsLine && (
-              <>
-                <div className="floating-props-sep" />
-                {[{ w: 1, h: 1 }, { w: 2, h: 2 }, { w: 4, h: 4 }].map(({ w, h }) => (
-                  <button
-                    key={w}
-                    type="button"
-                    className={`floating-props-btn ${selectedContainer.rect?.strokeWidth === w ? "active" : ""}`}
-                    onClick={() => updateStrokeWidth(w)}
-                    title={`${i18n.language.startsWith("tr") ? "Kalınlık" : "Stroke"} ${w}px`}
-                  >
-                    <span style={{ display: "block", width: 14, height: h, background: "currentColor", borderRadius: 1 }} />
-                  </button>
-                ))}
-                <div className="floating-props-sep" />
-                {[
-                  { style: "solid", label: "─", title: i18n.language.startsWith("tr") ? "Düz" : "Solid" },
-                  { style: "dashed", label: "╌", title: i18n.language.startsWith("tr") ? "Kesik" : "Dashed" },
-                  { style: "dotted", label: "···", title: i18n.language.startsWith("tr") ? "Noktalı" : "Dotted" },
-                ].map(({ style, label, title }) => (
-                  <button
-                    key={style}
-                    type="button"
-                    className={`floating-props-btn ${selectedContainer.rect?.strokeStyle === style ? "active" : ""}`}
-                    onClick={() => updateStrokeStyle(style)}
-                    title={title}
-                    style={{ fontSize: 12, letterSpacing: style === "dotted" ? 1 : 0 }}
-                  >
-                    {label}
-                  </button>
-                ))}
-                <div className="floating-props-sep" />
-                <label className="floating-color-label" title={i18n.language.startsWith("tr") ? "Renk" : "Color"}>
-                  <span className="floating-color-dot" style={{ background: selectedContainer.rect?.strokeColor?.startsWith("#") ? selectedContainer.rect.strokeColor : "#71717a" }} />
-                  <input
-                    type="color"
-                    style={{ position: "absolute", opacity: 0, width: 0, height: 0, pointerEvents: "none" }}
-                    value={selectedContainer.rect?.strokeColor?.startsWith("#") ? selectedContainer.rect.strokeColor : "#71717a"}
-                    onChange={e => updateElementStrokeColor(e.target.value)}
-                  />
-                </label>
-              </>
-            )}
-
-            {/* FREEDRAW PROPERTIES */}
-            {floatingBarIsFreedraw && (
-              <>
-                <div className="floating-props-sep" />
-                <label className="floating-color-label" title={i18n.language.startsWith("tr") ? "Kalem Rengi" : "Pen Color"}>
-                  <span className="floating-color-dot" style={{ background: selectedContainer.rect?.strokeColor?.startsWith("#") ? selectedContainer.rect.strokeColor : "#000000" }} />
-                  <input
-                    type="color"
-                    style={{ position: "absolute", opacity: 0, width: 0, height: 0, pointerEvents: "none" }}
-                    value={selectedContainer.rect?.strokeColor?.startsWith("#") ? selectedContainer.rect.strokeColor : "#000000"}
-                    onChange={e => updateElementStrokeColor(e.target.value)}
-                  />
-                </label>
-              </>
-            )}
-
-            <div className="floating-props-sep" />
-            {/* Delete */}
-            <button type="button" className="floating-props-btn danger" onClick={handleDeleteContainer} title={i18n.language.startsWith("tr") ? "Sil" : "Delete"}>
-              <Trash size={14} />
-            </button>
-          </div>
-        )}
+        {/* Floating properties bar removed */}
       </div>
-
-      {/* Fixed-position font dropdown — renders outside canvas-wrapper to escape overflow:hidden clipping */}
-      {isFontDropdownOpen && fontDropdownFixedPos && (
-        <div
-          ref={fontDropdownRef}
-          className="floating-font-dropdown"
-          style={{
-            position: "fixed",
-            left: fontDropdownFixedPos.left,
-            bottom: fontDropdownFixedPos.bottom,
-            transform: "translateX(-50%)",
-            top: "auto"
-          }}
-        >
-          {FLOATING_FONTS.map(f => (
-            <button
-              key={f.id}
-              type="button"
-              className={`floating-font-option ${floatingBarTextEl?.fontFamily === f.id ? "active" : ""}`}
-              onClick={() => {
-                updateFontFamily(f.id);
-                setIsFontDropdownOpen(false);
-                setFontDropdownFixedPos(null);
-              }}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* Image Preview Modal */}
       {isImagePreviewOpen && imagePreviewUrl && (
@@ -1609,6 +2021,12 @@ export default function Canvas() {
         setCustomBlockType={setCustomBlockType}
         hasLockedElements={hasLockedElements}
         onUnlockAll={handleUnlockAll}
+        selectedContainer={selectedContainer}
+        handleLayering={handleLayering}
+        updateContainerColor={updateContainerColor}
+        theme={theme}
+        floatingPos={floatingPos}
+        isToolbarHidden={isDraggingElement || isScrollingOrZooming || !!(latestAppStateRef.current?.editingElement)}
       />
       <Minimap excalidrawAPI={excalidrawAPI} />
     </div>

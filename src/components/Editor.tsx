@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "@blocknote/core/fonts/inter.css";
 import { useCreateBlockNote, SuggestionMenuController, getDefaultReactSlashMenuItems } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
@@ -16,7 +17,24 @@ import { en } from "@blocknote/core/locales";
 
 export default function Editor() {
   const { t, i18n } = useTranslation();
-  const { activeNoteId, notes, theme, setEditorInstance, editorFontSize, activeNoteTitle, updateNoteTitle } = useNoteStore();
+  const { activeNoteId, notes, theme, setEditorInstance, editorFontSize, activeNoteTitle, updateNoteTitle, setActiveNoteId } = useNoteStore();
+  const navigate = useNavigate();
+
+  // Note linking auto-complete dropdown state
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [dropdownQuery, setDropdownQuery] = useState("");
+  const [dropdownPos, setDropdownPos] = useState({ left: 0, top: 0 });
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const filteredNotes = notes.filter(note => 
+    note.id !== activeNoteId && 
+    !note.archived && 
+    (note.title || (i18n.language.startsWith("tr") ? "Başlıksız Not" : "Untitled Note")).toLowerCase().includes(dropdownQuery.toLowerCase())
+  );
+
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [dropdownQuery]);
 
   const trLocale = {
     ...en,
@@ -187,6 +205,21 @@ export default function Editor() {
       ...defaultBlockSpecs,
       callout: CalloutBlock,
     },
+    links: {
+      onClick: (event: MouseEvent) => {
+        const href = (event.target as HTMLElement).closest("a")?.getAttribute("href");
+        if (href && href.startsWith("tidenote://note/")) {
+          event.preventDefault();
+          const noteId = href.replace("tidenote://note/", "");
+          if (noteId) {
+            setActiveNoteId(noteId);
+            navigate(`/app?note=${noteId}`);
+          }
+          return true;
+        }
+        return false;
+      }
+    },
     dictionary: i18n.language.startsWith("tr") ? trLocale : undefined,
     placeholders: {
       default: i18n.language.startsWith("tr") ? "✍️ Yazmaya başla..." : "✍️ Start writing...",
@@ -333,6 +366,98 @@ export default function Editor() {
     debouncedSave(activeNoteId, currentDoc);
   };
 
+  const checkDropdown = () => {
+    setTimeout(() => {
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const textNode = range.startContainer;
+        if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+          const text = textNode.textContent || "";
+          const offset = range.startOffset;
+          const match = text.slice(0, offset).match(/\[\[([^\]]*)$/);
+          if (match) {
+            setDropdownOpen(true);
+            setDropdownQuery(match[1]);
+            
+            const clientRect = range.getBoundingClientRect();
+            setDropdownPos({
+              left: clientRect.left,
+              top: clientRect.bottom + 8
+            });
+            return;
+          }
+        }
+      }
+      setDropdownOpen(false);
+    }, 10);
+  };
+
+  useEffect(() => {
+    const unsub = editor.onSelectionChange(() => {
+      checkDropdown();
+    });
+    return () => {
+      unsub();
+    };
+  }, [editor]);
+
+  const selectNote = (note: any) => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+    const range = selection.getRangeAt(0);
+    const textNode = range.startContainer;
+    if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+      const text = textNode.textContent || "";
+      const offset = range.startOffset;
+      const prefixIndex = text.slice(0, offset).lastIndexOf("[[");
+      if (prefixIndex !== -1) {
+        const newText = text.slice(0, prefixIndex) + text.slice(offset);
+        textNode.textContent = newText;
+
+        const newRange = document.createRange();
+        newRange.setStart(textNode, prefixIndex);
+        newRange.setEnd(textNode, prefixIndex);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+
+        editor.insertInlineContent([
+          {
+            type: "link",
+            href: `tidenote://note/${note.id}`,
+            content: [{ type: "text", text: note.title || (i18n.language.startsWith("tr") ? "Başlıksız Not" : "Untitled Note"), styles: {} }]
+          }
+        ]);
+        editor.insertInlineContent(" ");
+      }
+    }
+    setDropdownOpen(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!dropdownOpen) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      e.stopPropagation();
+      setSelectedIndex(prev => (prev + 1) % Math.max(1, filteredNotes.length));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      e.stopPropagation();
+      setSelectedIndex(prev => (prev - 1 + filteredNotes.length) % Math.max(1, filteredNotes.length));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      if (filteredNotes[selectedIndex]) {
+        selectNote(filteredNotes[selectedIndex]);
+      }
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      setDropdownOpen(false);
+    }
+  };
+
   return (
     <MantineProvider>
       <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", wordWrap: "break-word", wordBreak: "break-word" }} className={`editor-workspace font-${editorFontSize}`}>
@@ -343,11 +468,12 @@ export default function Editor() {
           placeholder={t("sidebar.untitledNote")}
         />
         <hr className="editor-title-divider" />
-        <BlockNoteView
-          editor={editor}
-          onChange={handleEditorChange}
-          theme={theme}
-        >
+        <div onKeyDownCapture={handleKeyDown} style={{ position: "relative", width: "100%" }}>
+          <BlockNoteView
+            editor={editor}
+            onChange={handleEditorChange}
+            theme={theme}
+          >
           <SuggestionMenuController
             triggerCharacter="/"
             getItems={async (query) => {
@@ -400,7 +526,57 @@ export default function Editor() {
               );
             }}
           />
-        </BlockNoteView>
+          </BlockNoteView>
+          
+          {dropdownOpen && (
+            <div
+              className="note-link-dropdown"
+              style={{
+                position: "fixed",
+                left: `${dropdownPos.left}px`,
+                top: `${dropdownPos.top}px`,
+                zIndex: 99999
+              }}
+              onMouseDown={e => e.preventDefault()}
+            >
+              {filteredNotes.length === 0 ? (
+                <div className="note-link-dropdown-empty">
+                  {i18n.language.startsWith("tr") ? "Not bulunamadı" : "No notes found"}
+                </div>
+              ) : (
+                filteredNotes.map((note, index) => {
+                  const isSelected = index === selectedIndex;
+                  return (
+                    <div
+                      key={note.id}
+                      className={`note-link-dropdown-item ${isSelected ? "selected" : ""}`}
+                      onClick={() => selectNote(note)}
+                    >
+                      {note.type === "canvas" ? (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                          <circle cx="9" cy="9" r="2" />
+                          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                        </svg>
+                      ) : (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                          <polyline points="14 2 14 8 20 8" />
+                          <line x1="16" y1="13" x2="8" y2="13" />
+                          <line x1="16" y1="17" x2="8" y2="17" />
+                          <line x1="10" y1="9" x2="8" y2="9" />
+                        </svg>
+                      )}
+                      <span className="note-link-dropdown-title" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {note.title || (i18n.language.startsWith("tr") ? "Başlıksız Not" : "Untitled Note")}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
         <TableOfContents headings={headings} />
       </div>
     </MantineProvider>
