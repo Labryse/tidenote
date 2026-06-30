@@ -82,6 +82,68 @@ export default function CanvasToolbar({
   const [lineSize, setLineSize] = useState<number>(2);
   const [arrowSize, setArrowSize] = useState<number>(2);
 
+  // SEPARATED SHAPE AND PEN STROKE PREFERENCES
+  const lastPenStrokeColorRef = useRef<string>("");
+  const lastPenStrokeWidthRef = useRef<number>(2);
+  const lastShapeStrokeColorRef = useRef<string>("transparent");
+  const lastShapeStrokeWidthRef = useRef<number>(0);
+
+  const defaultPenColor = theme === "dark" ? "#f4f4f5" : "#1e293b";
+  if (!lastPenStrokeColorRef.current) {
+    lastPenStrokeColorRef.current = defaultPenColor;
+  }
+
+  useEffect(() => {
+    // If the user hasn't explicitly changed the pen color from the old default, we can update it to match the new theme default
+    if (lastPenStrokeColorRef.current === "#1e293b" && theme === "dark") {
+      lastPenStrokeColorRef.current = "#f4f4f5";
+    } else if (lastPenStrokeColorRef.current === "#f4f4f5" && theme === "light") {
+      lastPenStrokeColorRef.current = "#1e293b";
+    }
+  }, [theme]);
+
+  // Keep track of previous active tool to detect transitions
+  const prevActiveToolRef = useRef<string>(activeTool);
+
+  useEffect(() => {
+    if (!excalidrawAPI) return;
+
+    const isShape = (tool: string) => ["rectangle", "ellipse", "diamond"].includes(tool);
+    const isPen = (tool: string) => ["freedraw", "line", "arrow"].includes(tool);
+
+    const prevTool = prevActiveToolRef.current;
+    prevActiveToolRef.current = activeTool;
+
+    if (isPen(activeTool)) {
+      const color = lastPenStrokeColorRef.current || (theme === "dark" ? "#f4f4f5" : "#1e293b");
+      let width = lastPenStrokeWidthRef.current;
+      if (activeTool === "freedraw") width = pencilSize;
+      else if (activeTool === "line") width = lineSize;
+      else if (activeTool === "arrow") width = arrowSize;
+
+      excalidrawAPI.updateScene({
+        appState: {
+          currentItemStrokeColor: color,
+          currentItemStrokeWidth: width
+        }
+      });
+      setStrokeColor(color);
+      setStrokeWidth(width);
+    } else if (isShape(activeTool)) {
+      const color = lastShapeStrokeColorRef.current;
+      const width = lastShapeStrokeWidthRef.current;
+
+      excalidrawAPI.updateScene({
+        appState: {
+          currentItemStrokeColor: color,
+          currentItemStrokeWidth: width
+        }
+      });
+      setStrokeColor(color);
+      setStrokeWidth(width);
+    }
+  }, [activeTool, excalidrawAPI, theme, pencilSize, lineSize, arrowSize]);
+
   const screenToCanvas = (screenX: number, screenY: number, appState: any, containerRect: DOMRect) => {
     const z = appState.zoom.value;
     return {
@@ -89,18 +151,6 @@ export default function CanvasToolbar({
       y: (screenY - containerRect.top - appState.scrollY * z) / z
     };
   };
-
-  useEffect(() => {
-    if (!excalidrawAPI) return;
-    let sWidth = 2;
-    if (activeTool === "freedraw") sWidth = pencilSize;
-    else if (activeTool === "line") sWidth = lineSize;
-    else if (activeTool === "arrow") sWidth = arrowSize;
-
-    excalidrawAPI.updateScene({
-      appState: { currentItemStrokeWidth: sWidth }
-    });
-  }, [activeTool, pencilSize, lineSize, arrowSize, excalidrawAPI]);
 
   const selectedElements = excalidrawAPI
     ? excalidrawAPI.getSceneElements().filter((e: any) => {
@@ -347,15 +397,27 @@ export default function CanvasToolbar({
         }
       }
     } catch (_) {}
-  }, [selectedContainer, excalidrawAPI]);
+  }, [selectedContainer, excalidrawAPI, activeTool]);
 
   const selectedEls = getSelectedElements();
   const isSelectedLocked = selectedEls[0]?.locked ?? false;
 
   const updateStrokeColor = (color: string) => {
     setStrokeColor(color);
-    if (!excalidrawAPI) return;
+
     const selected = getSelectedElements();
+    const isShape = ["rectangle", "ellipse", "diamond"].includes(activeTool) || 
+                    (activeTool === "selection" && selected.length > 0 && ["rectangle", "ellipse", "diamond"].includes(selected[0].type));
+    const isPen = ["freedraw", "line", "arrow"].includes(activeTool) ||
+                  (activeTool === "selection" && selected.length > 0 && ["freedraw", "line", "arrow", "pencil"].includes(selected[0].type));
+    
+    if (isShape) {
+      lastShapeStrokeColorRef.current = color;
+    } else if (isPen) {
+      lastPenStrokeColorRef.current = color;
+    }
+
+    if (!excalidrawAPI) return;
     if (selected.length > 0) {
       excalidrawAPI.updateScene({
         elements: excalidrawAPI.getSceneElements().map((el: any) => 
@@ -382,8 +444,23 @@ export default function CanvasToolbar({
 
   const updateStrokeWidth = (width: number) => {
     setStrokeWidth(width);
-    if (!excalidrawAPI) return;
+
     const selected = getSelectedElements();
+    const isShape = ["rectangle", "ellipse", "diamond"].includes(activeTool) || 
+                    (activeTool === "selection" && selected.length > 0 && ["rectangle", "ellipse", "diamond"].includes(selected[0].type));
+    const isPen = ["freedraw", "line", "arrow"].includes(activeTool) ||
+                  (activeTool === "selection" && selected.length > 0 && ["freedraw", "line", "arrow", "pencil"].includes(selected[0].type));
+    
+    if (isShape) {
+      lastShapeStrokeWidthRef.current = width;
+    } else if (isPen) {
+      lastPenStrokeWidthRef.current = width;
+      if (activeTool === "freedraw") setPencilSize(width);
+      else if (activeTool === "line") setLineSize(width);
+      else if (activeTool === "arrow") setArrowSize(width);
+    }
+
+    if (!excalidrawAPI) return;
     if (selected.length > 0) {
       excalidrawAPI.updateScene({
         elements: excalidrawAPI.getSceneElements().map((el: any) => 
@@ -477,11 +554,37 @@ export default function CanvasToolbar({
       setCustomBlockType(null);
       if (excalidrawAPI) {
         excalidrawAPI.setActiveTool({ type: toolType });
-        let sWidth = 2;
-        if (toolType === "freedraw") sWidth = pencilSize;
-        else if (toolType === "line") sWidth = lineSize;
-        else if (toolType === "arrow") sWidth = arrowSize;
-        excalidrawAPI.updateScene({ appState: { currentItemStrokeWidth: sWidth } });
+        
+        const isShape = ["rectangle", "ellipse", "diamond"].includes(toolType);
+        const isPen = ["freedraw", "line", "arrow"].includes(toolType);
+        
+        if (isPen) {
+          const color = lastPenStrokeColorRef.current || (theme === "dark" ? "#f4f4f5" : "#1e293b");
+          let sWidth = lastPenStrokeWidthRef.current;
+          if (toolType === "freedraw") sWidth = pencilSize;
+          else if (toolType === "line") sWidth = lineSize;
+          else if (toolType === "arrow") sWidth = arrowSize;
+          
+          excalidrawAPI.updateScene({
+            appState: {
+              currentItemStrokeColor: color,
+              currentItemStrokeWidth: sWidth
+            }
+          });
+          setStrokeColor(color);
+          setStrokeWidth(sWidth);
+        } else if (isShape) {
+          const color = lastShapeStrokeColorRef.current;
+          const width = lastShapeStrokeWidthRef.current;
+          excalidrawAPI.updateScene({
+            appState: {
+              currentItemStrokeColor: color,
+              currentItemStrokeWidth: width
+            }
+          });
+          setStrokeColor(color);
+          setStrokeWidth(width);
+        }
       }
     }
   };
@@ -1000,6 +1103,7 @@ export default function CanvasToolbar({
                             if (activeTool === "freedraw") setPencilSize(w);
                             else if (activeTool === "line") setLineSize(w);
                             else if (activeTool === "arrow") setArrowSize(w);
+                            lastPenStrokeWidthRef.current = w;
                             if (excalidrawAPI) excalidrawAPI.updateScene({ appState: { currentItemStrokeWidth: w } });
                           }}
                         >
@@ -1340,12 +1444,21 @@ export default function CanvasToolbar({
                             className={`mini-bar-option-btn ${selectedElements[0].strokeWidth === opt.w ? "active" : ""}`}
                             style={{ fontSize: "10px", minWidth: "28px" }}
                             onClick={() => {
+                              const newColor = opt.w === 0 ? "transparent" : (selectedElements[0].strokeColor === "transparent" ? "#1e293b" : selectedElements[0].strokeColor);
                               const updated = excalidrawAPI.getSceneElements().map((e: any) =>
                                 e.id === selectedElements[0].id
-                                  ? { ...e, strokeWidth: opt.w, strokeColor: opt.w === 0 ? "transparent" : (selectedElements[0].strokeColor === "transparent" ? "#1e293b" : selectedElements[0].strokeColor), updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
+                                  ? { ...e, strokeWidth: opt.w, strokeColor: newColor, updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
                                   : e
                               );
                               excalidrawAPI.updateScene({ elements: updated });
+                              lastShapeStrokeWidthRef.current = opt.w;
+                              lastShapeStrokeColorRef.current = newColor;
+                              excalidrawAPI.updateScene({
+                                appState: {
+                                  currentItemStrokeWidth: opt.w,
+                                  currentItemStrokeColor: newColor
+                                }
+                              });
                             }}
                           >
                             {opt.label}
@@ -1363,12 +1476,21 @@ export default function CanvasToolbar({
                           className={`mini-bar-swatch ${selectedElements[0].strokeColor === color ? "active" : ""}`}
                           style={{ backgroundColor: color }}
                           onClick={() => {
+                            const newWidth = selectedElements[0].strokeWidth === 0 ? 1 : selectedElements[0].strokeWidth;
                             const updated = excalidrawAPI.getSceneElements().map((e: any) =>
                               e.id === selectedElements[0].id
-                                ? { ...e, strokeColor: color, strokeWidth: selectedElements[0].strokeWidth === 0 ? 1 : selectedElements[0].strokeWidth, updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
+                                ? { ...e, strokeColor: color, strokeWidth: newWidth, updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
                                 : e
                             );
                             excalidrawAPI.updateScene({ elements: updated });
+                            lastShapeStrokeColorRef.current = color;
+                            lastShapeStrokeWidthRef.current = newWidth;
+                            excalidrawAPI.updateScene({
+                              appState: {
+                                currentItemStrokeColor: color,
+                                currentItemStrokeWidth: newWidth
+                              }
+                            });
                           }}
                         />
                       ))}
@@ -1398,12 +1520,21 @@ export default function CanvasToolbar({
                             })()}
                           onChange={e => {
                             const val = e.target.value;
+                            const newWidth = selectedElements[0].strokeWidth === 0 ? 1 : selectedElements[0].strokeWidth;
                             const updated = excalidrawAPI.getSceneElements().map((el: any) =>
                               el.id === selectedElements[0].id
-                                ? { ...el, strokeColor: val, strokeWidth: selectedElements[0].strokeWidth === 0 ? 1 : selectedElements[0].strokeWidth, updated: Date.now(), version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
+                                ? { ...el, strokeColor: val, strokeWidth: newWidth, updated: Date.now(), version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
                                 : el
                             );
                             excalidrawAPI.updateScene({ elements: updated });
+                            lastShapeStrokeColorRef.current = val;
+                            lastShapeStrokeWidthRef.current = newWidth;
+                            excalidrawAPI.updateScene({
+                              appState: {
+                                currentItemStrokeColor: val,
+                                currentItemStrokeWidth: newWidth
+                              }
+                            });
                           }}
                         />
                       </label>
@@ -1457,6 +1588,8 @@ export default function CanvasToolbar({
                                 : e
                             );
                             excalidrawAPI.updateScene({ elements: updated });
+                            lastPenStrokeColorRef.current = color;
+                            excalidrawAPI.updateScene({ appState: { currentItemStrokeColor: color } });
                           }}
                         />
                       ))}
@@ -1465,12 +1598,15 @@ export default function CanvasToolbar({
                         className="mini-bar-color-input"
                         value={selectedElements[0].strokeColor?.startsWith("#") ? selectedElements[0].strokeColor : "#000000"}
                         onChange={ev => {
+                          const val = ev.target.value;
                           const updated = excalidrawAPI.getSceneElements().map((e: any) =>
                             e.id === selectedElements[0].id
-                              ? { ...e, strokeColor: ev.target.value, updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
+                              ? { ...e, strokeColor: val, updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
                               : e
                           );
                           excalidrawAPI.updateScene({ elements: updated });
+                          lastPenStrokeColorRef.current = val;
+                          excalidrawAPI.updateScene({ appState: { currentItemStrokeColor: val } });
                         }}
                       />
                     </div>
@@ -1489,6 +1625,8 @@ export default function CanvasToolbar({
                               : e
                           );
                           excalidrawAPI.updateScene({ elements: updated });
+                          lastPenStrokeWidthRef.current = tOpt.w;
+                          excalidrawAPI.updateScene({ appState: { currentItemStrokeWidth: tOpt.w } });
                         }}
                         style={{ fontSize: "10px" }}
                       >
