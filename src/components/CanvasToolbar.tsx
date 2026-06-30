@@ -32,6 +32,12 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+const RoundedSquareIcon = ({ size = 16, ...props }: { size?: number; [key: string]: any }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <rect x="3" y="3" width="18" height="18" rx="4" ry="4" />
+  </svg>
+);
+
 interface CanvasToolbarProps {
   excalidrawAPI: any;
   activeTool: string;
@@ -46,6 +52,13 @@ interface CanvasToolbarProps {
   floatingPos: { left: number; top: number } | null;
   isToolbarHidden: boolean;
 }
+
+const getBaseFontFamily = (family: number): number => {
+  if ([1, 13, 14, 15].includes(family)) return 1;
+  if ([2, 10, 11, 12].includes(family)) return 2;
+  if ([3, 16, 17, 18].includes(family)) return 3;
+  return 2;
+};
 
 const CANVAS_FONTS = [
   { id: FONT_FAMILY.Helvetica as number, label: "Helvetica" },
@@ -77,30 +90,24 @@ export default function CanvasToolbar({
   
   const [selectedFont, setSelectedFont] = useState<number>(FONT_FAMILY.Helvetica as number);
   const [isFontPickerOpen, setIsFontPickerOpen] = useState(false);
+  const [renderVersion, setRenderVersion] = useState(0);
+  const forceUpdate = () => setRenderVersion(v => v + 1);
+  const [isShapeDropdownOpen, setIsShapeDropdownOpen] = useState(false);
+  const [isMainShapeDropdownOpen, setIsMainShapeDropdownOpen] = useState(false);
+  const mainShapeDropdownRef = useRef<HTMLDivElement>(null);
+
+
 
   const [pencilSize, setPencilSize] = useState<number>(2);
   const [lineSize, setLineSize] = useState<number>(2);
   const [arrowSize, setArrowSize] = useState<number>(2);
 
   // SEPARATED SHAPE AND PEN STROKE PREFERENCES
-  const lastPenStrokeColorRef = useRef<string>("");
+  const lastPenStrokeColorRef = useRef<string>("#1e293b");
   const lastPenStrokeWidthRef = useRef<number>(2);
   const lastShapeStrokeColorRef = useRef<string>("transparent");
   const lastShapeStrokeWidthRef = useRef<number>(0);
 
-  const defaultPenColor = theme === "dark" ? "#f4f4f5" : "#1e293b";
-  if (!lastPenStrokeColorRef.current) {
-    lastPenStrokeColorRef.current = defaultPenColor;
-  }
-
-  useEffect(() => {
-    // If the user hasn't explicitly changed the pen color from the old default, we can update it to match the new theme default
-    if (lastPenStrokeColorRef.current === "#1e293b" && theme === "dark") {
-      lastPenStrokeColorRef.current = "#f4f4f5";
-    } else if (lastPenStrokeColorRef.current === "#f4f4f5" && theme === "light") {
-      lastPenStrokeColorRef.current = "#1e293b";
-    }
-  }, [theme]);
 
   // Keep track of previous active tool to detect transitions
   const prevActiveToolRef = useRef<string>(activeTool);
@@ -159,6 +166,11 @@ export default function CanvasToolbar({
       })
     : [];
 
+  useEffect(() => {
+    setIsShapeDropdownOpen(false);
+    setIsMainShapeDropdownOpen(false);
+  }, [selectedElements[0]?.id]);
+
   const getActiveTextElement = () => {
     if (!excalidrawAPI || selectedElements.length !== 1) return null;
     const first = selectedElements[0];
@@ -168,7 +180,7 @@ export default function CanvasToolbar({
     if (first.boundElements) {
       const allEls = excalidrawAPI.getSceneElements();
       const textChild = allEls.find((e: any) =>
-        first.boundElements.some((be: any) => be.type === "text" && be.id === e.id) && !e.isDeleted
+        first.boundElements.some((be: any) => be && be.type === "text" && be.id === e.id) && !e.isDeleted
       );
       if (textChild) return textChild;
     }
@@ -179,28 +191,172 @@ export default function CanvasToolbar({
 
   const updateTextProp = (prop: string, value: any) => {
     if (!excalidrawAPI || !activeText) return;
-    const updated = excalidrawAPI.getSceneElements().map((e: any) =>
-      e.id === activeText.id
-        ? { ...e, [prop]: value, updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
-        : e
-    );
+
+    const measureTextDimensions = (text: string, fontSize: number, fontFamilyId: number, isBold: boolean, isItalic: boolean) => {
+      let fontFamily = "Helvetica, Arial";
+      if (fontFamilyId === 1) {
+        fontFamily = "Virgil, Segoe UI Emoji";
+      } else if (fontFamilyId === 3) {
+        fontFamily = "Cascadia, Courier New";
+      }
+      
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return { width: 100, height: 30 };
+      
+      const stylePart = isItalic ? "italic " : "";
+      const weightPart = isBold ? "bold " : "";
+      ctx.font = `${stylePart}${weightPart}${fontSize}px ${fontFamily}`;
+      
+      const lines = text.split("\n");
+      let maxWidth = 0;
+      for (const line of lines) {
+        const metrics = ctx.measureText(line);
+        if (metrics.width > maxWidth) {
+          maxWidth = metrics.width;
+        }
+      }
+      
+      const lineHeight = fontSize * 1.25;
+      const height = lines.length * lineHeight;
+      
+      return {
+        width: Math.max(10, Math.ceil(maxWidth)),
+        height: Math.max(10, Math.ceil(height))
+      };
+    };
+
+    const updated = excalidrawAPI.getSceneElements().map((e: any) => {
+      if (e.id === activeText.id) {
+        let updatedElement = { ...e, [prop]: value, updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) };
+        
+        if (prop === "fontSize" || prop === "fontFamily") {
+          const fontSize = prop === "fontSize" ? value : (typeof updatedElement.fontSize === "object" ? updatedElement.fontSize.size : updatedElement.fontSize);
+          const fontFamilyId = prop === "fontFamily" ? value : (updatedElement.fontFamily || 2);
+          const isBold = updatedElement.customData?.fontWeight === "bold";
+          const isItalic = updatedElement.customData?.fontStyle === "italic";
+          
+          const { width, height } = measureTextDimensions(updatedElement.text, fontSize, fontFamilyId, isBold, isItalic);
+          
+          const dx = (width - e.width) / 2;
+          const dy = (height - e.height) / 2;
+          
+          updatedElement = {
+            ...updatedElement,
+            width,
+            height,
+            x: e.x - dx,
+            y: e.y - dy
+          };
+        }
+        return updatedElement;
+      }
+      return e;
+    });
     excalidrawAPI.updateScene({ elements: updated });
+    forceUpdate();
   };
 
-  const cycleShapeType = () => {
+  const updateTextCustomData = (prop: string, value: any) => {
+    if (!excalidrawAPI || !activeText) return;
+
+    const measureTextDimensions = (text: string, fontSize: number, fontFamilyId: number, isBold: boolean, isItalic: boolean) => {
+      let fontFamily = "Helvetica, Arial";
+      if (fontFamilyId === 1) {
+        fontFamily = "Virgil, Segoe UI Emoji";
+      } else if (fontFamilyId === 3) {
+        fontFamily = "Cascadia, Courier New";
+      }
+      
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return { width: 100, height: 30 };
+      
+      const stylePart = isItalic ? "italic " : "";
+      const weightPart = isBold ? "bold " : "";
+      ctx.font = `${stylePart}${weightPart}${fontSize}px ${fontFamily}`;
+      
+      const lines = text.split("\n");
+      let maxWidth = 0;
+      for (const line of lines) {
+        const metrics = ctx.measureText(line);
+        if (metrics.width > maxWidth) {
+          maxWidth = metrics.width;
+        }
+      }
+      
+      const lineHeight = fontSize * 1.25;
+      const height = lines.length * lineHeight;
+      
+      return {
+        width: Math.max(10, Math.ceil(maxWidth)),
+        height: Math.max(10, Math.ceil(height))
+      };
+    };
+
+    const updated = excalidrawAPI.getSceneElements().map((e: any) => {
+      if (e.id === activeText.id) {
+        const nextCustomData = {
+          ...(e.customData || {}),
+          [prop]: value
+        };
+        
+        let updatedElement = {
+          ...e,
+          customData: nextCustomData,
+          updated: Date.now(),
+          version: e.version + 1,
+          versionNonce: Math.floor(Math.random() * 999999)
+        };
+        
+        // Measure with new custom styling
+        const fontSize = typeof e.fontSize === "object" ? e.fontSize.size : e.fontSize;
+        const fontFamilyId = e.fontFamily || 2;
+        const isBold = nextCustomData.fontWeight === "bold";
+        const isItalic = nextCustomData.fontStyle === "italic";
+        
+        const { width, height } = measureTextDimensions(e.text, fontSize, fontFamilyId, isBold, isItalic);
+        
+        const dx = (width - e.width) / 2;
+        const dy = (height - e.height) / 2;
+        
+        updatedElement = {
+          ...updatedElement,
+          width,
+          height,
+          x: e.x - dx,
+          y: e.y - dy
+        };
+        
+        return updatedElement;
+      }
+      return e;
+    });
+    excalidrawAPI.updateScene({ elements: updated });
+    forceUpdate();
+  };
+
+  const changeShapeType = (targetType: "rectangle" | "rounded-rectangle" | "ellipse" | "diamond") => {
     if (!excalidrawAPI || selectedElements.length !== 1) return;
     const shape = selectedElements[0];
-    let nextType = "rectangle";
-    if (shape.type === "rectangle") nextType = "ellipse";
-    else if (shape.type === "ellipse") nextType = "diamond";
-    else if (shape.type === "diamond") nextType = "rectangle";
+    
+    let typeVal = targetType === "rounded-rectangle" ? "rectangle" : targetType;
+    let roundnessVal = targetType === "rounded-rectangle" ? { type: 3, value: 8 } : null;
 
     const updated = excalidrawAPI.getSceneElements().map((e: any) =>
       e.id === shape.id
-        ? { ...e, type: nextType, updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
+        ? { 
+            ...e, 
+            type: typeVal, 
+            roundness: roundnessVal,
+            updated: Date.now(), 
+            version: e.version + 1, 
+            versionNonce: Math.floor(Math.random() * 999999) 
+          }
         : e
     );
     excalidrawAPI.updateScene({ elements: updated });
+    forceUpdate();
   };
 
   const handleAddTextToShape = () => {
@@ -217,6 +373,7 @@ export default function CanvasToolbar({
           selectedElementIds: { [shape.id]: false, [existingText.id]: true }
         }
       });
+      forceUpdate();
       return;
     }
 
@@ -228,6 +385,8 @@ export default function CanvasToolbar({
     const textH = shape.height - 32;
     const isTrLanguage = i18n.language.startsWith("tr");
     const placeholderText = isTrLanguage ? "Yazmaya Başla..." : "Type '/' for commands...";
+    
+    const normalStrokeColor = theme === "dark" ? "#f4f4f5" : "#1a1a1a";
 
     const newText = {
       id: textId,
@@ -237,7 +396,7 @@ export default function CanvasToolbar({
       width: textW,
       height: textH,
       angle: 0,
-      strokeColor: "#AAAAAA",
+      strokeColor: normalStrokeColor,
       backgroundColor: "transparent",
       fillStyle: "solid",
       strokeWidth: 1,
@@ -255,32 +414,39 @@ export default function CanvasToolbar({
       updated: Date.now(),
       link: null,
       locked: false,
-      text: "",
+      text: placeholderText,
       fontSize: 16,
       fontFamily: FONT_FAMILY.Helvetica as number,
       textAlign: "center",
       verticalAlign: "middle",
       containerId: shape.id,
-      originalText: "",
+      originalText: placeholderText,
       lineHeight: 1.3,
       autoResize: true
     };
 
-    if (!shape.boundElements) shape.boundElements = [];
-    shape.boundElements.push({ id: textId, type: "text" });
+    const updatedShape = {
+      ...shape,
+      boundElements: [...(shape.boundElements || []), { id: textId, type: "text" }]
+    };
 
-    const updatedElements = elements.map((e: any) => e.id === shape.id ? shape : e);
+    const updatedElements = elements.map((e: any) => e.id === shape.id ? updatedShape : e);
     updatedElements.push(newText);
 
     excalidrawAPI.updateScene({ elements: updatedElements });
 
     setTimeout(() => {
-      excalidrawAPI.updateScene({
-        appState: {
-          editingElement: newText,
-          selectedElementIds: { [shape.id]: false, [textId]: true }
-        }
-      });
+      const currentElements = excalidrawAPI.getSceneElements();
+      const addedText = currentElements.find((e: any) => e.id === textId);
+      if (addedText) {
+        excalidrawAPI.updateScene({
+          appState: {
+            editingElement: addedText,
+            selectedElementIds: { [shape.id]: false, [textId]: true }
+          }
+        });
+      }
+      forceUpdate();
     }, 50);
   };
 
@@ -300,6 +466,7 @@ export default function CanvasToolbar({
         : e
     );
     excalidrawAPI.updateScene({ elements: updated });
+    forceUpdate();
   };
 
   const alignElements = (direction: "horizontal" | "vertical") => {
@@ -331,11 +498,12 @@ export default function CanvasToolbar({
       return e;
     });
     excalidrawAPI.updateScene({ elements: updated });
+    forceUpdate();
   };
 
   // Local property states for instant reactivity
   const [strokeColor, setStrokeColor] = useState<string>("#1e293b");
-  const [fillColor, setFillColor] = useState<string>("transparent");
+  const [fillColor, setFillColor] = useState<string>("#1e293b");
   const [strokeWidth, setStrokeWidth] = useState<number>(1);
   const [opacity, setOpacity] = useState<number>(100);
   const [roughness, setRoughness] = useState<number>(0);
@@ -351,6 +519,18 @@ export default function CanvasToolbar({
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [isFontPickerOpen]);
+
+  // Close main shapes dropdown on outside click
+  useEffect(() => {
+    if (!isMainShapeDropdownOpen) return;
+    const handleOutside = (e: MouseEvent) => {
+      if (mainShapeDropdownRef.current && !mainShapeDropdownRef.current.contains(e.target as Node)) {
+        setIsMainShapeDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [isMainShapeDropdownOpen]);
 
   const getAppState = () => {
     if (!excalidrawAPI) return null;
@@ -509,6 +689,7 @@ export default function CanvasToolbar({
         selected.some((sel: any) => sel.id === el.id) ? { ...el, locked: shouldLock } : el
       )
     });
+    forceUpdate();
   };
 
   const deleteSelected = () => {
@@ -520,6 +701,7 @@ export default function CanvasToolbar({
         selected.some((sel: any) => sel.id === el.id) ? { ...el, isDeleted: true } : el
       )
     });
+    forceUpdate();
   };
 
   const handleSelectFont = (fontId: number) => {
@@ -539,7 +721,7 @@ export default function CanvasToolbar({
         excalidrawAPI.setActiveTool({ type: "text" });
         excalidrawAPI.updateScene({
           appState: {
-            currentItemStrokeColor: "#1a1a1a",
+            currentItemStrokeColor: theme === "dark" ? "#f4f4f5" : "#1a1a1a",
             currentItemStrokeWidth: 1,
             currentItemBackgroundColor: "transparent",
             currentItemFontSize: 16,
@@ -553,13 +735,17 @@ export default function CanvasToolbar({
     } else {
       setCustomBlockType(null);
       if (excalidrawAPI) {
-        excalidrawAPI.setActiveTool({ type: toolType });
+        if (toolType === "rounded-rectangle") {
+          excalidrawAPI.setActiveTool({ type: "rectangle" });
+        } else {
+          excalidrawAPI.setActiveTool({ type: toolType });
+        }
         
-        const isShape = ["rectangle", "ellipse", "diamond"].includes(toolType);
+        const isShape = ["rectangle", "ellipse", "diamond", "rounded-rectangle"].includes(toolType);
         const isPen = ["freedraw", "line", "arrow"].includes(toolType);
         
         if (isPen) {
-          const color = lastPenStrokeColorRef.current || (theme === "dark" ? "#f4f4f5" : "#1e293b");
+          const color = lastPenStrokeColorRef.current || "#1e293b";
           let sWidth = lastPenStrokeWidthRef.current;
           if (toolType === "freedraw") sWidth = pencilSize;
           else if (toolType === "line") sWidth = lineSize;
@@ -576,10 +762,14 @@ export default function CanvasToolbar({
         } else if (isShape) {
           const color = lastShapeStrokeColorRef.current;
           const width = lastShapeStrokeWidthRef.current;
+          const roundnessVal = toolType === "rounded-rectangle" ? { type: 3, value: 8 } : null;
+          
           excalidrawAPI.updateScene({
             appState: {
               currentItemStrokeColor: color,
-              currentItemStrokeWidth: width
+              currentItemStrokeWidth: width,
+              currentItemRoundness: roundnessVal,
+              currentItemBackgroundColor: "#1e293b"
             }
           });
           setStrokeColor(color);
@@ -1009,13 +1199,12 @@ export default function CanvasToolbar({
 
     setCustomBlockType(null);
   };
+  const currentRoundness = excalidrawAPI?.getAppState()?.currentItemRoundness ?? null;
 
   const mainTools = [
     { type: "selection", icon: MousePointer2, label: t("canvas.tool.select", "Seç") },
     { type: "hand", icon: Hand, label: t("canvas.tool.hand", "Kaydır") },
-    { type: "rectangle", icon: Square, label: t("canvas.tool.rectangle", "Dikdörtgen"), isShape: true },
-    { type: "diamond", icon: Diamond, label: t("canvas.tool.diamond", "Elmas"), isShape: true },
-    { type: "ellipse", icon: Circle, label: t("canvas.tool.ellipse", "Daire"), isShape: true },
+    { type: "shapes-dropdown", label: isTr ? "Şekiller" : "Shapes", isShapeGroup: true },
     { type: "arrow", icon: ArrowRight, label: t("canvas.tool.arrow", "Ok") },
     { type: "line", icon: Slash, label: t("canvas.tool.line", "Çizgi") },
     { type: "freedraw", icon: PenTool, label: t("canvas.tool.freedraw", "Kalem") },
@@ -1268,73 +1457,120 @@ export default function CanvasToolbar({
             {miniBarCategory === "selection" && (
               <div className="mini-bar-group">
                 {/* 1. TEXT ELEMENT SELECTED OR CONTAINER WITH BOUND TEXT */}
+                {activeText && (() => {
+                  const rawSize = typeof activeText.fontSize === "object" ? (activeText.fontSize as any).size : (activeText.fontSize || 16);
+                  return (
+                    <>
+                      {/* Font Dropdown */}
+                      <select
+                        value={getBaseFontFamily(activeText.fontFamily)}
+                        onChange={e => updateTextProp("fontFamily", Number(e.target.value))}
+                        className="mini-bar-select"
+                        style={{
+                          background: "var(--color-bg-card, #ffffff)",
+                          border: "1px solid var(--color-border, #e5e7eb)",
+                          borderRadius: "6px",
+                          padding: "4px 8px",
+                          fontSize: "12px",
+                          cursor: "pointer",
+                          marginRight: "4px"
+                        }}
+                      >
+                        {CANVAS_FONTS.map(f => (
+                          <option key={f.id} value={f.id}>{f.label}</option>
+                        ))}
+                      </select>
+
+                      {/* Font Preset Dropdown */}
+                      <div className="mini-bar-separator" />
+                      <select
+                        value={[16, 20, 28, 36].includes(Math.round(rawSize)) ? Math.round(rawSize) : ""}
+                        onChange={e => updateTextProp("fontSize", Number(e.target.value))}
+                        className="mini-bar-select"
+                        style={{
+                          background: "var(--color-bg-card, #ffffff)",
+                          border: "1px solid var(--color-border, #e5e7eb)",
+                          borderRadius: "6px",
+                          padding: "4px 8px",
+                          fontSize: "12px",
+                          cursor: "pointer",
+                          marginRight: "4px"
+                        }}
+                      >
+                        {![16, 20, 28, 36].includes(Math.round(rawSize)) && (
+                          <option value="" disabled>{isTr ? `Özel (${Math.round(rawSize)}px)` : `Custom (${Math.round(rawSize)}px)`}</option>
+                        )}
+                        <option value={16}>{isTr ? "S (16px)" : "S (16px)"}</option>
+                        <option value={20}>{isTr ? "M (20px)" : "M (20px)"}</option>
+                        <option value={28}>{isTr ? "L (28px)" : "L (28px)"}</option>
+                        <option value={36}>{isTr ? "XL (36px)" : "XL (36px)"}</option>
+                      </select>
+
+                      {/* Direct Font Size Incrementor / Decrementor */}
+                      <div className="mini-bar-font-size-adjuster" style={{ display: "inline-flex", alignItems: "center", gap: "2px", marginLeft: "4px" }}>
+                        <button
+                          type="button"
+                          className="mini-bar-btn"
+                          style={{ padding: "0 6px", height: "24px", minWidth: "20px", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid var(--border-color)", borderRadius: "4px" }}
+                          onClick={() => {
+                            updateTextProp("fontSize", Math.max(8, Math.round(rawSize) - 2));
+                          }}
+                          title={isTr ? "Küçült" : "Decrease"}
+                        >
+                          -
+                        </button>
+                        <span style={{ fontSize: "11px", fontWeight: "600", minWidth: "28px", textAlign: "center", color: "var(--color-text-primary)" }}>
+                          {Math.round(rawSize)}px
+                        </span>
+                        <button
+                          type="button"
+                          className="mini-bar-btn"
+                          style={{ padding: "0 6px", height: "24px", minWidth: "20px", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid var(--border-color)", borderRadius: "4px" }}
+                          onClick={() => {
+                            updateTextProp("fontSize", Math.min(120, Math.round(rawSize) + 2));
+                          }}
+                          title={isTr ? "Büyüt" : "Increase"}
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      {/* Alignments */}
+                      <div className="mini-bar-separator" />
+                      {([["left", AlignLeft], ["center", AlignCenter], ["right", AlignRight]] as Array<[string, any]>).map(([align, Icon]) => (
+                        <button
+                          key={align}
+                          type="button"
+                          className={`mini-bar-btn ${activeText.textAlign === align ? "active" : ""}`}
+                          onClick={() => updateTextProp("textAlign", align)}
+                        >
+                          <Icon size={16} />
+                        </button>
+                      ))}
+
+                      {/* Bold & Italic */}
+                      <div className="mini-bar-separator" />
+                      <button
+                        type="button"
+                        className={`mini-bar-btn ${activeText.customData?.fontWeight === "bold" ? "active" : ""}`}
+                        onClick={() => updateTextCustomData("fontWeight", activeText.customData?.fontWeight === "bold" ? "normal" : "bold")}
+                      >
+                        <Bold size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        className={`mini-bar-btn ${activeText.customData?.fontStyle === "italic" ? "active" : ""}`}
+                        onClick={() => updateTextCustomData("fontStyle", activeText.customData?.fontStyle === "italic" ? "normal" : "italic")}
+                      >
+                        <Italic size={16} />
+                      </button>
+                    </>
+                  );
+                })()}
+
+                {/* Color Palette */}
                 {activeText && (
                   <>
-                    {/* Font Dropdown */}
-                    <select
-                      value={activeText.fontFamily}
-                      onChange={e => updateTextProp("fontFamily", Number(e.target.value))}
-                      className="mini-bar-select"
-                      style={{
-                        background: "var(--color-bg-card, #ffffff)",
-                        border: "1px solid var(--color-border, #e5e7eb)",
-                        borderRadius: "6px",
-                        padding: "4px 8px",
-                        fontSize: "12px",
-                        cursor: "pointer",
-                        marginRight: "4px"
-                      }}
-                    >
-                      {CANVAS_FONTS.map(f => (
-                        <option key={f.id} value={f.id}>{f.label}</option>
-                      ))}
-                    </select>
-
-                    {/* Font Sizes */}
-                    <div className="mini-bar-separator" />
-                    {[{ label: "S", size: 16 }, { label: "M", size: 20 }, { label: "L", size: 28 }, { label: "XL", size: 36 }].map(s => (
-                      <button
-                        key={s.size}
-                        type="button"
-                        className={`mini-bar-option-btn ${activeText.fontSize === s.size ? "active" : ""}`}
-                        onClick={() => updateTextProp("fontSize", s.size)}
-                        style={{ minWidth: "26px", fontSize: "10px", fontWeight: "bold" }}
-                      >
-                        {s.label}
-                      </button>
-                    ))}
-
-                    {/* Alignments */}
-                    <div className="mini-bar-separator" />
-                    {([["left", AlignLeft], ["center", AlignCenter], ["right", AlignRight]] as Array<[string, any]>).map(([align, Icon]) => (
-                      <button
-                        key={align}
-                        type="button"
-                        className={`mini-bar-btn ${activeText.textAlign === align ? "active" : ""}`}
-                        onClick={() => updateTextProp("textAlign", align)}
-                      >
-                        <Icon size={16} />
-                      </button>
-                    ))}
-
-                    {/* Bold & Italic */}
-                    <div className="mini-bar-separator" />
-                    <button
-                      type="button"
-                      className={`mini-bar-btn ${activeText.fontWeight === "bold" ? "active" : ""}`}
-                      onClick={() => updateTextProp("fontWeight", activeText.fontWeight === "bold" ? "normal" : "bold")}
-                    >
-                      <Bold size={16} />
-                    </button>
-                    <button
-                      type="button"
-                      className={`mini-bar-btn ${activeText.fontStyle === "italic" ? "active" : ""}`}
-                      onClick={() => updateTextProp("fontStyle", activeText.fontStyle === "italic" ? "normal" : "italic")}
-                    >
-                      <Italic size={16} />
-                    </button>
-
-                    {/* Color Palette */}
                     <div className="mini-bar-separator" />
                     <div className="mini-bar-palette">
                       {strokePresets.map((color, index) => (
@@ -1375,6 +1611,7 @@ export default function CanvasToolbar({
                                 : e
                             );
                             excalidrawAPI.updateScene({ elements: updated });
+                            forceUpdate();
                           }}
                           title={isTr ? "Şeffaf" : "Transparent"}
                         />
@@ -1391,6 +1628,7 @@ export default function CanvasToolbar({
                                   : e
                               );
                               excalidrawAPI.updateScene({ elements: updated });
+                              forceUpdate();
                             }}
                           />
                         ))}
@@ -1426,6 +1664,7 @@ export default function CanvasToolbar({
                                   : el
                               );
                               excalidrawAPI.updateScene({ elements: updated });
+                              forceUpdate();
                             }}
                           />
                         </label>
@@ -1459,6 +1698,7 @@ export default function CanvasToolbar({
                                   currentItemStrokeColor: newColor
                                 }
                               });
+                              forceUpdate();
                             }}
                           >
                             {opt.label}
@@ -1467,78 +1707,85 @@ export default function CanvasToolbar({
                       </div>
                     </div>
 
-                    {/* Stroke Color Palette */}
-                    <div className="mini-bar-palette">
-                      {strokePresets.map((color, idx) => (
-                        <button
-                          key={`selstroke-${idx}-${color}`}
-                          type="button"
-                          className={`mini-bar-swatch ${selectedElements[0].strokeColor === color ? "active" : ""}`}
-                          style={{ backgroundColor: color }}
-                          onClick={() => {
-                            const newWidth = selectedElements[0].strokeWidth === 0 ? 1 : selectedElements[0].strokeWidth;
-                            const updated = excalidrawAPI.getSceneElements().map((e: any) =>
-                              e.id === selectedElements[0].id
-                                ? { ...e, strokeColor: color, strokeWidth: newWidth, updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
-                                : e
-                            );
-                            excalidrawAPI.updateScene({ elements: updated });
-                            lastShapeStrokeColorRef.current = color;
-                            lastShapeStrokeWidthRef.current = newWidth;
-                            excalidrawAPI.updateScene({
-                              appState: {
-                                currentItemStrokeColor: color,
-                                currentItemStrokeWidth: newWidth
-                              }
-                            });
-                          }}
-                        />
-                      ))}
-                      <label
-                        className="mini-bar-swatch"
-                        style={{
-                          borderRadius: "50%",
-                          overflow: "hidden",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          cursor: "pointer",
-                          border: "1.5px dashed var(--color-border, #e5e7eb)",
-                          backgroundColor: "transparent",
-                          position: "relative"
-                        }}
-                        title={isTr ? "Özel Renk" : "Custom Color"}
-                      >
-                        <Palette size={12} />
-                        <input
-                          type="color"
-                          style={{ position: "absolute", opacity: 0, width: "100%", height: "100%", cursor: "pointer" }}
-                          value={(() => {
-                              const sc = selectedElements[0].strokeColor;
-                              if (!sc || sc === "transparent" || !sc.startsWith("#")) return "#1e293b";
-                              return sc;
-                            })()}
-                          onChange={e => {
-                            const val = e.target.value;
-                            const newWidth = selectedElements[0].strokeWidth === 0 ? 1 : selectedElements[0].strokeWidth;
-                            const updated = excalidrawAPI.getSceneElements().map((el: any) =>
-                              el.id === selectedElements[0].id
-                                ? { ...el, strokeColor: val, strokeWidth: newWidth, updated: Date.now(), version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
-                                : el
-                            );
-                            excalidrawAPI.updateScene({ elements: updated });
-                            lastShapeStrokeColorRef.current = val;
-                            lastShapeStrokeWidthRef.current = newWidth;
-                            excalidrawAPI.updateScene({
-                              appState: {
-                                currentItemStrokeColor: val,
-                                currentItemStrokeWidth: newWidth
-                              }
-                            });
-                          }}
-                        />
-                      </label>
-                    </div>
+                    {/* Stroke Color Palette (only if strokeWidth > 0) */}
+                    {selectedElements[0].strokeWidth > 0 && (
+                      <>
+                        <div className="mini-bar-separator" />
+                        <div className="mini-bar-palette">
+                          {strokePresets.map((color, idx) => (
+                            <button
+                              key={`selstroke-${idx}-${color}`}
+                              type="button"
+                              className={`mini-bar-swatch ${selectedElements[0].strokeColor === color ? "active" : ""}`}
+                              style={{ backgroundColor: color }}
+                              onClick={() => {
+                                const newWidth = selectedElements[0].strokeWidth === 0 ? 1 : selectedElements[0].strokeWidth;
+                                const updated = excalidrawAPI.getSceneElements().map((e: any) =>
+                                  e.id === selectedElements[0].id
+                                    ? { ...e, strokeColor: color, strokeWidth: newWidth, updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
+                                    : e
+                                );
+                                excalidrawAPI.updateScene({ elements: updated });
+                                lastShapeStrokeColorRef.current = color;
+                                lastShapeStrokeWidthRef.current = newWidth;
+                                excalidrawAPI.updateScene({
+                                  appState: {
+                                    currentItemStrokeColor: color,
+                                    currentItemStrokeWidth: newWidth
+                                  }
+                                });
+                                forceUpdate();
+                              }}
+                            />
+                          ))}
+                          <label
+                            className="mini-bar-swatch"
+                            style={{
+                              borderRadius: "50%",
+                              overflow: "hidden",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              cursor: "pointer",
+                              border: "1.5px dashed var(--color-border, #e5e7eb)",
+                              backgroundColor: "transparent",
+                              position: "relative"
+                            }}
+                            title={isTr ? "Özel Renk" : "Custom Color"}
+                          >
+                            <Palette size={12} />
+                            <input
+                              type="color"
+                              style={{ position: "absolute", opacity: 0, width: "100%", height: "100%", cursor: "pointer" }}
+                              value={(() => {
+                                const sc = selectedElements[0].strokeColor;
+                                if (!sc || sc === "transparent" || !sc.startsWith("#")) return "#1e293b";
+                                return sc;
+                              })()}
+                              onChange={e => {
+                                const val = e.target.value;
+                                const newWidth = selectedElements[0].strokeWidth === 0 ? 1 : selectedElements[0].strokeWidth;
+                                const updated = excalidrawAPI.getSceneElements().map((el: any) =>
+                                  el.id === selectedElements[0].id
+                                    ? { ...el, strokeColor: val, strokeWidth: newWidth, updated: Date.now(), version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
+                                    : el
+                                );
+                                excalidrawAPI.updateScene({ elements: updated });
+                                lastShapeStrokeColorRef.current = val;
+                                lastShapeStrokeWidthRef.current = newWidth;
+                                excalidrawAPI.updateScene({
+                                  appState: {
+                                    currentItemStrokeColor: val,
+                                    currentItemStrokeWidth: newWidth
+                                  }
+                                });
+                                forceUpdate();
+                              }}
+                            />
+                          </label>
+                        </div>
+                      </>
+                    )}
 
                     {/* Add Text */}
                     {!activeText && (
@@ -1555,18 +1802,99 @@ export default function CanvasToolbar({
                       </>
                     )}
 
-                    {/* Cycle Shape Type */}
+                    {/* Shape Selector Dropdown */}
                     <div className="mini-bar-separator" />
-                    <button
-                      type="button"
-                      className="mini-bar-btn"
-                      onClick={cycleShapeType}
-                      title={isTr ? "Şekil Değiştir" : "Change Shape"}
-                      style={{ display: "flex", alignItems: "center", gap: "4px" }}
-                    >
-                      <RefreshCw size={14} />
-                      <span style={{ fontSize: "10px", textTransform: "capitalize" }}>{selectedElements[0].type}</span>
-                    </button>
+                    <div className="mini-bar-dropdown-container" style={{ position: "relative" }}>
+                      <button
+                        type="button"
+                        className={`mini-bar-btn ${isShapeDropdownOpen ? "active" : ""}`}
+                        onClick={() => setIsShapeDropdownOpen(!isShapeDropdownOpen)}
+                        title={isTr ? "Şekil Değiştir" : "Change Shape"}
+                        style={{ display: "flex", alignItems: "center", gap: "4px" }}
+                      >
+                        {(() => {
+                          const el = selectedElements[0];
+                          if (el.type === "rectangle" && el.roundness === null) {
+                            return <Square size={14} />;
+                          } else if (el.type === "rectangle" && el.roundness !== null) {
+                            return <RoundedSquareIcon size={14} />;
+                          } else if (el.type === "ellipse") {
+                            return <Circle size={14} />;
+                          } else if (el.type === "diamond") {
+                            return <Diamond size={14} />;
+                          }
+                          return <Square size={14} />;
+                        })()}
+                        <ChevronDown size={10} style={{ transform: isShapeDropdownOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                      </button>
+
+                      {isShapeDropdownOpen && (
+                        <div 
+                          className="mini-bar-dropdown-list above" 
+                          style={{
+                            position: "absolute",
+                            bottom: "calc(100% + 8px)",
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            backgroundColor: "var(--color-bg-primary, #ffffff)",
+                            border: "1.5px solid var(--color-border, #e4e4e7)",
+                            borderRadius: "8px",
+                            padding: "4px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "2px",
+                            zIndex: 1000,
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                            minWidth: "150px"
+                          }}
+                        >
+                          <button
+                            type="button"
+                            className={`mini-bar-dropdown-item ${selectedElements[0].type === "rectangle" && selectedElements[0].roundness === null ? "active" : ""}`}
+                            onClick={() => {
+                              changeShapeType("rectangle");
+                              setIsShapeDropdownOpen(false);
+                            }}
+                          >
+                            <Square size={14} />
+                            <span>{isTr ? "Sivri Dikdörtgen" : "Sharp Rectangle"}</span>
+                          </button>
+                          <button
+                            type="button"
+                            className={`mini-bar-dropdown-item ${selectedElements[0].type === "rectangle" && selectedElements[0].roundness !== null ? "active" : ""}`}
+                            onClick={() => {
+                              changeShapeType("rounded-rectangle");
+                              setIsShapeDropdownOpen(false);
+                            }}
+                          >
+                            <RoundedSquareIcon size={14} />
+                            <span>{isTr ? "Yumuşak Dikdörtgen" : "Soft Rectangle"}</span>
+                          </button>
+                          <button
+                            type="button"
+                            className={`mini-bar-dropdown-item ${selectedElements[0].type === "ellipse" ? "active" : ""}`}
+                            onClick={() => {
+                              changeShapeType("ellipse");
+                              setIsShapeDropdownOpen(false);
+                            }}
+                          >
+                            <Circle size={14} />
+                            <span>{isTr ? "Daire" : "Circle"}</span>
+                          </button>
+                          <button
+                            type="button"
+                            className={`mini-bar-dropdown-item ${selectedElements[0].type === "diamond" ? "active" : ""}`}
+                            onClick={() => {
+                              changeShapeType("diamond");
+                              setIsShapeDropdownOpen(false);
+                            }}
+                          >
+                            <Diamond size={14} />
+                            <span>{isTr ? "Elmas" : "Diamond"}</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </>
                 )}
 
@@ -1590,6 +1918,7 @@ export default function CanvasToolbar({
                             excalidrawAPI.updateScene({ elements: updated });
                             lastPenStrokeColorRef.current = color;
                             excalidrawAPI.updateScene({ appState: { currentItemStrokeColor: color } });
+                            forceUpdate();
                           }}
                         />
                       ))}
@@ -1607,6 +1936,7 @@ export default function CanvasToolbar({
                           excalidrawAPI.updateScene({ elements: updated });
                           lastPenStrokeColorRef.current = val;
                           excalidrawAPI.updateScene({ appState: { currentItemStrokeColor: val } });
+                          forceUpdate();
                         }}
                       />
                     </div>
@@ -1627,6 +1957,7 @@ export default function CanvasToolbar({
                           excalidrawAPI.updateScene({ elements: updated });
                           lastPenStrokeWidthRef.current = tOpt.w;
                           excalidrawAPI.updateScene({ appState: { currentItemStrokeWidth: tOpt.w } });
+                          forceUpdate();
                         }}
                         style={{ fontSize: "10px" }}
                       >
@@ -1724,6 +2055,83 @@ export default function CanvasToolbar({
       {/* 1. ANA TOOLBAR (Alt, sabit ortalanmış) */}
       <div className="canvas-main-toolbar">
         {mainTools.map((tool, idx) => {
+          if (tool.isShapeGroup) {
+            const isActive = ["rectangle", "ellipse", "diamond"].includes(activeTool) && !customBlockType;
+            return (
+              <div
+                key="shapes-dropdown-main"
+                ref={mainShapeDropdownRef}
+                style={{ position: "relative", display: "flex", alignItems: "center" }}
+              >
+                <button
+                  type="button"
+                  className={`toolbar-btn ${isActive ? "active" : ""} ${isMainShapeDropdownOpen ? "open" : ""}`}
+                  onClick={() => setIsMainShapeDropdownOpen(!isMainShapeDropdownOpen)}
+                  title={tool.label}
+                >
+                  <div className="shapes-fan-container">
+                    <Square className="fan-icon fan-icon-1" size={11} />
+                    <RoundedSquareIcon className="fan-icon fan-icon-2" size={11} />
+                    <Circle className="fan-icon fan-icon-3" size={11} />
+                    <Diamond className="fan-icon fan-icon-4" size={11} />
+                  </div>
+                  <ChevronDown size={8} style={{ marginLeft: 2, transform: isMainShapeDropdownOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                </button>
+                {isMainShapeDropdownOpen && (
+                  <div className="toolbar-shapes-dropdown above" onMouseDown={e => e.stopPropagation()}>
+                    <div className="toolbar-shapes-dropdown-title">
+                      {isTr ? "Şekiller" : "Shapes"}
+                    </div>
+                    <button
+                      type="button"
+                      className={`toolbar-shapes-option ${activeTool === "rectangle" && currentRoundness === null ? "active" : ""}`}
+                      onClick={() => {
+                        handleToolSelect("rectangle");
+                        setIsMainShapeDropdownOpen(false);
+                      }}
+                    >
+                      <Square size={14} />
+                      <span>{isTr ? "Sivri Dikdörtgen" : "Sharp Rectangle"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`toolbar-shapes-option ${activeTool === "rectangle" && currentRoundness !== null ? "active" : ""}`}
+                      onClick={() => {
+                        handleToolSelect("rounded-rectangle");
+                        setIsMainShapeDropdownOpen(false);
+                      }}
+                    >
+                      <RoundedSquareIcon size={14} />
+                      <span>{isTr ? "Yumuşak Dikdörtgen" : "Soft Rectangle"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`toolbar-shapes-option ${activeTool === "ellipse" ? "active" : ""}`}
+                      onClick={() => {
+                        handleToolSelect("ellipse");
+                        setIsMainShapeDropdownOpen(false);
+                      }}
+                    >
+                      <Circle size={14} />
+                      <span>{isTr ? "Daire" : "Circle"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`toolbar-shapes-option ${activeTool === "diamond" ? "active" : ""}`}
+                      onClick={() => {
+                        handleToolSelect("diamond");
+                        setIsMainShapeDropdownOpen(false);
+                      }}
+                    >
+                      <Diamond size={14} />
+                      <span>{isTr ? "Elmas" : "Diamond"}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          }
+
           if (tool.type === "font") {
             return (
               <div
@@ -1764,7 +2172,7 @@ export default function CanvasToolbar({
             );
           }
 
-          const IconComponent = tool.icon;
+          const IconComponent = tool.icon as any;
           let isActive = false;
           if (tool.type === "text") {
             isActive = customBlockType === "text";
@@ -1778,7 +2186,7 @@ export default function CanvasToolbar({
             <button
               key={tool.type}
               type="button"
-              className={`toolbar-btn ${isActive ? "active" : ""} ${tool.isShape ? "shape-btn" : ""}`}
+              className={`toolbar-btn ${isActive ? "active" : ""}`}
               onClick={() => handleToolSelect(tool.type)}
               title={tool.label}
             >

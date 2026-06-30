@@ -40,6 +40,86 @@ const FLOATING_FONTS = [
   { id: (FONT_FAMILY as any).Virgil ?? 1, label: "Virgil" },
 ];
 
+// Register custom font families in Excalidraw FONT_FAMILY constant at runtime
+(FONT_FAMILY as any)["Helvetica Bold"] = 10;
+(FONT_FAMILY as any)["Helvetica Italic"] = 11;
+(FONT_FAMILY as any)["Helvetica Bold Italic"] = 12;
+
+(FONT_FAMILY as any)["Virgil Bold"] = 13;
+(FONT_FAMILY as any)["Virgil Italic"] = 14;
+(FONT_FAMILY as any)["Virgil Bold Italic"] = 15;
+
+(FONT_FAMILY as any)["Comic Shanns Bold"] = 16;
+(FONT_FAMILY as any)["Comic Shanns Italic"] = 17;
+(FONT_FAMILY as any)["Comic Shanns Bold Italic"] = 18;
+(FONT_FAMILY as any)["Cascadia Bold"] = 16;
+(FONT_FAMILY as any)["Cascadia Italic"] = 17;
+(FONT_FAMILY as any)["Cascadia Bold Italic"] = 18;
+
+const getBaseFontFamily = (family: number): number => {
+  if ([1, 13, 14, 15].includes(family)) return 1;
+  if ([2, 10, 11, 12].includes(family)) return 2;
+  if ([3, 16, 17, 18].includes(family)) return 3;
+  return 2;
+};
+
+const resolveFontFamilyId = (baseFamily: number, weight?: string, style?: string): number => {
+  let base = baseFamily;
+  if ([1, 13, 14, 15].includes(baseFamily)) base = 1;
+  else if ([2, 10, 11, 12].includes(baseFamily)) base = 2;
+  else if ([3, 16, 17, 18].includes(baseFamily)) base = 3;
+  else base = 2;
+
+  const isBold = weight === "bold";
+  const isItalic = style === "italic";
+
+  if (base === 1) {
+    if (isBold && isItalic) return 15;
+    if (isBold) return 13;
+    if (isItalic) return 14;
+    return 1;
+  } else if (base === 2) {
+    if (isBold && isItalic) return 12;
+    if (isBold) return 10;
+    if (isItalic) return 11;
+    return 2;
+  } else if (base === 3) {
+    if (isBold && isItalic) return 18;
+    if (isBold) return 16;
+    if (isItalic) return 17;
+    return 3;
+  }
+  return base;
+};
+
+class StyledFontSize {
+  public size: number;
+  public weight: string | undefined;
+  public style: string | undefined;
+
+  constructor(size: number, weight?: string, style?: string) {
+    this.size = Number(size) || 16;
+    this.weight = weight;
+    this.style = style;
+  }
+
+  toString() {
+    const parts: string[] = [];
+    if (this.style === "italic") parts.push("italic");
+    if (this.weight === "bold") parts.push("bold");
+    parts.push(`${this.size}`);
+    return parts.join(" ");
+  }
+
+  valueOf() {
+    return this.size;
+  }
+
+  toJSON() {
+    return this.size;
+  }
+}
+
 export default function Canvas() {
   const { t, i18n } = useTranslation();
   const { activeNoteId, notes, theme, setExcalidrawAPI: storeSetExcalidrawAPI } = useNoteStore();
@@ -141,8 +221,8 @@ export default function Canvas() {
         if (!isInput && excalidrawAPI) {
           excalidrawAPI.updateScene({
             appState: {
-              currentItemStrokeColor: "#1a1a1a",
-              currentItemFontColor: "#1a1a1a"
+              currentItemStrokeColor: "#1e293b",
+              currentItemFontColor: "#1e293b"
             }
           });
         }
@@ -1074,7 +1154,7 @@ export default function Canvas() {
     });
   };
 
-  const handleDoubleClick = () => {
+  const handleDoubleClick = (e?: any) => {
     if (!excalidrawAPI) return;
     const appState = excalidrawAPI.getAppState();
     const selectedIds = Object.keys(appState.selectedElementIds || {}).filter(id => appState.selectedElementIds[id]);
@@ -1090,19 +1170,6 @@ export default function Canvas() {
       setImagePreviewUrl(file.dataURL);
       setIsImagePreviewOpen(true);
       return;
-    }
-
-    if (el.type === "rectangle" || el.type === "ellipse" || el.type === "diamond") {
-      const activeEls = elements.filter((e: any) => !e.isDeleted);
-      const textEl = activeEls.find((e: any) => e.type === "text" && e.containerId === el.id);
-      if (textEl) {
-        excalidrawAPI.updateScene({
-          appState: {
-            editingElement: textEl,
-            selectedElementIds: { [textEl.id]: true }
-          }
-        });
-      }
     }
   };
 
@@ -1311,11 +1378,11 @@ export default function Canvas() {
         viewBackgroundColor: "transparent",
         currentItemFontFamily: FONT_FAMILY.Helvetica as number,
         objectsSnapModeEnabled: true,
-        currentItemStrokeColor: "transparent",
-        currentItemFontColor: "#1a1a1a",
+        currentItemStrokeColor: "#1e293b",
+        currentItemFontColor: "#1e293b",
         currentItemStrokeWidth: 0,
         currentItemFillStyle: "solid",
-        currentItemBackgroundColor: theme === "dark" ? "#E8E8E8" : "#D0D0D0",
+        currentItemBackgroundColor: "#1e293b",
         currentItemRoughness: 0
       },
       files
@@ -1356,7 +1423,9 @@ export default function Canvas() {
     if (!excalidrawAPI) return;
     excalidrawAPI.updateScene({
       appState: {
-        currentItemBackgroundColor: theme === "dark" ? "#E8E8E8" : "#D0D0D0"
+        currentItemBackgroundColor: "#1e293b",
+        currentItemStrokeColor: "#1e293b",
+        currentItemFontColor: "#1e293b"
       }
     });
   }, [theme, excalidrawAPI]);
@@ -1458,7 +1527,7 @@ export default function Canvas() {
 
         const textChild = primaryEl.boundElements
           ? activeEls.find(e =>
-              primaryEl.boundElements.some((be: any) => be.type === "text" && be.id === e.id) && !e.isDeleted
+              primaryEl.boundElements.some((be: any) => be && be.type === "text" && be.id === e.id) && !e.isDeleted
             ) ?? null
           : null;
 
@@ -1543,6 +1612,82 @@ export default function Canvas() {
     latestElementsRef.current = elements;
     latestAppStateRef.current = appState;
     latestFilesRef.current = files;
+
+    // Auto-correct bound text colors and apply styled fontSize wrapping for Bold/Italic rendering
+    if (excalidrawAPI) {
+      let elementsChanged = false;
+      const updatedElements = elements.map((el: any) => {
+        let nextEl = el;
+        
+        // 1. Bound text color contrast correction
+        if (el.type === "text" && el.containerId && !el.isDeleted) {
+          const container = elements.find((c: any) => c.id === el.containerId && !c.isDeleted);
+          if (container) {
+            // If container has dark background (#1e293b), bound text must be white (#ffffff)
+            if (container.backgroundColor === "#1e293b" && el.strokeColor !== "#ffffff") {
+              elementsChanged = true;
+              nextEl = { ...nextEl, strokeColor: "#ffffff", originalText: el.text, version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) };
+            }
+            // If container has transparent or light background, and text is white, make it dark slate (#1e293b)
+            else if (container.backgroundColor === "transparent" && el.strokeColor === "#ffffff") {
+              elementsChanged = true;
+              nextEl = { ...nextEl, strokeColor: "#1e293b", originalText: el.text, version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) };
+            }
+          }
+        }
+        
+        // 2. Bold/Italic fontFamily mapping and fontSize wrapping
+        if (nextEl.type === "text" && !nextEl.isDeleted) {
+          const hasCustomStyle = nextEl.customData?.fontWeight === "bold" || nextEl.customData?.fontStyle === "italic";
+          const isWrapped = typeof nextEl.fontSize !== "number";
+          
+          const rawSize = isWrapped ? (nextEl.fontSize as any).size : nextEl.fontSize;
+          const targetWeight = nextEl.customData?.fontWeight;
+          const targetStyle = nextEl.customData?.fontStyle;
+          
+          const currentBaseFamily = getBaseFontFamily(nextEl.fontFamily);
+          const targetFamilyId = resolveFontFamilyId(currentBaseFamily, targetWeight, targetStyle);
+          
+          let elUpdated = false;
+          let elUpdates: any = {};
+
+          if (nextEl.fontFamily !== targetFamilyId) {
+            elUpdated = true;
+            elUpdates.fontFamily = targetFamilyId;
+          }
+
+          if (hasCustomStyle) {
+            const currentWeight = isWrapped ? (nextEl.fontSize as any).weight : undefined;
+            const currentStyle = isWrapped ? (nextEl.fontSize as any).style : undefined;
+            
+            if (!isWrapped || currentWeight !== targetWeight || currentStyle !== targetStyle) {
+              elUpdated = true;
+              elUpdates.fontSize = new StyledFontSize(rawSize, targetWeight, targetStyle) as any;
+            }
+          } else if (isWrapped) {
+            elUpdated = true;
+            elUpdates.fontSize = rawSize;
+          }
+
+          if (elUpdated) {
+            elementsChanged = true;
+            nextEl = {
+              ...nextEl,
+              ...elUpdates,
+              version: nextEl.version + 1,
+              versionNonce: Math.floor(Math.random() * 999999)
+            };
+          }
+        }
+        
+        return nextEl;
+      });
+
+      if (elementsChanged) {
+        excalidrawAPI.updateScene({ elements: updatedElements });
+        return;
+      }
+    }
 
     const currentDragging = !!appState.draggingElement || !!appState.resizingElement;
     setIsDraggingElement(prev => prev === currentDragging ? prev : currentDragging);
@@ -1664,8 +1809,8 @@ export default function Canvas() {
           if (excalidrawAPIRef.current) {
             excalidrawAPIRef.current.updateScene({
               appState: {
-                currentItemStrokeColor: "#1a1a1a",
-                currentItemFontColor: "#1a1a1a"
+                currentItemStrokeColor: "#1e293b",
+                currentItemFontColor: "#1e293b"
               }
             });
           }

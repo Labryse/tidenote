@@ -6,6 +6,7 @@ import {
   FileText, PenSquare, Cloud, Moon, FolderOpen, CalendarDays,
   Check, Sun, ArrowRight, Sparkles
 } from "lucide-react";
+import DownloadButton from "../components/DownloadButton";
 
 const logoSrc = (() => {
   try { return new URL("/icon.png", import.meta.url).href; }
@@ -141,25 +142,10 @@ export default function LandingPage() {
             <p className="lp-hero-sub">{t("landing.subtitle")}</p>
 
             <div className="lp-hero-ctas">
-              {user ? (
-                <Link to="/app" className="lp-btn-primary">
-                  {t("landing.goApp", "Uygulamaya Git")} <ArrowRight size={15} />
-                </Link>
-              ) : (
-                <Link to="/login" className="lp-btn-primary">
-                  {t("landing.startFreeArrow")} <ArrowRight size={15} />
-                </Link>
-              )}
-              <a
-                href="#features"
-                className="lp-btn-secondary"
-                onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
-                }}
-              >
-                {t("landing.howItWorks", "Nasıl Çalışır?")}
-              </a>
+              <Link to={user ? "/app" : "/login"} className="lp-btn-secondary">
+                {t("landing.goApp", "Uygulamaya Git")} <ArrowRight size={15} />
+              </Link>
+              <DownloadButton />
             </div>
           </div>
 

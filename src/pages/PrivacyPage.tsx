@@ -1,7 +1,7 @@
+import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useNoteStore } from "../store/useNoteStore";
-import { useEffect } from "react";
 
 const logoSrc = (() => {
   try {
@@ -10,6 +10,31 @@ const logoSrc = (() => {
     return "/icon.png";
   }
 })();
+
+const slugify = (text: string) => {
+  const map: Record<string, string> = {
+    'ç': 'c', 'g': 'g', 'ğ': 'g', 'ı': 'i', 'i': 'i', 'ö': 'o', 'ş': 's', 's': 's', 'ü': 'u',
+    'Ç': 'c', 'G': 'g', 'Ğ': 'g', 'İ': 'i', 'I': 'i', 'Ö': 'o', 'Ş': 's', 'S': 's', 'Ü': 'u'
+  };
+  return text
+    .toString()
+    .split('')
+    .map(c => map[c] || c)
+    .join('')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-');
+};
+
+const Heading2 = ({ title }: { title: string }) => (
+  <h2 id={slugify(title)} className="legal-section-h2">{title}</h2>
+);
+
+const Heading3 = ({ title }: { title: string }) => (
+  <h3 id={slugify(title)} className="legal-section-h3">{title}</h3>
+);
 
 export default function PrivacyPage() {
   const { t, i18n } = useTranslation();
@@ -20,6 +45,14 @@ export default function PrivacyPage() {
   }, []);
 
   const sections = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"];
+
+  const handleScrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, slug: string) => {
+    e.preventDefault();
+    const el = document.getElementById(slug);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   return (
     <div className="legal-page-container landing-wrapper">
@@ -110,27 +143,35 @@ export default function PrivacyPage() {
         <nav className="legal-toc">
           <h2 className="legal-toc-title">{t("privacy.tableOfContents")}</h2>
           <ul className="legal-toc-list">
-            {sections.map((sec) => (
-              <li key={sec}>
-                <a href={`#sec-${sec}`} className="legal-toc-link">
-                  {t(`privacy.sections.${sec}.title`)}
-                </a>
-              </li>
-            ))}
+            {sections.map((sec) => {
+              const title = t(`privacy.sections.${sec}.title`);
+              const slug = slugify(title);
+              return (
+                <li key={sec}>
+                  <a 
+                    href={`#${slug}`} 
+                    onClick={(e) => handleScrollToSection(e, slug)}
+                    className="legal-toc-link"
+                  >
+                    {title}
+                  </a>
+                </li>
+              );
+            })}
           </ul>
         </nav>
 
         {/* Section 1 */}
-        <section id="sec-1">
-          <h2 className="legal-section-h2">{t("privacy.sections.1.title")}</h2>
+        <section>
+          <Heading2 title={t("privacy.sections.1.title")} />
           <p className="legal-body-text">{t("privacy.sections.1.p1")}</p>
         </section>
 
         {/* Section 2 */}
-        <section id="sec-2">
-          <h2 className="legal-section-h2">{t("privacy.sections.2.title")}</h2>
+        <section>
+          <Heading2 title={t("privacy.sections.2.title")} />
           
-          <h3 className="legal-section-h3">{t("privacy.sections.2.sub1_title")}</h3>
+          <Heading3 title={t("privacy.sections.2.sub1_title")} />
           <ul className="legal-list">
             <li>{t("privacy.sections.2.sub1_item1")}</li>
             <li>{t("privacy.sections.2.sub1_item2")}</li>
@@ -138,20 +179,20 @@ export default function PrivacyPage() {
             <li>{t("privacy.sections.2.sub1_item4")}</li>
           </ul>
 
-          <h3 className="legal-section-h3">{t("privacy.sections.2.sub2_title")}</h3>
+          <Heading3 title={t("privacy.sections.2.sub2_title")} />
           <ul className="legal-list">
             <li>{t("privacy.sections.2.sub2_item1")}</li>
             <li>{t("privacy.sections.2.sub2_item2")}</li>
             <li>{t("privacy.sections.2.sub2_item3")}</li>
           </ul>
 
-          <h3 className="legal-section-h3">{t("privacy.sections.2.sub3_title")}</h3>
+          <Heading3 title={t("privacy.sections.2.sub3_title")} />
           <ul className="legal-list">
             <li>{t("privacy.sections.2.sub3_item1")}</li>
             <li>{t("privacy.sections.2.sub3_item2")}</li>
           </ul>
 
-          <h3 className="legal-section-h3">{t("privacy.sections.2.sub4_title")}</h3>
+          <Heading3 title={t("privacy.sections.2.sub4_title")} />
           <ul className="legal-list">
             <li>{t("privacy.sections.2.sub4_item1")}</li>
             <li>{t("privacy.sections.2.sub4_item2")}</li>
@@ -160,8 +201,8 @@ export default function PrivacyPage() {
         </section>
 
         {/* Section 3 */}
-        <section id="sec-3">
-          <h2 className="legal-section-h2">{t("privacy.sections.3.title")}</h2>
+        <section>
+          <Heading2 title={t("privacy.sections.3.title")} />
           <p className="legal-body-text">{t("privacy.sections.3.p1")}</p>
           <ul className="legal-list">
             <li>{t("privacy.sections.3.item1")}</li>
@@ -175,10 +216,10 @@ export default function PrivacyPage() {
         </section>
 
         {/* Section 4 */}
-        <section id="sec-4">
-          <h2 className="legal-section-h2">{t("privacy.sections.4.title")}</h2>
+        <section>
+          <Heading2 title={t("privacy.sections.4.title")} />
           
-          <h3 className="legal-section-h3">{t("privacy.sections.4.sub1_title")}</h3>
+          <Heading3 title={t("privacy.sections.4.sub1_title")} />
           <p className="legal-body-text">{t("privacy.sections.4.sub1_p1")}</p>
           <ul className="legal-list">
             <li>{t("privacy.sections.4.sub1_item1")}</li>
@@ -192,7 +233,7 @@ export default function PrivacyPage() {
             </a>
           </p>
 
-          <h3 className="legal-section-h3">{t("privacy.sections.4.sub2_title")}</h3>
+          <Heading3 title={t("privacy.sections.4.sub2_title")} />
           <p className="legal-body-text">
             {t("privacy.sections.4.sub2_p1").split(": ")[0]}:{" "}
             <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer" className="legal-external-link">
@@ -200,7 +241,7 @@ export default function PrivacyPage() {
             </a>
           </p>
 
-          <h3 className="legal-section-h3">{t("privacy.sections.4.sub3_title")}</h3>
+          <Heading3 title={t("privacy.sections.4.sub3_title")} />
           <p className="legal-body-text">
             {t("privacy.sections.4.sub3_p1").split(": ")[0]}:{" "}
             <a href="https://www.revenuecat.com/privacy" target="_blank" rel="noreferrer" className="legal-external-link">
@@ -210,16 +251,16 @@ export default function PrivacyPage() {
         </section>
 
         {/* Section 5 */}
-        <section id="sec-5">
-          <h2 className="legal-section-h2">{t("privacy.sections.5.title")}</h2>
+        <section>
+          <Heading2 title={t("privacy.sections.5.title")} />
           <p className="legal-body-text">{t("privacy.sections.5.p1")}</p>
           <p className="legal-body-text">{t("privacy.sections.5.p2")}</p>
           <p className="legal-body-text">{t("privacy.sections.5.p3")}</p>
         </section>
 
         {/* Section 6 */}
-        <section id="sec-6">
-          <h2 className="legal-section-h2">{t("privacy.sections.6.title")}</h2>
+        <section>
+          <Heading2 title={t("privacy.sections.6.title")} />
           <p className="legal-body-text">{t("privacy.sections.6.p1")}</p>
           <p className="legal-body-text">{t("privacy.sections.6.p2")}</p>
           <p className="legal-body-text">{t("privacy.sections.6.p3")}</p>
@@ -232,8 +273,8 @@ export default function PrivacyPage() {
         </section>
 
         {/* Section 7 */}
-        <section id="sec-7">
-          <h2 className="legal-section-h2">{t("privacy.sections.7.title")}</h2>
+        <section>
+          <Heading2 title={t("privacy.sections.7.title")} />
           <p className="legal-body-text">{t("privacy.sections.7.p1")}</p>
           <ul className="legal-list">
             <li>{t("privacy.sections.7.item1")}</li>
@@ -251,8 +292,8 @@ export default function PrivacyPage() {
         </section>
 
         {/* Section 8 */}
-        <section id="sec-8">
-          <h2 className="legal-section-h2">{t("privacy.sections.8.title")}</h2>
+        <section>
+          <Heading2 title={t("privacy.sections.8.title")} />
           <p className="legal-body-text">{t("privacy.sections.8.p1")}</p>
           <ul className="legal-list">
             <li>{t("privacy.sections.8.item1")}</li>
@@ -261,20 +302,20 @@ export default function PrivacyPage() {
         </section>
 
         {/* Section 9 */}
-        <section id="sec-9">
-          <h2 className="legal-section-h2">{t("privacy.sections.9.title")}</h2>
+        <section>
+          <Heading2 title={t("privacy.sections.9.title")} />
           <p className="legal-body-text">{t("privacy.sections.9.p1")}</p>
         </section>
 
         {/* Section 10 */}
-        <section id="sec-10">
-          <h2 className="legal-section-h2">{t("privacy.sections.10.title")}</h2>
+        <section>
+          <Heading2 title={t("privacy.sections.10.title")} />
           <p className="legal-body-text">{t("privacy.sections.10.p1")}</p>
         </section>
 
         {/* Section 11 */}
-        <section id="sec-11">
-          <h2 className="legal-section-h2">{t("privacy.sections.11.title")}</h2>
+        <section>
+          <Heading2 title={t("privacy.sections.11.title")} />
           <p className="legal-body-text">{t("privacy.sections.11.p1")}</p>
           <ul className="legal-list">
             <li>

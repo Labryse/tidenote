@@ -6,10 +6,13 @@ import { useNoteStore, type Note, type Folder } from "../store/useNoteStore";
 import { useTranslation } from "react-i18next";
 import ConfirmModal from "./ConfirmModal";
 import { useNavigate } from "react-router-dom";
-import { FilePlus, PenSquare, LayoutTemplate, Users, CalendarDays, Lightbulb, Kanban, ChevronLeft, ChevronRight, ChevronDown, LogOut, MoreVertical, FolderPlus, Folder as FolderIcon, FolderOpen, Archive, Palette, Bug } from "lucide-react";
+import { FilePlus, PenSquare, LayoutTemplate, Users, CalendarDays, Lightbulb, Kanban, ChevronLeft, ChevronRight, ChevronDown, LogOut, MoreVertical, FolderPlus, Folder as FolderIcon, FolderOpen, Archive, Palette, Bug, Laptop } from "lucide-react";
 import BugReportModal from "./BugReportModal";
 import { extractTextFromBlocks } from "../lib/searchUtils";
 import { getResolvedName, isElectron, getLogoSrc } from "../lib/utils";
+import { isWebOnly } from "../lib/platformDetect";
+import { getLatestRelease, findAssetForPlatform } from "../lib/githubReleases";
+
 
 const logoSrc = getLogoSrc();
 
@@ -295,6 +298,27 @@ export default function Sidebar() {
 
   const [isTemplatesSubmenuOpen, setIsTemplatesSubmenuOpen] = useState(false);
   const [isBugReportOpen, setIsBugReportOpen] = useState(false);
+
+  const isTr = i18n.language.startsWith("tr");
+
+  const [downloadUrl, setDownloadUrl] = useState<string>("https://github.com/Labryse/tidenote/releases/latest");
+  const [isDismissed, setIsDismissed] = useState<boolean>(() => {
+    return sessionStorage.getItem("desktop-download-dismissed") === "true";
+  });
+
+  useEffect(() => {
+    if (isWebOnly() && !isDismissed) {
+      getLatestRelease().then((data) => {
+        if (data) {
+          const asset = findAssetForPlatform(data.assets, 'windows');
+          if (asset) {
+            setDownloadUrl(asset.browser_download_url);
+          }
+        }
+      });
+    }
+  }, [isDismissed]);
+
 
   // Folder tree state
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
@@ -1534,45 +1558,7 @@ export default function Sidebar() {
               {!isSidebarCollapsed && <span className="today-journal-btn-date">{getTodayShortDate()}</span>}
             </button>
             
-            {user && !isSidebarCollapsed && pastJournals.length > 0 && (
-              <div className="past-journals-collapsible" style={{ marginTop: "4px" }}>
-                <button
-                  type="button"
-                  className="past-journals-toggle-btn"
-                  onClick={() => setIsJournalHistoryOpen(!isJournalHistoryOpen)}
-                >
-                  <span style={{ fontSize: "9px" }}>{isJournalHistoryOpen ? "▼" : "▶"}</span>
-                  <CalendarDays size={12} style={{ flexShrink: 0 }} />
-                  <span>{t("journal.sidebarSuffix", "Journal")} ({pastJournals.length})</span>
-                </button>
-                
-                {isJournalHistoryOpen && (
-                  <div className="past-journals-list" style={{ display: "flex", flexDirection: "column", gap: "2px", paddingLeft: "8px", marginTop: "4px" }}>
-                    {pastJournals.map(journal => (
-                      <button
-                        key={journal.id}
-                        type="button"
-                        className={`past-journal-history-item ${activeNoteId === journal.id ? "active" : ""}`}
-                        onClick={() => {
-                          setActiveNoteId(journal.id);
-                          setIsMobileSidebarOpen(false);
-                        }}
-                      >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.7 }}>
-                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                          <line x1="16" y1="2" x2="16" y2="6" />
-                          <line x1="8" y1="2" x2="8" y2="6" />
-                          <line x1="3" y1="10" x2="21" y2="10" />
-                        </svg>
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {getJournalDisplayTitle(journal)}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+            {/* Collapsible journals list has been removed as they are displayed in the main notes list */}
           </div>
         )}
 
@@ -1805,6 +1791,43 @@ export default function Sidebar() {
                 <Archive size={16} />
                 {!isSidebarCollapsed && <span> {t("sidebar.archiveTitle")} ({archivedCount})</span>}
               </button>
+            </div>
+          )}
+
+
+          {isWebOnly() && !isDismissed && (
+            <div className={`sidebar-download-banner ${isSidebarCollapsed ? "collapsed" : ""}`}>
+              {isSidebarCollapsed ? (
+                <a
+                  href={downloadUrl}
+                  download
+                  title={isTr ? "Masaüstü Uygulamasını İndir" : "Download Desktop App"}
+                  className="sidebar-download-link-collapsed"
+                >
+                  <Laptop size={16} />
+                </a>
+              ) : (
+                <>
+                  <a
+                    href={downloadUrl}
+                    download
+                    className="sidebar-download-link"
+                  >
+                    <Laptop size={14} className="sidebar-download-icon" />
+                    <span>{isTr ? "Masaüstü uygulamasını indir" : "Download desktop app"}</span>
+                  </a>
+                  <button
+                    onClick={() => {
+                      sessionStorage.setItem("desktop-download-dismissed", "true");
+                      setIsDismissed(true);
+                    }}
+                    className="sidebar-download-close"
+                    title={isTr ? "Kapat" : "Close"}
+                  >
+                    ×
+                  </button>
+                </>
+              )}
             </div>
           )}
 

@@ -7946,6 +7946,16 @@ body {
   color: var(--color-text-primary, #111827);
 }
 
+.mini-bar-btn.active {
+  background: #0891B2 !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .mini-bar-btn.active {
+  background: #0891B2 !important;
+  color: #ffffff !important;
+}
+
 .mini-bar-separator {
   width: 1px;
   height: 16px;
@@ -8060,4 +8070,506 @@ body {
 .dark-toolbar select option {
   background: #2a2a3e !important;
   color: #ffffff !important;
-}
+}
+
+/* ==========================================
+   SMART DOWNLOAD BUTTON SYSTEM
+   ========================================== */
+.lp-download-btn-container {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(8, 145, 178, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  z-index: 50;
+}
+
+.lp-download-btn-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(8, 145, 178, 0.35);
+}
+
+.lp-download-btn-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+  background: var(--color-accent);
+  color: #ffffff !important;
+  font-size: 0.93rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.lp-download-btn-main:hover {
+  background: var(--color-accent-hover);
+}
+
+.lp-download-btn-main.loading,
+.lp-download-btn-main.disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background: var(--color-accent-hover);
+}
+
+.lp-download-btn-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+  background: var(--color-accent);
+  color: #ffffff;
+  border: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.lp-download-btn-arrow:hover {
+  background: var(--color-accent-hover);
+}
+
+.lp-download-btn-arrow.active {
+  background: var(--color-accent-hover);
+}
+
+.lp-download-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 240px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  z-index: 1000;
+  animation: lpDropdownFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-download-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: var(--color-text-primary) !important;
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  cursor: pointer;
+  text-align: left;
+}
+
+.lp-download-dropdown-item:hover {
+  background: var(--color-accent-soft);
+  color: var(--color-accent) !important;
+}
+
+.lp-download-dropdown-item.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.lp-download-dropdown-item-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.lp-download-dropdown-item-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.lp-download-dropdown-item-sub {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.lp-spinner {
+  animation: lpSpin 1s linear infinite;
+}
+
+@keyframes lpSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes lpDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Sidebar Download Banner */
+.sidebar-download-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  border: 1px solid var(--color-border);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.sidebar-download-banner.collapsed {
+  justify-content: center;
+  padding: 6px;
+}
+
+.sidebar-download-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 11.5px;
+  width: 100%;
+}
+
+.sidebar-download-link-collapsed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.sidebar-download-icon {
+  flex-shrink: 0;
+}
+
+.sidebar-download-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+
+.sidebar-download-close:hover {
+  opacity: 1;
+}
+
+/* Light mode overrides */
+:root[data-theme="light"] .sidebar-download-banner {
+  background-color: #E0F7FA;
+  border-color: #B2EBF2;
+}
+:root[data-theme="light"] .sidebar-download-banner:hover {
+  background-color: #B2EBF2;
+}
+:root[data-theme="light"] .sidebar-download-link,
+:root[data-theme="light"] .sidebar-download-link-collapsed {
+  color: #006064 !important;
+}
+:root[data-theme="light"] .sidebar-download-close {
+  color: #006064;
+}
+
+/* Dark mode overrides */
+:root[data-theme="dark"] .sidebar-download-banner {
+  background-color: #0d2b30;
+  border-color: #123e45;
+}
+:root[data-theme="dark"] .sidebar-download-banner:hover {
+  background-color: #123e45;
+}
+:root[data-theme="dark"] .sidebar-download-link,
+:root[data-theme="dark"] .sidebar-download-link-collapsed {
+  color: #80deea !important;
+}
+:root[data-theme="dark"] .sidebar-download-close {
+  color: #80deea;
+}
+
+/* Settings About Pane Download Button Compact Styling */
+.about-pane .lp-download-btn-main {
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  border-top-left-radius: 6px;
+  border-bottom-left-radius: 6px;
+}
+.about-pane .lp-download-btn-arrow {
+  padding: 0 10px;
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+.about-pane .lp-download-btn-container {
+  box-shadow: 0 2px 8px rgba(8, 145, 178, 0.15);
+  border-radius: 6px;
+}
+.about-pane .lp-download-dropdown {
+  min-width: 200px;
+  font-size: 0.8rem;
+  border-radius: 8px;
+}
+
+/* Floating Mini-bar Shape Dropdown Styles */
+.mini-bar-dropdown-list {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--color-bg-card, #ffffff);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 8px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  min-width: 150px;
+}
+
+:root[data-theme="dark"] .mini-bar-dropdown-list {
+  background-color: #1e1e1e !important;
+  border-color: #2e2e2e !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.mini-bar-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary, #111827);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+:root[data-theme="dark"] .mini-bar-dropdown-item {
+  color: #e5e7eb !important;
+}
+
+.mini-bar-dropdown-item:hover {
+  background: var(--color-bg-card, #f3f4f6);
+}
+
+:root[data-theme="dark"] .mini-bar-dropdown-item:hover {
+  background: #2e2e2e !important;
+}
+
+.mini-bar-dropdown-item.active {
+  background: #0891B2;
+  color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .mini-bar-dropdown-item.active {
+  background: #0891B2 !important;
+  color: #ffffff !important;
+}
+
+/* Shapes Fan Container & Icons CSS */
+.shapes-fan-container {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fan-icon {
+  position: absolute;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  color: var(--color-text-muted, #6b7280);
+}
+
+/* Fanned overlapping positioning */
+.fan-icon-1 { transform: translate(-2px, 1px) rotate(-10deg); z-index: 1; }
+.fan-icon-2 { transform: translate(0px, -2px) rotate(0deg); z-index: 3; }
+.fan-icon-3 { transform: translate(2px, 1px) rotate(10deg); z-index: 2; }
+.fan-icon-4 { transform: translate(0px, 3px) rotate(45deg) scale(0.85); z-index: 0; }
+
+/* Micro animations on button hover */
+.toolbar-btn:hover .fan-icon {
+  color: var(--color-text-primary, #111827);
+}
+:root[data-theme="dark"] .toolbar-btn:hover .fan-icon {
+  color: #ffffff;
+}
+
+.toolbar-btn:hover .fan-icon-1 { transform: translate(-6px, -1px) rotate(-22deg); }
+.toolbar-btn:hover .fan-icon-2 { transform: translate(0px, -6px) rotate(0deg); }
+.toolbar-btn:hover .fan-icon-3 { transform: translate(6px, -1px) rotate(22deg); }
+.toolbar-btn:hover .fan-icon-4 { transform: translate(0px, 5px) rotate(45deg) scale(0.95); }
+
+/* Main shapes dropdown markup styling matching font dropdown */
+.toolbar-shapes-dropdown {
+  position: absolute;
+  background: var(--color-bg-card, #ffffff);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 8px;
+  padding: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  min-width: 155px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toolbar-shapes-dropdown.above {
+  bottom: 54px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+:root[data-theme="dark"] .toolbar-shapes-dropdown {
+  background: #1e1e1e !important;
+  border-color: #2e2e2e !important;
+}
+
+.toolbar-shapes-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  color: var(--color-text-primary, #111827);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+:root[data-theme="dark"] .toolbar-shapes-option {
+  color: #e5e7eb !important;
+}
+
+.toolbar-shapes-option:hover {
+  background: var(--color-bg-card-hover, #f3f4f6);
+}
+
+:root[data-theme="dark"] .toolbar-shapes-option:hover {
+  background: #2e2e2e !important;
+}
+
+.toolbar-shapes-option.active {
+  background: #0891B2;
+  color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .toolbar-shapes-option.active {
+  background: #0891B2 !important;
+  color: #ffffff !important;
+}
+
+.toolbar-shapes-dropdown-title {
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--color-text-muted, #9ca3af);
+  padding: 4px;
+  text-transform: uppercase;
+}
+
+/* Custom font-face declarations to support Bold and Italic rendering in Excalidraw Canvas */
+@font-face {
+  font-family: 'Helvetica Bold';
+  src: local('Helvetica Bold'), local('Helvetica-Bold'), local('Arial Bold'), local('Arial-BoldMT');
+  font-weight: bold;
+}
+@font-face {
+  font-family: 'Helvetica Italic';
+  src: local('Helvetica Italic'), local('Helvetica-Italic'), local('Helvetica Oblique'), local('Arial Italic'), local('Arial-ItalicMT');
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Helvetica Bold Italic';
+  src: local('Helvetica Bold Italic'), local('Helvetica-BoldItalic'), local('Arial Bold Italic'), local('Arial-BoldItalicMT');
+  font-weight: bold;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Comic Shanns Bold';
+  src: local('Comic Shanns'), local('Cascadia Code'), local('Courier New');
+  font-weight: bold;
+}
+@font-face {
+  font-family: 'Comic Shanns Italic';
+  src: local('Comic Shanns'), local('Cascadia Code'), local('Courier New');
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Comic Shanns Bold Italic';
+  src: local('Comic Shanns'), local('Cascadia Code'), local('Courier New');
+  font-weight: bold;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Cascadia Bold';
+  src: local('Cascadia Code'), local('Courier New');
+  font-weight: bold;
+}
+@font-face {
+  font-family: 'Cascadia Italic';
+  src: local('Cascadia Code'), local('Courier New');
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Cascadia Bold Italic';
+  src: local('Cascadia Code'), local('Courier New');
+  font-weight: bold;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Virgil Bold';
+  src: local('Virgil');
+  font-weight: bold;
+}
+@font-face {
+  font-family: 'Virgil Italic';
+  src: local('Virgil');
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Virgil Bold Italic';
+  src: local('Virgil');
+  font-weight: bold;
+  font-style: italic;
+}
+
+
+

@@ -10,6 +10,9 @@ import { doc, deleteDoc, serverTimestamp, collection, addDoc } from "firebase/fi
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import ConfirmModal from "./ConfirmModal";
 import { getLogoSrc, calculateStorageBytes } from "../lib/utils";
+import DownloadButton from "./DownloadButton";
+import { isWebOnly } from "../lib/platformDetect";
+
 
 const logoSrc = getLogoSrc();
 
@@ -910,6 +913,14 @@ export default function SettingsModal() {
                   TideNote
                 </h2>
                 <span className="about-version">v{version}</span>
+                {isWebOnly() && (
+                  <div className="about-download-wrapper" style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                      {t("settings.desktopApp", "Masaüstü Uygulaması")}
+                    </span>
+                    <DownloadButton />
+                  </div>
+                )}
               </div>
               <p className="about-description">
                 {t(
