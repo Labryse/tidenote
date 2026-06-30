@@ -8029,4 +8029,35 @@ body {
 .excalidraw-text-editor-container,
 .excalidraw-textarea {
   filter: drop-shadow(2px 4px 8px rgba(0, 0, 0, 0.15)) !important;
+}
+
+/* Excalidraw Text Editor container overflow & z-index overlay fixes */
+.excalidraw-container {
+  overflow: visible !important;
+}
+.excalidraw .excalidraw-texteditor,
+.excalidraw .excalidraw-text-editor-container,
+.excalidraw-textEditorContainer {
+  z-index: 9999 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: all !important;
+  color: #1a1a1a !important;
+}
+
+/* Dark mode toolbar compatibility styles */
+.dark-toolbar {
+  background: #1e1e2e !important;
+  color: #ffffff !important;
+}
+.dark-toolbar select,
+.dark-toolbar option,
+.dark-toolbar span,
+.dark-toolbar button {
+  color: #ffffff !important;
+  background: #2a2a3e !important;
+}
+.dark-toolbar select option {
+  background: #2a2a3e !important;
+  color: #ffffff !important;
 }

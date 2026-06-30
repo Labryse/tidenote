@@ -19,8 +19,10 @@ const app = initializeApp(firebaseConfig);
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({
     tabManager: persistentMultipleTabManager()
-  })
-});
+  }),
+  experimentalForceLongPolling: false,
+  useFetchStreams: true
+} as any);
 
 // Initialize Firebase Auth and export it
 export const auth = getAuth(app);
