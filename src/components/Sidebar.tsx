@@ -6,8 +6,9 @@ import { useNoteStore, type Note, type Folder } from "../store/useNoteStore";
 import { useTranslation } from "react-i18next";
 import ConfirmModal from "./ConfirmModal";
 import { useNavigate } from "react-router-dom";
-import { FilePlus, PenSquare, LayoutTemplate, Users, CalendarDays, Lightbulb, Kanban, ChevronLeft, ChevronRight, ChevronDown, LogOut, MoreVertical, FolderPlus, Folder as FolderIcon, FolderOpen, Archive, Palette, Bug, Laptop } from "lucide-react";
+import { FilePlus, PenSquare, LayoutTemplate, Users, CalendarDays, Lightbulb, Kanban, ChevronLeft, ChevronRight, ChevronDown, LogOut, MoreVertical, FolderPlus, Folder as FolderIcon, FolderOpen, Archive, Palette, Bug, Laptop, Sparkles, Filter, Star, Clock, Tag, Zap, Bookmark } from "lucide-react";
 import BugReportModal from "./BugReportModal";
+import CollectionModal, { getCollectionIcon } from "./CollectionModal";
 import { extractTextFromBlocks } from "../lib/searchUtils";
 import { getResolvedName, isElectron, getLogoSrc } from "../lib/utils";
 import { isWebOnly } from "../lib/platformDetect";
@@ -338,6 +339,15 @@ export default function Sidebar() {
   const notesUnsubRef = useRef<(() => void) | null>(null);
   const foldersUnsubRef = useRef<(() => void) | null>(null);
 
+  // Collections state
+  const [collections, setCollections] = useState<any[]>([]);
+  const [activeCollectionId, setActiveCollectionId] = useState<string | null>(null);
+  const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
+  const [collectionToEdit, setCollectionToEdit] = useState<any | null>(null);
+  const [deletingCollectionId, setDeletingCollectionId] = useState<string | null>(null);
+  const [openCollectionMenuId, setOpenCollectionMenuId] = useState<string | null>(null);
+  const collectionsUnsubRef = useRef<(() => void) | null>(null);
+
   const touchStartXRef = useRef<number | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -405,6 +415,16 @@ export default function Sidebar() {
       document.removeEventListener("click", handleOutsideClick);
     };
   }, [openFolderMenuId]);
+
+  useEffect(() => {
+    const handleOutsideClickCol = () => { setOpenCollectionMenuId(null); };
+    if (openCollectionMenuId) {
+      document.addEventListener("click", handleOutsideClickCol);
+    }
+    return () => {
+      document.removeEventListener("click", handleOutsideClickCol);
+    };
+  }, [openCollectionMenuId]);
 
   const [isJournalHistoryOpen, setIsJournalHistoryOpen] = useState(false);
 
@@ -653,6 +673,35 @@ export default function Sidebar() {
     };
   }, [user?.uid]);
 
+  // Collections subscription
+  useEffect(() => {
+    if (collectionsUnsubRef.current) {
+      collectionsUnsubRef.current();
+      collectionsUnsubRef.current = null;
+    }
+
+    if (!user) { setCollections([]); return; }
+    let isMounted = true;
+    const q = query(
+      collection(db, "users", user.uid, "collections"),
+      orderBy("createdAt", "asc")
+    );
+    const unsubscribe = onSnapshot(q, (snap) => {
+      if (!isMounted) return;
+      setCollections(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)));
+    }, (err) => { console.error("collections onSnapshot error:", err); });
+
+    collectionsUnsubRef.current = unsubscribe;
+
+    return () => {
+      isMounted = false;
+      if (collectionsUnsubRef.current) {
+        collectionsUnsubRef.current();
+        collectionsUnsubRef.current = null;
+      }
+    };
+  }, [user?.uid]);
+
   useEffect(() => {
     const handleFocus = () => {
       if (user) {
@@ -781,6 +830,55 @@ export default function Sidebar() {
     }
   };
 
+  const confirmDeleteCollection = async () => {
+    if (!user || !deletingCollectionId) return;
+    try {
+      await deleteDoc(doc(db, "users", user.uid, "collections", deletingCollectionId));
+      if (activeCollectionId === deletingCollectionId) {
+        setActiveCollectionId(null);
+      }
+      showToast(t("collections.deleteSuccess", "Koleksiyon silindi"), "success");
+    } catch (error) {
+      console.error("Error deleting collection:", error);
+      showToast(t("collections.deleteError", "Koleksiyon silinemedi"), "error");
+    } finally {
+      setDeletingCollectionId(null);
+    }
+  };
+
+  const handleCollectionClick = (colId: string) => {
+    setActiveCollectionId(activeCollectionId === colId ? null : colId);
+    setActiveFolderId(null);
+  };
+
+  const handleDropNoteToCollection = async (colId: string) => {
+    const noteId = draggedNoteIdRef.current;
+    if (!noteId || !user) return;
+    draggedNoteIdRef.current = null;
+    
+    try {
+      const col = collections.find(c => c.id === colId);
+      if (!col) return;
+      
+      const filters = col.filters || {};
+      const noteIds = filters.noteIds || [];
+      
+      if (!noteIds.includes(noteId)) {
+        const updatedNoteIds = [...noteIds, noteId];
+        await updateDoc(doc(db, "users", user.uid, "collections", colId), {
+          "filters.noteIds": updatedNoteIds,
+          updatedAt: serverTimestamp()
+        });
+        showToast(t("collections.noteAdded", "Not koleksiyona eklendi"), "success");
+      } else {
+        showToast(t("collections.alreadyExists", "Not zaten bu koleksiyonda"), "warning");
+      }
+    } catch (error) {
+      console.error("Error adding note to collection:", error);
+      showToast(t("collections.addError", "Not koleksiyona eklenemedi"), "error");
+    }
+  };
+
   const handleDropNoteToFolder = async (folderId: string | null) => {
     const noteId = draggedNoteIdRef.current;
     if (!noteId) return;
@@ -819,7 +917,7 @@ export default function Sidebar() {
         <div
           className={`folder-item${isActive ? " active" : ""}${isDragOver ? " drag-over" : ""}${isRecentDrop ? " drop-highlight" : ""}`}
           style={{ paddingLeft: `${8 + depth * 12}px` }}
-          onClick={() => setActiveFolderId(isActive ? null : folder.id)}
+          onClick={() => { setActiveFolderId(isActive ? null : folder.id); setActiveCollectionId(null); }}
           onDragOver={(e) => {
             e.preventDefault();
             e.dataTransfer.dropEffect = "move";
@@ -898,6 +996,91 @@ export default function Sidebar() {
           )}
         </div>
         {isExpanded && children.map((child) => renderFolderItem(child, depth + 1))}
+      </div>
+    );
+  };
+
+  const renderCollectionItem = (col: any) => {
+    const isActive = activeCollectionId === col.id;
+    const isMenuOpen = openCollectionMenuId === col.id;
+    
+    // Count notes matching this collection's filters
+    const notesInCollection = notes.filter((note) => {
+      if (note.archived) return false;
+      const filters = col.filters || {};
+      const noteIds = filters.noteIds || [];
+      return noteIds.includes(note.id);
+    }).length;
+
+    return (
+      <div 
+        key={col.id}
+        className={`folder-item${isActive ? " active" : ""}`}
+        style={{ paddingLeft: "8px", position: "relative" }}
+        onClick={() => handleCollectionClick(col.id)}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+          e.currentTarget.classList.add("drag-over");
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+            e.currentTarget.classList.remove("drag-over");
+          }
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.currentTarget.classList.remove("drag-over");
+          draggedNoteIdRef.current = draggedNoteIdRef.current || e.dataTransfer.getData("text/plain");
+          handleDropNoteToCollection(col.id);
+        }}
+      >
+        <span style={{ width: 10, display: "inline-block", flexShrink: 0 }} />
+        {getCollectionIcon(col.icon, 13, "folder-icon")}
+        <span className="folder-name" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+          {col.name}
+        </span>
+        
+        {notesInCollection > 0 && (
+          <span className="folder-note-badge" style={{ marginRight: "4px" }}>{notesInCollection}</span>
+        )}
+
+        {/* 3-dots Menu for Edit / Delete */}
+        <div style={{ position: "relative", display: "flex", alignItems: "center" }} onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            className="folder-menu-btn"
+            onClick={() => setOpenCollectionMenuId(isMenuOpen ? null : col.id)}
+          >
+            <MoreVertical size={12} />
+          </button>
+          
+          {isMenuOpen && (
+            <div className="folder-menu-dropdown" style={{ right: 0, top: "100%", zIndex: 100 }}>
+              <button
+                type="button"
+                className="folder-menu-item"
+                onClick={() => {
+                  setOpenCollectionMenuId(null);
+                  setCollectionToEdit(col);
+                  setIsCollectionModalOpen(true);
+                }}
+              >
+                {t("collections.edit", "Düzenle")}
+              </button>
+              <button
+                type="button"
+                className="folder-menu-item danger"
+                onClick={() => {
+                  setOpenCollectionMenuId(null);
+                  setDeletingCollectionId(col.id);
+                }}
+              >
+                {t("collections.delete", "Sil")}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     );
   };
@@ -1084,18 +1267,31 @@ export default function Sidebar() {
   // Local filtering and sorting logic
   const filteredAndSortedNotes = notes
     .filter((note) => {
-      // Folder filter
-      if (activeFolderId === "unfiled") {
-        if (note.folderId) return false;
-      } else if (activeFolderId) {
-        if (note.folderId !== activeFolderId) return false;
-      }
-
       // Archive filter
       if (showArchived) {
         if (!note.archived) return false;
       } else {
         if (note.archived) return false;
+      }
+
+      // Folder filter
+      if (!activeCollectionId) {
+        if (activeFolderId === "unfiled") {
+          if (note.folderId) return false;
+        } else if (activeFolderId) {
+          if (note.folderId !== activeFolderId) return false;
+        }
+      }
+
+      // Collection filter
+      if (activeCollectionId) {
+        const col = collections.find(c => c.id === activeCollectionId);
+        if (col && col.filters) {
+          const noteIds = col.filters.noteIds || [];
+          if (!noteIds.includes(note.id)) return false;
+        } else {
+          return false;
+        }
       }
 
       // Tag filter bar matching (ignoring color suffix)
@@ -1672,25 +1868,39 @@ export default function Sidebar() {
 
       {!isSidebarCollapsed && (
         <div className={`notes-list density-${listDensity}`}>
-          {/* Folder tree section */}
+          {/* Folders & Collections section */}
           {user && (
             <div className="sidebar-folders-section">
               <div className="folders-section-header">
-                <span className="folders-section-label">{t("folders.section", "KLASÖRLER")}</span>
-                <button
-                  type="button"
-                  className="folder-plus-btn"
-                  title={t("folders.newFolder", "Yeni Klasör")}
-                  onClick={() => handleCreateFolder(null)}
-                >
-                  <FolderPlus size={13} />
-                </button>
+                <span className="folders-section-label">{t("sidebar.organization", "KLASÖRLER & KOLEKSİYONLAR")}</span>
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <button
+                    type="button"
+                    className="folder-plus-btn"
+                    title={t("folders.newFolder", "Yeni Klasör")}
+                    onClick={() => handleCreateFolder(null)}
+                  >
+                    <FolderPlus size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    className="folder-plus-btn"
+                    title={t("collections.newCollection", "Yeni Koleksiyon")}
+                    onClick={() => {
+                      setCollectionToEdit(null);
+                      setIsCollectionModalOpen(true);
+                    }}
+                  >
+                    <Sparkles size={13} />
+                  </button>
+                </div>
               </div>
+              {/* Folders */}
               {rootFolders.map((f) => renderFolderItem(f, 0))}
               <div
                 className={`folder-item${activeFolderId === "unfiled" ? " active" : ""}`}
                 style={{ paddingLeft: "8px" }}
-                onClick={() => setActiveFolderId(activeFolderId === "unfiled" ? null : "unfiled")}
+                onClick={() => { setActiveFolderId(activeFolderId === "unfiled" ? null : "unfiled"); setActiveCollectionId(null); }}
                 onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; (e.currentTarget as HTMLElement).classList.add("drag-over"); }}
                 onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) { (e.currentTarget as HTMLElement).classList.remove("drag-over"); } }}
                 onDrop={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement).classList.remove("drag-over"); draggedNoteIdRef.current = draggedNoteIdRef.current || e.dataTransfer.getData("text/plain"); handleDropNoteToFolder(null); }}
@@ -1701,6 +1911,12 @@ export default function Sidebar() {
                   {t("folders.unfoldered", "Klasörsüz Notlar")}
                 </span>
               </div>
+              
+              {/* Divider between Folders and Collections inside the same section list */}
+              {collections.length > 0 && <div style={{ height: 1, background: "var(--color-border)", margin: "8px 4px 4px 4px", opacity: 0.5 }} />}
+              
+              {/* Collections */}
+              {collections.map((col) => renderCollectionItem(col))}
             </div>
           )}
 
@@ -1989,6 +2205,26 @@ export default function Sidebar() {
         message={t("folders.deleteConfirm", "Bu klasör ve alt klasörleri silinecek. İçindeki notlar klasörsüz kalacak. Emin misin?")}
         onConfirm={confirmDeleteFolder}
         onCancel={() => setDeletingFolderId(null)}
+      />
+      {user && (
+        <CollectionModal
+          isOpen={isCollectionModalOpen}
+          onClose={() => {
+            setIsCollectionModalOpen(false);
+            setCollectionToEdit(null);
+          }}
+          collectionToEdit={collectionToEdit}
+          allUniqueTags={allUniqueTags}
+          allNotes={notes.filter(n => !n.archived)}
+          uid={user.uid}
+        />
+      )}
+      <ConfirmModal
+        isOpen={deletingCollectionId !== null}
+        title={t("collections.deleteTitle", "Koleksiyonu Sil")}
+        message={t("collections.deleteConfirm", "Bu koleksiyonu silmek istediğinize emin misiniz? Notlarınız silinmeyecektir.")}
+        onConfirm={confirmDeleteCollection}
+        onCancel={() => setDeletingCollectionId(null)}
       />
       {isBugReportOpen && (
         <BugReportModal onClose={() => setIsBugReportOpen(false)} />

@@ -7,6 +7,7 @@ import {
   Check, Sun, ArrowRight, Sparkles
 } from "lucide-react";
 import DownloadButton from "../components/DownloadButton";
+import HeroDemo from "../components/landing/HeroDemo";
 
 const logoSrc = (() => {
   try { return new URL("/icon.png", import.meta.url).href; }
@@ -38,7 +39,7 @@ export default function LandingPage() {
 
   useScrollReveal();
 
-  const isTr = i18n.language.startsWith("tr");
+  const isTr = i18n.language?.startsWith("tr") ?? false;
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
 
   const features = [
@@ -102,9 +103,9 @@ export default function LandingPage() {
 
           <div className="landing-nav-right">
             <div className="landing-lang-selector">
-              <button onClick={() => i18n.changeLanguage("tr")} className={`lang-btn ${i18n.language.startsWith("tr") ? "active" : ""}`}>TR</button>
+              <button onClick={() => i18n.changeLanguage("tr")} className={`lang-btn ${i18n.language?.startsWith("tr") ? "active" : ""}`}>TR</button>
               <span className="lang-separator">/</span>
-              <button onClick={() => i18n.changeLanguage("en")} className={`lang-btn ${i18n.language.startsWith("en") ? "active" : ""}`}>EN</button>
+              <button onClick={() => i18n.changeLanguage("en")} className={`lang-btn ${i18n.language?.startsWith("en") ? "active" : ""}`}>EN</button>
             </div>
 
             <button className="landing-theme-toggle" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label="Toggle theme">
@@ -134,8 +135,8 @@ export default function LandingPage() {
           {/* Left — Text */}
           <div className="lp-hero-text">
             <div className="lp-hero-badge">
-              <Sparkles size={12} />
               <span>{t("landing.badge", "Not alma yeniden tasarlandı")}</span>
+              <span className="lp-hero-badge-cursor" aria-hidden="true" />
             </div>
 
             <h1 className="lp-hero-title">{t("landing.title")}</h1>
@@ -151,30 +152,7 @@ export default function LandingPage() {
 
           {/* Right — Animated visual */}
           <div className="lp-hero-visual" aria-hidden="true">
-            <div className="lp-vis-card lp-vis-card-1">
-              <div className="lp-vis-card-header">
-                <div className="lp-vis-dot lp-vis-dot-red" />
-                <div className="lp-vis-dot lp-vis-dot-yellow" />
-                <div className="lp-vis-dot lp-vis-dot-green" />
-              </div>
-              <div className="lp-vis-line lp-vis-line-title" />
-              <div className="lp-vis-line" style={{ width: "88%" }} />
-              <div className="lp-vis-line" style={{ width: "72%" }} />
-              <div className="lp-vis-line" style={{ width: "81%" }} />
-              <div className="lp-vis-line" style={{ width: "58%" }} />
-            </div>
-
-            <div className="lp-vis-card lp-vis-card-2">
-              <div className="lp-vis-line lp-vis-line-accent" style={{ width: "52%" }} />
-              <div className="lp-vis-line" style={{ width: "78%" }} />
-              <div className="lp-vis-line" style={{ width: "63%" }} />
-            </div>
-
-            <div className="lp-vis-card lp-vis-card-3">
-              <div className="lp-vis-line lp-vis-line-accent" style={{ width: "44%" }} />
-              <div className="lp-vis-line" style={{ width: "84%" }} />
-              <div className="lp-vis-line" style={{ width: "68%" }} />
-            </div>
+            <HeroDemo />
           </div>
         </div>
       </section>
