@@ -1,4 +1,4 @@
-{
+﻿{
   "sidebar": {
     "newNote": "Yeni Not",
     "newDocument": "Yeni Belge",
@@ -334,7 +334,7 @@
         "p1": "Tüm veriler aktarım sırasında SSL/TLS ile şifrelenir.",
         "p2": "Şifreler Firebase Authentication tarafından güvenli şekilde hashlenir, düz metin olarak asla saklanmaz.",
         "p3": "Firebase Firestore güvenlik kuralları ile yalnızca kendi verilerinize erişebilirsiniz — başka kullanıcıların verileri okunamaz.",
-        "p4": "Güvenlik açıklarını bildirmek için: ulkartal@gmail.com"
+        "p4": "Güvenlik açıklarını bildirmek için: info@tidenote.app"
       },
       "7": {
         "title": "7. Haklarınız (KVKK / GDPR)",
@@ -344,7 +344,7 @@
         "item3": "Silme: Tüm verilerinizin ve hesabınızın silinmesini isteme hakkı (uygulama içi Ayarlar → Hesap → Hesabı Sil)",
         "item4": "Taşınabilirlik: Verilerinizi dışa aktarma hakkı (Ayarlar → İçe Aktar / Dışa Aktar)",
         "item5": "İtiraz: Veri işlemeye itiraz etme hakkı",
-        "p2": "Talepleriniz için: ulkartal@gmail.com"
+        "p2": "Talepleriniz için: info@tidenote.app"
       },
       "8": {
         "title": "8. Çerezler ve Yerel Depolama",
@@ -363,7 +363,7 @@
       "11": {
         "title": "11. İletişim",
         "p1": "Sorularınız için:",
-        "email": "E-posta: ulkartal@gmail.com",
+        "email": "E-posta: info@tidenote.app",
         "web": "Web: https://tidenote-22fde.web.app"
       }
     }
@@ -386,7 +386,7 @@
         "item1": "Hizmeti kullanmak için geçerli bir e-posta adresiyle hesap oluşturmanız gerekir",
         "item2": "Hesap bilgilerinizin gizliliğinden ve hesabınızda gerçekleşen tüm işlemlerden siz sorumlusunuz",
         "item3": "Şifrenizi kimseyle paylaşmayınız",
-        "item4": "Hesabınızda yetkisiz erişim fark ederseniz derhal bizimle iletişime geçiniz: ulkartal@gmail.com",
+        "item4": "Hesabınızda yetkisiz erişim fark ederseniz derhal bizimle iletişime geçiniz: info@tidenote.app",
         "item5": "Bir kişi yalnızca bir hesap oluşturabilir"
       },
       "4": {
@@ -424,7 +424,7 @@
         "sub3_item3": "Android: Google Play abonelik yönetiminden",
         "sub3_p1": "İptal sonrası mevcut dönem sonuna kadar Premium özelliklerinden yararlanmaya devam edersiniz.",
         "sub4_title": "6.4 İade Politikası",
-        "sub4_item1": "Web abonelikleri (Stripe): Satın alma tarihinden itibaren 7 gün içinde tam iade talep edebilirsiniz (ulkartal@gmail.com)",
+        "sub4_item1": "Web abonelikleri (Stripe): Satın alma tarihinden itibaren 7 gün içinde tam iade talep edebilirsiniz (info@tidenote.app)",
         "sub4_item2": "iOS abonelikleri: Apple'ın iade politikası geçerlidir",
         "sub4_item3": "Android abonelikleri: Google Play'in iade politikası geçerlidir",
         "sub4_p1": "7 günden sonra yapılan iade talepleri değerlendirmeye alınır ancak garanti edilmez."
@@ -461,7 +461,7 @@
       "12": {
         "title": "12. İletişim",
         "p1": "Sorularınız için:",
-        "email": "E-posta: ulkartal@gmail.com",
+        "email": "E-posta: info@tidenote.app",
         "web": "Web: https://tidenote-22fde.web.app"
       }
     }

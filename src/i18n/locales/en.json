@@ -1,4 +1,4 @@
-{
+﻿{
   "sidebar": {
     "newNote": "New Note",
     "newDocument": "New Document",
@@ -334,7 +334,7 @@
         "p1": "All data is encrypted in transit using SSL/TLS.",
         "p2": "Passwords are securely hashed by Firebase Authentication, never stored in plain text.",
         "p3": "Firebase Firestore security rules ensure you only access your own data — other users' data cannot be read.",
-        "p4": "To report security vulnerabilities: ulkartal@gmail.com"
+        "p4": "To report security vulnerabilities: info@tidenote.app"
       },
       "7": {
         "title": "7. Your Rights (GDPR / KVKK)",
@@ -344,7 +344,7 @@
         "item3": "Deletion: The right to request deletion of all data and your account (in-app Settings → Account → Delete Account)",
         "item4": "Portability: The right to export your data (Settings → Import / Export)",
         "item5": "Objection: The right to object to data processing",
-        "p2": "For requests: ulkartal@gmail.com"
+        "p2": "For requests: info@tidenote.app"
       },
       "8": {
         "title": "8. Cookies & Local Storage",
@@ -363,7 +363,7 @@
       "11": {
         "title": "11. Contact",
         "p1": "For your questions:",
-        "email": "Email: ulkartal@gmail.com",
+        "email": "Email: info@tidenote.app",
         "web": "Web: https://tidenote-22fde.web.app"
       }
     }
@@ -386,7 +386,7 @@
         "item1": "You must create an account with a valid email address to use the Service",
         "item2": "You are responsible for the security of your account credentials and all activities occurring under your account",
         "item3": "Do not share your password with anyone",
-        "item4": "If you notice unauthorized access to your account, contact us immediately: ulkartal@gmail.com",
+        "item4": "If you notice unauthorized access to your account, contact us immediately: info@tidenote.app",
         "item5": "A person can create only one account"
       },
       "4": {
@@ -424,7 +424,7 @@
         "sub3_item3": "Android: Via Google Play subscription management",
         "sub3_p1": "Upon cancellation, you will continue to enjoy Premium features until the end of your billing cycle.",
         "sub4_title": "6.4 Refund Policy",
-        "sub4_item1": "Web subscriptions (Stripe): You can request a full refund within 7 days of purchase (ulkartal@gmail.com)",
+        "sub4_item1": "Web subscriptions (Stripe): You can request a full refund within 7 days of purchase (info@tidenote.app)",
         "sub4_item2": "iOS subscriptions: Apple's refund policy applies",
         "sub4_item3": "Android subscriptions: Google Play's refund policy applies",
         "sub4_p1": "Refund requests after 7 days will be reviewed but are not guaranteed."
@@ -461,7 +461,7 @@
       "12": {
         "title": "12. Contact",
         "p1": "For your questions:",
-        "email": "Email: ulkartal@gmail.com",
+        "email": "Email: info@tidenote.app",
         "web": "Web: https://tidenote-22fde.web.app"
       }
     }

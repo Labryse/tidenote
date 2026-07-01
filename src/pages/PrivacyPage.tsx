@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+﻿import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useNoteStore } from "../store/useNoteStore";
@@ -266,8 +266,8 @@ export default function PrivacyPage() {
           <p className="legal-body-text">{t("privacy.sections.6.p3")}</p>
           <p className="legal-body-text">
             {t("privacy.sections.6.p4").split(": ")[0]}:{" "}
-            <a href="mailto:ulkartal@gmail.com" className="legal-external-link">
-              ulkartal@gmail.com
+            <a href="mailto:info@tidenote.app" className="legal-external-link">
+              info@tidenote.app
             </a>
           </p>
         </section>
@@ -285,8 +285,8 @@ export default function PrivacyPage() {
           </ul>
           <p className="legal-body-text">
             {t("privacy.sections.7.p2").split(": ")[0]}:{" "}
-            <a href="mailto:ulkartal@gmail.com" className="legal-external-link">
-              ulkartal@gmail.com
+            <a href="mailto:info@tidenote.app" className="legal-external-link">
+              info@tidenote.app
             </a>
           </p>
         </section>
@@ -319,8 +319,8 @@ export default function PrivacyPage() {
           <p className="legal-body-text">{t("privacy.sections.11.p1")}</p>
           <ul className="legal-list">
             <li>
-              <a href="mailto:ulkartal@gmail.com" className="legal-external-link">
-                ulkartal@gmail.com
+              <a href="mailto:info@tidenote.app" className="legal-external-link">
+                info@tidenote.app
               </a>
             </li>
             <li>

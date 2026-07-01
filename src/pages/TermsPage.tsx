@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+﻿import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useNoteStore } from "../store/useNoteStore";
@@ -296,8 +296,8 @@ export default function TermsPage() {
           <p className="legal-body-text">{t("terms.sections.12.p1")}</p>
           <ul className="legal-list">
             <li>
-              <a href="mailto:ulkartal@gmail.com" className="legal-external-link">
-                ulkartal@gmail.com
+              <a href="mailto:info@tidenote.app" className="legal-external-link">
+                info@tidenote.app
               </a>
             </li>
             <li>
