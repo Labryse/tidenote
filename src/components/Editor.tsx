@@ -14,6 +14,7 @@ import { db } from "../lib/firebase";
 import { useNoteStore } from "../store/useNoteStore";
 import { useTranslation } from "react-i18next";
 import { en } from "@blocknote/core/locales";
+import { Table2 } from "lucide-react";
 
 export default function Editor() {
   const { t, i18n } = useTranslation();
@@ -51,6 +52,17 @@ export default function Editor() {
       ...en.drag_handle,
       delete_menuitem: "Sil",
       colors_menuitem: "Renkler",
+    },
+    table_handle: {
+      delete_column_menuitem: "Sütunu Sil",
+      delete_row_menuitem: "Satırı Sil",
+      add_left_menuitem: "Sütun Ekle (sola)",
+      add_right_menuitem: "Sütun Ekle (sağa)",
+      add_above_menuitem: "Satır Ekle (üstüne)",
+      add_below_menuitem: "Satır Ekle (altına)",
+      split_cell_menuitem: "Hücreyi Böl",
+      merge_cells_menuitem: "Hücreleri Birleştir",
+      background_color_menuitem: "Arka Plan Rengi",
     },
     slash_menu: {
       heading: {
@@ -204,6 +216,12 @@ export default function Editor() {
     blockSpecs: {
       ...defaultBlockSpecs,
       callout: CalloutBlock,
+    },
+    tables: {
+      splitCells: true,
+      cellBackgroundColor: true,
+      cellTextColor: true,
+      headers: true,
     },
     links: {
       onClick: (event: MouseEvent) => {
@@ -500,8 +518,135 @@ export default function Editor() {
                 if (titleLower.includes('4') || titleLower.includes('5') || titleLower.includes('6')) {
                   return false;
                 }
-                return allowedTypes.some(t => titleLower.includes(t));
+                if ((item as any).key === 'table' || titleLower === 'table' || titleLower === 'tablo') {
+                  return false;
+                }
+                return allowedTypes.some(t => titleLower.includes(t) && t !== 'table' && t !== 'tablo');
               });
+
+              const customTableItem = {
+                title: i18n.language.startsWith("tr") ? "Tablo" : "Table",
+                subtext: i18n.language.startsWith("tr") ? "3x3 tablo oluştur" : "Create a 3x3 table",
+                aliases: ["table", "tablo", "grid"],
+                group: i18n.language.startsWith("tr") ? "Gelişmiş" : "Advanced",
+                icon: <Table2 size={18} />,
+                onItemClick: () => {
+                  const currentBlock = editor.getTextCursorPosition().block;
+                  const tableBlock = {
+                    type: "table",
+                    content: {
+                      type: "tableContent",
+                      columnWidths: [undefined, undefined, undefined],
+                      rows: [
+                        {
+                          cells: [
+                            {
+                              type: "tableCell",
+                              props: {
+                                backgroundColor: "default",
+                                textColor: "default",
+                                textAlignment: "left",
+                              },
+                              content: [{ type: "text", text: "", styles: { bold: true } }]
+                            },
+                            {
+                              type: "tableCell",
+                              props: {
+                                backgroundColor: "default",
+                                textColor: "default",
+                                textAlignment: "left",
+                              },
+                              content: [{ type: "text", text: "", styles: { bold: true } }]
+                            },
+                            {
+                              type: "tableCell",
+                              props: {
+                                backgroundColor: "default",
+                                textColor: "default",
+                                textAlignment: "left",
+                              },
+                              content: [{ type: "text", text: "", styles: { bold: true } }]
+                            }
+                          ]
+                        },
+                        {
+                          cells: [
+                            {
+                              type: "tableCell",
+                              props: {
+                                backgroundColor: "default",
+                                textColor: "default",
+                                textAlignment: "left",
+                              },
+                              content: [{ type: "text", text: "", styles: {} }]
+                            },
+                            {
+                              type: "tableCell",
+                              props: {
+                                backgroundColor: "default",
+                                textColor: "default",
+                                textAlignment: "left",
+                              },
+                              content: [{ type: "text", text: "", styles: {} }]
+                            },
+                            {
+                              type: "tableCell",
+                              props: {
+                                backgroundColor: "default",
+                                textColor: "default",
+                                textAlignment: "left",
+                              },
+                              content: [{ type: "text", text: "", styles: {} }]
+                            }
+                          ]
+                        },
+                        {
+                          cells: [
+                            {
+                              type: "tableCell",
+                              props: {
+                                backgroundColor: "default",
+                                textColor: "default",
+                                textAlignment: "left",
+                              },
+                              content: [{ type: "text", text: "", styles: {} }]
+                            },
+                            {
+                              type: "tableCell",
+                              props: {
+                                backgroundColor: "default",
+                                textColor: "default",
+                                textAlignment: "left",
+                              },
+                              content: [{ type: "text", text: "", styles: {} }]
+                            },
+                            {
+                              type: "tableCell",
+                              props: {
+                                backgroundColor: "default",
+                                textColor: "default",
+                                textAlignment: "left",
+                              },
+                              content: [{ type: "text", text: "", styles: {} }]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  };
+                  
+                  const contentArray = currentBlock.content as any;
+                  const isEmpty = !contentArray || (Array.isArray(contentArray) && (
+                    contentArray.length === 0 || 
+                    (contentArray.length === 1 && contentArray[0].type === "text" && contentArray[0].text === "")
+                  ));
+                  if (isEmpty) {
+                    editor.replaceBlocks([currentBlock], [tableBlock as any]);
+                  } else {
+                    editor.insertBlocks([tableBlock as any], currentBlock, "after");
+                  }
+                }
+              };
 
               const calloutItems = [
                 { title: `💡 ${t("editor.callout.infoTitle", "Bilgi Notu")}`, group: t("editor.callout.group", "Callout"),
@@ -525,7 +670,7 @@ export default function Editor() {
                     [{ type: 'callout' as any, props: { type: 'tip' } }],
                     editor.getTextCursorPosition().block, 'after') },
               ];
-              const allItems = [...filteredDefaultItems, ...calloutItems] as any[];
+              const allItems = [...filteredDefaultItems, customTableItem, ...calloutItems] as any[];
               return allItems.filter((item) =>
                 item.title.toLowerCase().includes(query.toLowerCase())
               );

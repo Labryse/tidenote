@@ -27,7 +27,7 @@ export default function DownloadButton() {
   // Return early if not web-only (Electron/Capacitor apps)
   if (!isWebOnly()) return null;
 
-  const isTr = i18n.language.startsWith('tr');
+  const isTr = i18n.language?.startsWith('tr') ?? false;
 
   useEffect(() => {
     // Detect platform on mount

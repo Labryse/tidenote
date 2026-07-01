@@ -34,6 +34,22 @@ export interface Folder {
   color?: string | null;
 }
 
+export interface CollectionFilters {
+  type: 'tag' | 'dateRange' | 'noteType' | 'combined';
+  tagIds: string[];
+  dateRangeDays: number | null; // son X gün
+  noteType: 'document' | 'canvas' | 'all';
+  favoriteOnly: boolean;
+}
+
+export interface Collection {
+  id: string;
+  name: string;
+  icon: string; // Lucide icon name or emoji
+  filters: CollectionFilters;
+  createdAt: any;
+}
+
 export interface ToastState {
   message: string;
   type: "success" | "error" | "warning";
