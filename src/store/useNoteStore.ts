@@ -226,3 +226,13 @@ export const useNoteStore = create<NoteState>((set) => ({
     }, 1000);
   },
 }));
+
+export const PREMIUM_ENABLED = false; // TODO: 50-100 kullanıcıda true yap
+
+export const useSubscription = () => {
+  const userTier = useNoteStore((state) => state.userTier);
+  const checkActualSubscription = () => userTier === "premium";
+  const isPremium = PREMIUM_ENABLED ? checkActualSubscription() : true;
+  return { isPremium };
+};
+

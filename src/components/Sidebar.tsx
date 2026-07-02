@@ -612,31 +612,36 @@ export default function Sidebar() {
     setIsLoading(true)
     let isMounted = true;
 
-    const q = query(
-      collection(db, 'notes'),
-      where('ownerId', '==', user.uid),
-      orderBy('updatedAt', 'desc')
-    )
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const timer = setTimeout(() => {
       if (!isMounted) return;
-      const notesList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Note[]
-      setNotes(notesList)
-      setIsLoading(false)
-    }, (error) => {
-      console.error('onSnapshot error:', error)
-      if (isMounted) {
-        setIsLoading(false);
-      }
-    })
 
-    notesUnsubRef.current = unsubscribe;
+      const q = query(
+        collection(db, 'notes'),
+        where('ownerId', '==', user.uid),
+        orderBy('updatedAt', 'desc')
+      )
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        if (!isMounted) return;
+        const notesList = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Note[]
+        setNotes(notesList)
+        setIsLoading(false)
+      }, (error) => {
+        console.error('onSnapshot error:', error)
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      })
+
+      notesUnsubRef.current = unsubscribe;
+    }, 50);
 
     return () => {
       isMounted = false;
+      clearTimeout(timer);
       if (notesUnsubRef.current) {
         notesUnsubRef.current();
         notesUnsubRef.current = null;
@@ -653,19 +658,25 @@ export default function Sidebar() {
 
     if (!user) { setFolders([]); return; }
     let isMounted = true;
-    const q = query(
-      collection(db, "users", user.uid, "folders"),
-      orderBy("createdAt", "asc")
-    );
-    const unsubscribe = onSnapshot(q, (snap) => {
-      if (!isMounted) return;
-      setFolders(snap.docs.map(d => ({ id: d.id, ...d.data() } as Folder)));
-    }, (err) => { console.error("folders onSnapshot error:", err); });
 
-    foldersUnsubRef.current = unsubscribe;
+    const timer = setTimeout(() => {
+      if (!isMounted) return;
+
+      const q = query(
+        collection(db, "users", user.uid, "folders"),
+        orderBy("createdAt", "asc")
+      );
+      const unsubscribe = onSnapshot(q, (snap) => {
+        if (!isMounted) return;
+        setFolders(snap.docs.map(d => ({ id: d.id, ...d.data() } as Folder)));
+      }, (err) => { console.error("folders onSnapshot error:", err); });
+
+      foldersUnsubRef.current = unsubscribe;
+    }, 50);
 
     return () => {
       isMounted = false;
+      clearTimeout(timer);
       if (foldersUnsubRef.current) {
         foldersUnsubRef.current();
         foldersUnsubRef.current = null;
@@ -682,19 +693,25 @@ export default function Sidebar() {
 
     if (!user) { setCollections([]); return; }
     let isMounted = true;
-    const q = query(
-      collection(db, "users", user.uid, "collections"),
-      orderBy("createdAt", "asc")
-    );
-    const unsubscribe = onSnapshot(q, (snap) => {
-      if (!isMounted) return;
-      setCollections(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)));
-    }, (err) => { console.error("collections onSnapshot error:", err); });
 
-    collectionsUnsubRef.current = unsubscribe;
+    const timer = setTimeout(() => {
+      if (!isMounted) return;
+
+      const q = query(
+        collection(db, "users", user.uid, "collections"),
+        orderBy("createdAt", "asc")
+      );
+      const unsubscribe = onSnapshot(q, (snap) => {
+        if (!isMounted) return;
+        setCollections(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)));
+      }, (err) => { console.error("collections onSnapshot error:", err); });
+
+      collectionsUnsubRef.current = unsubscribe;
+    }, 50);
 
     return () => {
       isMounted = false;
+      clearTimeout(timer);
       if (collectionsUnsubRef.current) {
         collectionsUnsubRef.current();
         collectionsUnsubRef.current = null;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { useNoteStore } from "../store/useNoteStore";
+import { useNoteStore, PREMIUM_ENABLED } from "../store/useNoteStore";
 import { User as UserIcon, Palette, HardDrive, CreditCard, Download, Info, Camera, Sun, Moon, AlertTriangle, Crown, FileText, Star, Archive } from "lucide-react";
 import { version } from "../../package.json";
 import { auth, db, storage } from "../lib/firebase";
@@ -160,7 +160,8 @@ export default function SettingsModal() {
 
   const usedBytes = calculateStorageBytes(notes);
   const usedMB = usedBytes / (1024 * 1024);
-  const limitMB = userTier === "premium" ? 10240 : 1024;
+  const isPremium = PREMIUM_ENABLED ? (userTier === "premium") : true;
+  const limitMB = 1024;
   const percentage = Math.min((usedMB / limitMB) * 100, 100);
 
   // Storage color helper
@@ -378,9 +379,11 @@ export default function SettingsModal() {
             </div>
             <div className="settings-user-info">
               <span className="settings-username">{rawUsername}</span>
-              <span className={`settings-plan-badge ${userTier}`} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                {userTier === "premium" ? <><Crown size={11} />{t("landing.pricing.premium", "Premium")}</> : t("landing.pricing.free", "Free")}
-              </span>
+              {PREMIUM_ENABLED && (
+                <span className={`settings-plan-badge ${userTier}`} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  {userTier === "premium" ? <><Crown size={11} />{t("landing.pricing.premium", "Premium")}</> : t("landing.pricing.free", "Free")}
+                </span>
+              )}
             </div>
           </div>
 
@@ -406,13 +409,15 @@ export default function SettingsModal() {
               <HardDrive size={16} className="settings-nav-icon" />
               {t("settings.storage", "Depolama")}
             </button>
-            <button
-              className={`settings-nav-item ${settingsTab === "billing" ? "active" : ""}`}
-              onClick={() => setSettingsTab("billing")}
-            >
-              <CreditCard size={16} className="settings-nav-icon" />
-              {t("settings.billing", "Plan & Fatura")}
-            </button>
+            {PREMIUM_ENABLED && (
+              <button
+                className={`settings-nav-item ${settingsTab === "billing" ? "active" : ""}`}
+                onClick={() => setSettingsTab("billing")}
+              >
+                <CreditCard size={16} className="settings-nav-icon" />
+                {t("settings.billing", "Plan & Fatura")}
+              </button>
+            )}
             <button
               className={`settings-nav-item ${settingsTab === "import" ? "active" : ""}`}
               onClick={() => setSettingsTab("import")}
@@ -694,7 +699,7 @@ export default function SettingsModal() {
               <div className="storage-progress-section">
                 <div className="storage-progress-header">
                   <span>
-                    {t("settings.usedSpace", "Kullanılan Alan")}: <strong>{usedMB.toFixed(1)} MB</strong> / {userTier === "premium" ? "10 GB" : "1 GB"}
+                    {t("settings.usedSpace", "Kullanılan Alan")}: <strong>{usedMB.toFixed(1)} MB</strong> / 1 GB
                   </span>
                   <span>{percentage.toFixed(1)}%</span>
                 </div>
@@ -714,12 +719,17 @@ export default function SettingsModal() {
                       {t("settings.storageWarningBold", "Depolama alanınız dolmak üzere.")}
                     </p>
                     <p className="warning-sub-text">
-                      {t("settings.storageWarningText", "Yeni notlar oluşturmaya devam etmek için Premium'a geçin.")}
+                      {PREMIUM_ENABLED
+                        ? t("settings.storageWarningText", "Yeni notlar oluşturmaya devam etmek için Premium'a geçin.")
+                        : t("settings.storageWarningTextFree", "Yeni notlar oluşturmaya devam etmek için lütfen gereksiz not veya dosyaları silerek alan açın.")
+                      }
                     </p>
                   </div>
-                  <button className="upgrade-warning-btn" style={{ display: "flex", alignItems: "center", gap: "6px" }} onClick={() => setSettingsTab("billing")}>
-                    <Crown size={13} /> {t("landing.pricing.premiumBtn", "Premium'a Geç")}
-                  </button>
+                  {PREMIUM_ENABLED && (
+                    <button className="upgrade-warning-btn" style={{ display: "flex", alignItems: "center", gap: "6px" }} onClick={() => setSettingsTab("billing")}>
+                      <Crown size={13} /> {t("landing.pricing.premiumBtn", "Premium'a Geç")}
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -752,7 +762,7 @@ export default function SettingsModal() {
           )}
 
           {/* 4. BILLING PAGE */}
-          {settingsTab === "billing" && (
+          {settingsTab === "billing" && PREMIUM_ENABLED && (
             <div className="settings-pane">
               <h2 className="settings-pane-title">{t("settings.billing", "Plan & Fatura")}</h2>
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { useNoteStore, type Note } from "../store/useNoteStore";
+import { useNoteStore, type Note, PREMIUM_ENABLED } from "../store/useNoteStore";
 import { exportToBlob, exportToSvg } from "@excalidraw/excalidraw";
 import { Document as PDFDocument, Page as PDFPage, Text as PDFText, StyleSheet as PDFStyleSheet, pdf, Font } from "@react-pdf/renderer";
 import { Document as DocxDocument, Packer, Paragraph, HeadingLevel, TextRun } from "docx";
@@ -152,9 +152,9 @@ export default function TopBar({ note }: TopBarProps) {
 
   if (!note) return null;
 
-  const isPremium = userTier === "premium";
+  const isPremium = PREMIUM_ENABLED ? (userTier === "premium") : true;
   const tags = note.tags || [];
-  const shareUrl = `${window.location.origin}/note/${note.id}`;
+  const shareUrl = `${window.location.origin}/#/note/${note.id}`;
 
   const handleCopyLink = async () => {
     try {

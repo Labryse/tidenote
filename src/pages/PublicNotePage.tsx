@@ -6,92 +6,31 @@ import { Excalidraw } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
 import LoadingSpinner from "../components/LoadingSpinner";
 
-// ── Inline content renderer ──────────────────────────────────
-function renderInline(content: any[]): React.ReactNode {
-  if (!content || !Array.isArray(content)) return null;
-  return content.map((c: any, i: number) => {
-    if (c.type === "link") {
-      return (
-        <a key={i} href={c.href} target="_blank" rel="noreferrer">
-          {renderInline(c.content)}
-        </a>
-      );
-    }
-    let el: React.ReactNode = c.text || "";
-    if (c.styles?.bold) el = <strong>{el}</strong>;
-    if (c.styles?.italic) el = <em>{el}</em>;
-    if (c.styles?.underline) el = <u>{el}</u>;
-    if (c.styles?.strike) el = <s>{el}</s>;
-    if (c.styles?.code) el = <code className="public-inline-code">{el}</code>;
-    return <React.Fragment key={i}>{el}</React.Fragment>;
+import { useCreateBlockNote } from "@blocknote/react";
+import { BlockNoteView } from "@blocknote/mantine";
+import { MantineProvider } from "@mantine/core";
+import { defaultBlockSpecs } from "@blocknote/core";
+import { CalloutBlock } from "../components/CalloutBlock";
+import "@blocknote/core/fonts/inter.css";
+import "@blocknote/mantine/style.css";
+import "@mantine/core/styles.css";
+
+function BlockNoteReader({ content }: { content: any[] }) {
+  const editor = useCreateBlockNote({
+    initialContent: content,
+    blockSpecs: {
+      ...defaultBlockSpecs,
+      callout: CalloutBlock,
+    },
   });
-}
 
-// ── Block renderer ────────────────────────────────────────────
-function renderBlocks(blocks: any[]): React.ReactNode {
-  if (!blocks || !Array.isArray(blocks)) return null;
-  const out: React.ReactNode[] = [];
-  let i = 0;
-
-  while (i < blocks.length) {
-    const block = blocks[i];
-    if (!block) { i++; continue; }
-
-    if (block.type === "bulletListItem") {
-      const items: React.ReactNode[] = [];
-      while (i < blocks.length && blocks[i]?.type === "bulletListItem") {
-        items.push(<li key={i}>{renderInline(blocks[i].content)}</li>);
-        i++;
-      }
-      out.push(<ul key={`ul-${i}`} className="public-list">{items}</ul>);
-      continue;
-    }
-
-    if (block.type === "numberedListItem") {
-      const items: React.ReactNode[] = [];
-      while (i < blocks.length && blocks[i]?.type === "numberedListItem") {
-        items.push(<li key={i}>{renderInline(blocks[i].content)}</li>);
-        i++;
-      }
-      out.push(<ol key={`ol-${i}`} className="public-list">{items}</ol>);
-      continue;
-    }
-
-    const inline = renderInline(block.content);
-
-    switch (block.type) {
-      case "heading": {
-        const lvl = block.props?.level || 1;
-        if (lvl === 1) out.push(<h1 key={i} className="public-h1">{inline}</h1>);
-        else if (lvl === 2) out.push(<h2 key={i} className="public-h2">{inline}</h2>);
-        else out.push(<h3 key={i} className="public-h3">{inline}</h3>);
-        break;
-      }
-      case "checkListItem":
-        out.push(
-          <div key={i} className="public-check-item">
-            <input type="checkbox" checked={block.props?.checked || false} readOnly />
-            <span>{inline}</span>
-          </div>
-        );
-        break;
-      case "image":
-        if (block.props?.url) {
-          out.push(
-            <figure key={i} className="public-figure">
-              <img src={block.props.url} alt={block.props.caption || ""} className="public-img" />
-              {block.props.caption && <figcaption>{block.props.caption}</figcaption>}
-            </figure>
-          );
-        }
-        break;
-      default:
-        out.push(<p key={i} className="public-p">{inline}</p>);
-    }
-    i++;
-  }
-
-  return out;
+  return (
+    <BlockNoteView
+      editor={editor}
+      editable={false}
+      theme="dark"
+    />
+  );
 }
 
 // ── Document public view ──────────────────────────────────────
@@ -116,7 +55,11 @@ function DocumentPublicView({ note }: { note: any }) {
       <main className="public-note-document">
         <h1 className="public-note-title">{note.title || "Başlıksız Not"}</h1>
         <div className="public-note-content">
-          {blocks.length > 0 ? renderBlocks(blocks) : (
+          {blocks.length > 0 ? (
+            <MantineProvider>
+              <BlockNoteReader content={blocks} />
+            </MantineProvider>
+          ) : (
             <p className="public-note-empty">Bu not henüz içerik içermiyor.</p>
           )}
         </div>
