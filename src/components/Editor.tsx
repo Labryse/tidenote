@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, startTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import "@blocknote/core/fonts/inter.css";
 import { useCreateBlockNote, SuggestionMenuController, getDefaultReactSlashMenuItems } from "@blocknote/react";
@@ -279,8 +279,9 @@ export default function Editor() {
   const saveNoteToFirestore = async (noteId: string, document: any[]) => {
     try {
       const noteRef = doc(db, "notes", noteId);
+      const sanitizedDocument = JSON.parse(JSON.stringify(document));
       await updateDoc(noteRef, {
-        content: document,
+        content: sanitizedDocument,
         updatedAt: serverTimestamp(),
       });
     } catch (error: any) {
@@ -372,15 +373,18 @@ export default function Editor() {
     const currentDoc = editor.document;
     const currentDocStr = JSON.stringify(currentDoc);
 
-    // Update headings reactively
-    const h = currentDoc
-      .filter((block: any) => block.type === "heading")
-      .map((block: any) => ({
-        level: block.props.level,
-        text: block.content.map((c: any) => c.text).join(""),
-        id: block.id,
-      }));
-    setHeadings(h);
+    // Update headings reactively — wrapped in startTransition so this low-priority
+    // state update doesn't interrupt ongoing user interactions (e.g. slash menu clicks)
+    startTransition(() => {
+      const h = currentDoc
+        .filter((block: any) => block.type === "heading")
+        .map((block: any) => ({
+          level: block.props.level,
+          text: block.content.map((c: any) => c.text).join(""),
+          id: block.id,
+        }));
+      setHeadings(h);
+    });
 
     // If no change, return
     if (currentDocStr === lastLoadedContentRef.current) return;
@@ -496,6 +500,7 @@ export default function Editor() {
             editor={editor}
             onChange={handleEditorChange}
             theme={theme}
+            slashMenu={false}
           >
           <SuggestionMenuController
             triggerCharacter="/"

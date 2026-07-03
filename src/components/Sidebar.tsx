@@ -622,8 +622,14 @@ export default function Sidebar() {
         orderBy('updatedAt', 'desc')
       )
 
-      const unsubscribe = onSnapshot(q, (snapshot) => {
+      const unsubscribe = onSnapshot(q, { includeMetadataChanges: true }, (snapshot) => {
         if (!isMounted) return;
+        // Skip snapshots that only contain our own local (optimistic) writes.
+        // hasPendingWrites:true means Firestore echoed back what WE just wrote —
+        // processing this causes a setNotes → re-render loop that breaks the
+        // BlockNote slash menu while the user is still interacting with it.
+        if (snapshot.docs.every(d => d.metadata.hasPendingWrites)) return;
+
         const notesList = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()

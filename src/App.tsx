@@ -473,8 +473,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={user ? <Navigate to="/app" replace /> : <Auth />} />
         <Route path="/auth-redirect" element={<AuthRedirectPage />} />
-        <Route path="/app" element={user ? <WorkspaceApp /> : <Navigate to="/login" replace />} />
-        <Route path="/app/:noteId" element={user ? <WorkspaceApp /> : <Navigate to="/login" replace />} />
+        <Route path="/app/:noteId?" element={user ? <WorkspaceApp /> : <Navigate to="/login" replace />} />
         <Route path="/note/:noteId" element={<PublicNotePage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
