@@ -385,20 +385,34 @@ function App() {
   useEffect(() => {
     let isMounted = true;
     let unsubscribeUserDoc: (() => void) | null = null;
+    // Tracks which uid the user-doc listener is currently attached to, so that
+    // repeat onAuthStateChanged firings for the SAME user (e.g. silent token
+    // refresh) don't tear down and immediately re-create the identical
+    // Firestore listener — doing so races the SDK's internal target-teardown
+    // and throws "Target ID already exists".
+    let subscribedUid: string | null = null;
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       if (!isMounted) return;
 
-      if (unsubscribeUserDoc) {
-        unsubscribeUserDoc();
-        unsubscribeUserDoc = null;
-      }
-
       if (firebaseUser) {
         setUser(firebaseUser);
-        
+
+        if (subscribedUid === firebaseUser.uid) {
+          // Same user re-emitted (e.g. token refresh) — listener already active.
+          setAuthChecking(false);
+          setIsLoading(false);
+          return;
+        }
+
+        if (unsubscribeUserDoc) {
+          unsubscribeUserDoc();
+          unsubscribeUserDoc = null;
+        }
+        subscribedUid = firebaseUser.uid;
+
         const userDocRef = doc(db, "users", firebaseUser.uid);
-        
+
         // Listen to changes on the user doc
         const unsub = onSnapshot(userDocRef, async (docSnap) => {
           if (!isMounted) {
@@ -435,6 +449,11 @@ function App() {
         });
         unsubscribeUserDoc = unsub;
       } else {
+        if (unsubscribeUserDoc) {
+          unsubscribeUserDoc();
+          unsubscribeUserDoc = null;
+        }
+        subscribedUid = null;
         setUser(null);
         setUserTier("free");
         setFirestoreUser(null);
