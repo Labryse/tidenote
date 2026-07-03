@@ -961,7 +961,7 @@ export default function SettingsModal() {
                   {t("landing.footer.terms", "Kullanım Şartları")}
                 </button>
                 <span className="about-divider">•</span>
-                <a href="https://tidenote-22fde.web.app" target="_blank" rel="noreferrer" className="about-link-item">
+                <a href="https://tidenote.app" target="_blank" rel="noreferrer" className="about-link-item">
                   tidenote.app
                 </a>
               </div>

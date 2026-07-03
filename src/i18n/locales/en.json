@@ -1,4 +1,4 @@
-﻿{
+{
   "sidebar": {
     "newNote": "New Note",
     "newDocument": "New Document",
@@ -364,7 +364,7 @@
         "title": "11. Contact",
         "p1": "For your questions:",
         "email": "Email: info@tidenote.app",
-        "web": "Web: https://tidenote-22fde.web.app"
+        "web": "Web: https://tidenote.app"
       }
     }
   },
@@ -462,7 +462,7 @@
         "title": "12. Contact",
         "p1": "For your questions:",
         "email": "Email: info@tidenote.app",
-        "web": "Web: https://tidenote-22fde.web.app"
+        "web": "Web: https://tidenote.app"
       }
     }
   }

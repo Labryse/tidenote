@@ -4,18 +4,14 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useNoteStore, type Note, PREMIUM_ENABLED } from "../store/useNoteStore";
 import { exportToBlob, exportToSvg } from "@excalidraw/excalidraw";
-import { Document as PDFDocument, Page as PDFPage, Text as PDFText, StyleSheet as PDFStyleSheet, pdf, Font } from "@react-pdf/renderer";
+import { PDFDocument, rgb } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
+import interRegularUrl from "../assets/fonts/Inter-Regular.ttf";
+import interBoldUrl from "../assets/fonts/Inter-Bold.ttf";
 import { Document as DocxDocument, Packer, Paragraph, HeadingLevel, TextRun } from "docx";
 import { saveAs } from "file-saver";
 import { FileText, Image, ImageOff, Pen, File, Lock, Maximize2, Minimize2, Info, Share2, Link2, Globe, UserPlus } from "lucide-react";
-
-Font.register({
-  family: 'Inter',
-  fonts: [
-    { src: 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff' },
-    { src: 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuI6fAZ9hiJ-Ek-_EeA.woff', fontWeight: 700 }
-  ]
-});
+import { getNoteRoute } from "../lib/platform";
 
 interface TopBarProps {
   note: Note | undefined;
@@ -29,69 +25,6 @@ const TAG_COLORS = [
   { id: "red", hex: "#ef4444", label: "Red" },
   { id: "orange", hex: "#f97316", label: "Orange" }
 ];
-
-const pdfStyles = PDFStyleSheet.create({
-  page: {
-    padding: 40,
-    fontSize: 11,
-    color: "#1A202C",
-    fontFamily: "Inter",
-    lineHeight: 1.5,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    color: "#0F172A",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E2E8F0",
-    paddingBottom: 10,
-    fontFamily: "Inter",
-  },
-  heading1: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginTop: 15,
-    marginBottom: 8,
-    color: "#0F172A",
-    fontFamily: "Inter",
-  },
-  heading2: {
-    fontSize: 14,
-    fontWeight: "bold",
-    marginTop: 12,
-    marginBottom: 6,
-    color: "#1E293B",
-    fontFamily: "Inter",
-  },
-  paragraph: {
-    marginBottom: 10,
-    fontFamily: "Inter",
-  },
-  bulletItem: {
-    marginBottom: 6,
-    paddingLeft: 12,
-    fontFamily: "Inter",
-  },
-  numberedItem: {
-    marginBottom: 6,
-    paddingLeft: 12,
-    fontFamily: "Inter",
-  },
-  watermark: {
-    position: "absolute",
-    bottom: 20,
-    left: 40,
-    right: 40,
-    textAlign: "center",
-    fontSize: 9,
-    color: "#A0AEC0",
-    borderTopWidth: 1,
-    borderTopColor: "#E2E8F0",
-    paddingTop: 8,
-    fontFamily: "Inter",
-  }
-});
 
 export default function TopBar({ note }: TopBarProps) {
   const { t } = useTranslation();
@@ -154,7 +87,7 @@ export default function TopBar({ note }: TopBarProps) {
 
   const isPremium = PREMIUM_ENABLED ? (userTier === "premium") : true;
   const tags = note.tags || [];
-  const shareUrl = `${window.location.origin}/#/note/${note.id}`;
+  const shareUrl = `${window.location.origin}${getNoteRoute(note.id)}`;
 
   const handleCopyLink = async () => {
     try {
@@ -197,22 +130,7 @@ export default function TopBar({ note }: TopBarProps) {
     URL.revokeObjectURL(url);
   };
 
-  const handleExportMarkdown = () => {
-    if (!editorInstance) {
-      showToast(t("toast.error", "Editör hazır değil"), "error");
-      return;
-    }
-    try {
-      const markdownContent = editorInstance.blocksToMarkdownLossy(editorInstance.document);
-      const blob = new Blob([markdownContent], { type: "text/markdown;charset=utf-8;" });
-      downloadFile(blob, `${note.title || t("sidebar.untitledNote")}.md`);
-      setIsSharePanelOpen(false);
-      showToast(t("toast.exportSuccess", "Markdown başarıyla indirildi"), "success");
-    } catch (err) {
-      console.error("Error exporting Markdown:", err);
-      showToast(t("toast.saveError", "Markdown dışa aktarılamadı"), "error");
-    }
-  };
+
 
   const handleExportPNG = async (transparent: boolean) => {
     if (!excalidrawAPI) {
@@ -289,20 +207,94 @@ export default function TopBar({ note }: TopBarProps) {
     }
   };
 
-  const handleExportPDF = async (isFull: boolean) => {
+  const handleExportPDF = async () => {
     try {
       setIsSharePanelOpen(false);
       showToast(t("toast.pdfPreparing", "PDF hazırlanıyor..."), "success");
 
+      const pdfDoc = await PDFDocument.create();
+      pdfDoc.registerFontkit(fontkit);
+
+      const regularBytes = await fetch(interRegularUrl).then((res) => res.arrayBuffer());
+      const boldBytes = await fetch(interBoldUrl).then((res) => res.arrayBuffer());
+
+      const regularFont = await pdfDoc.embedFont(regularBytes);
+      const boldFont = await pdfDoc.embedFont(boldBytes);
+
+      let page = pdfDoc.addPage([595.28, 841.89]);
+      let currentY = 841.89 - 50; // 791.89
+
+      const checkPageBreak = (neededHeight: number) => {
+        if (currentY - neededHeight < 50) {
+          page = pdfDoc.addPage([595.28, 841.89]);
+          currentY = 841.89 - 50;
+        }
+      };
+
+      const wordWrap = (text: string, font: any, size: number, maxWidth: number): string[] => {
+        const words = text.split(" ");
+        const lines: string[] = [];
+        let currentLine = "";
+
+        for (const word of words) {
+          const testLine = currentLine ? `${currentLine} ${word}` : word;
+          const testWidth = font.widthOfTextAtSize(testLine, size);
+          if (testWidth > maxWidth) {
+            if (currentLine) lines.push(currentLine);
+            currentLine = word;
+          } else {
+            currentLine = testLine;
+          }
+        }
+        if (currentLine) lines.push(currentLine);
+        return lines;
+      };
+
+      const wrapText = (text: string, font: any, size: number, maxWidth: number): string[] => {
+        const segments = text.split("\n");
+        const result: string[] = [];
+        for (const segment of segments) {
+          result.push(...wordWrap(segment, font, size, maxWidth));
+        }
+        return result;
+      };
+
+      // Draw title
+      const titleText = note ? (note.title || t("sidebar.untitledNote")) : t("sidebar.untitledNote");
+      const titleWrapped = wrapText(titleText, boldFont, 24, 515.28);
+      
+      for (const line of titleWrapped) {
+        checkPageBreak(30);
+        page.drawText(line, {
+          x: 40,
+          y: currentY - 24,
+          size: 24,
+          font: boldFont,
+          color: rgb(15 / 255, 23 / 255, 42 / 255), // slate-900
+        });
+        currentY -= 30;
+      }
+
+      // Title divider line
+      checkPageBreak(15);
+      page.drawLine({
+        start: { x: 40, y: currentY - 5 },
+        end: { x: 595.28 - 40, y: currentY - 5 },
+        thickness: 1,
+        color: rgb(226 / 255, 232 / 255, 240 / 255), // slate-200
+      });
+      currentY -= 20;
+
+      // Extract editor blocks
       let blocks: any[] = [];
-      if (typeof note.content === "string") {
-        try { blocks = JSON.parse(note.content); } catch { /* ignore */ }
-      } else if (Array.isArray(note.content)) {
-        blocks = note.content;
+      if (note) {
+        if (typeof note.content === "string") {
+          try { blocks = JSON.parse(note.content); } catch { /* ignore */ }
+        } else if (Array.isArray(note.content)) {
+          blocks = note.content;
+        }
       }
       if (!blocks || blocks.length === 0) blocks = [{ type: "paragraph", content: [] }];
-
-      const blocksToExport = isFull ? blocks : blocks.slice(0, 15);
 
       const getBlockText = (content: any): string => {
         if (!content) return "";
@@ -312,43 +304,107 @@ export default function TopBar({ note }: TopBarProps) {
       };
 
       let currentListIndex = 0;
-      const elementsToRender = blocksToExport.map((block: any) => {
-        if (!block) return null;
+
+      for (const block of blocks) {
+        if (!block) continue;
         const textContent = getBlockText(block.content);
-        if (block.type === "numberedListItem") {
+        
+        let prefix = "";
+        let font = regularFont;
+        let size = 11;
+        let color = rgb(26 / 255, 32 / 255, 44 / 255); // charcoal #1A202C
+        let spacingBefore = 8;
+        let spacingLine = 16;
+        let listIndent = 0;
+
+        if (block.type === "heading") {
+          font = boldFont;
+          color = rgb(15 / 255, 23 / 255, 42 / 255);
+          const level = block.props?.level || 1;
+          if (level === 3) {
+            size = 12;
+            spacingBefore = 12;
+            spacingLine = 18;
+          } else if (level === 2) {
+            size = 14;
+            spacingBefore = 14;
+            spacingLine = 20;
+          } else {
+            size = 18;
+            spacingBefore = 16;
+            spacingLine = 24;
+          }
+          currentListIndex = 0;
+        } else if (block.type === "bulletListItem") {
+          prefix = "• ";
+          listIndent = 12;
+          currentListIndex = 0;
+          spacingBefore = 4;
+          spacingLine = 16;
+        } else if (block.type === "numberedListItem") {
           currentListIndex++;
-          return { type: "numberedListItem", text: textContent, number: currentListIndex };
+          prefix = `${currentListIndex}. `;
+          listIndent = 12;
+          spacingBefore = 4;
+          spacingLine = 16;
         } else {
           currentListIndex = 0;
-          return { type: block.type, text: textContent, level: block.props?.level };
+          spacingBefore = 6;
+          spacingLine = 16;
         }
+
+        const lines = wrapText(textContent, font, size, 515.28 - listIndent);
+
+        currentY -= spacingBefore;
+
+        for (let i = 0; i < lines.length; i++) {
+          checkPageBreak(spacingLine);
+          
+          let lineText = lines[i];
+          let drawX = 40;
+
+          if (i === 0 && prefix) {
+            // Draw prefix (e.g. bullet or list number)
+            page.drawText(prefix, {
+              x: 40,
+              y: currentY - size,
+              size: size,
+              font: font,
+              color: color,
+            });
+            drawX += listIndent;
+          } else if (prefix) {
+            drawX += listIndent;
+          }
+
+          page.drawText(lineText, {
+            x: drawX,
+            y: currentY - size,
+            size: size,
+            font: font,
+            color: color,
+          });
+
+          currentY -= spacingLine;
+        }
+      }
+
+      // Draw watermark on all pages
+      const pages = pdfDoc.getPages();
+      const watermarkWidth = regularFont.widthOfTextAtSize("TideNote", 11);
+      pages.forEach((p) => {
+        p.drawText("TideNote", {
+          x: 595.28 - 40 - watermarkWidth,
+          y: 25,
+          size: 11,
+          font: regularFont,
+          color: rgb(140 / 255, 190 / 255, 185 / 255),
+        });
       });
 
-      const PDFDoc = (
-        <PDFDocument>
-          <PDFPage size="A4" style={pdfStyles.page}>
-            <PDFText style={pdfStyles.title}>{note.title}</PDFText>
-            {elementsToRender.map((el: any, idx: number) => {
-              if (!el) return null;
-              if (el.type === "heading") {
-                return <PDFText key={idx} style={el.level === 3 ? pdfStyles.heading2 : pdfStyles.heading1}>{el.text}</PDFText>;
-              } else if (el.type === "bulletListItem") {
-                return <PDFText key={idx} style={pdfStyles.bulletItem}>• {el.text}</PDFText>;
-              } else if (el.type === "numberedListItem") {
-                return <PDFText key={idx} style={pdfStyles.numberedItem}>{el.number}. {el.text}</PDFText>;
-              } else {
-                return <PDFText key={idx} style={pdfStyles.paragraph}>{el.text}</PDFText>;
-              }
-            })}
-            {!isPremium && (
-              <PDFText style={pdfStyles.watermark}>TideNote ile oluşturuldu — tidenote.app</PDFText>
-            )}
-          </PDFPage>
-        </PDFDocument>
-      );
-
-      const blob = await pdf(PDFDoc).toBlob();
-      downloadFile(blob, `${note.title || t("sidebar.untitledNote")}.pdf`);
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([pdfBytes as any], { type: "application/pdf" });
+      downloadFile(blob, `${(note && note.title) || t("sidebar.untitledNote")}.pdf`);
       showToast(t("toast.pdfSuccess", "PDF başarıyla indirildi"), "success");
     } catch (err) {
       console.error("Error generating PDF:", err);
@@ -705,34 +761,16 @@ export default function TopBar({ note }: TopBarProps) {
                   </>
                 ) : (
                   <>
-                    <div className="share-export-row">
-                      <span className="share-export-label">
-                        <FileText size={14} />
-                        Markdown (.md)
-                      </span>
-                      <button type="button" className="share-export-action-btn" onClick={handleExportMarkdown}>
-                        İndir
-                      </button>
-                    </div>
-                    <div className="share-export-row">
-                      <span className="share-export-label">
-                        <FileText size={14} />
-                        PDF (ilk 3 sayfa)
-                      </span>
-                      <button type="button" className="share-export-action-btn" onClick={() => handleExportPDF(false)}>
-                        İndir
-                      </button>
-                    </div>
                     <div className={`share-export-row ${!isPremium ? "premium-locked" : ""}`}>
                       <span className="share-export-label">
                         <FileText size={14} />
-                        PDF (tam)
+                        PDF (.pdf)
                         {!isPremium && <Lock size={11} style={{ color: "var(--color-text-muted)", flexShrink: 0 }} />}
                       </span>
                       <button
                         type="button"
                         className="share-export-action-btn"
-                        onClick={() => handlePremiumClick("PDF (Tam)", () => handleExportPDF(true))}
+                        onClick={() => handlePremiumClick("PDF", handleExportPDF)}
                       >
                         İndir
                       </button>

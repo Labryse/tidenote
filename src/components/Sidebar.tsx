@@ -11,6 +11,7 @@ import BugReportModal from "./BugReportModal";
 import CollectionModal, { getCollectionIcon } from "./CollectionModal";
 import { extractTextFromBlocks } from "../lib/searchUtils";
 import { getResolvedName, isElectron, getLogoSrc } from "../lib/utils";
+import { getNoteRoute } from "../lib/platform";
 import { isWebOnly } from "../lib/platformDetect";
 import { getLatestRelease, findAssetForPlatform } from "../lib/githubReleases";
 
@@ -1552,7 +1553,7 @@ export default function Sidebar() {
                 className="note-menu-item"
                 onClick={() => {
                   setOpenMenuNoteId(null);
-                  window.open(window.location.origin + "/#/note/" + note.id, "_blank");
+                  window.open(window.location.origin + getNoteRoute(note.id), "_blank");
                 }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
