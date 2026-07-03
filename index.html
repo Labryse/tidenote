@@ -1,6 +1,15 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      (function() {
+        const isElectron = typeof navigator !== 'undefined' && navigator.userAgent.includes('Electron');
+        const isFile = window.location.protocol === 'file:';
+        if (!isElectron && !isFile) {
+          document.write('<base href="/" />');
+        }
+      })();
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
