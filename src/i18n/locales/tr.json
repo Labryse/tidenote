@@ -1,4 +1,4 @@
-﻿{
+{
   "sidebar": {
     "newNote": "Yeni Not",
     "newDocument": "Yeni Belge",
@@ -364,7 +364,7 @@
         "title": "11. İletişim",
         "p1": "Sorularınız için:",
         "email": "E-posta: info@tidenote.app",
-        "web": "Web: https://tidenote-22fde.web.app"
+        "web": "Web: https://tidenote.app"
       }
     }
   },
@@ -462,7 +462,7 @@
         "title": "12. İletişim",
         "p1": "Sorularınız için:",
         "email": "E-posta: info@tidenote.app",
-        "web": "Web: https://tidenote-22fde.web.app"
+        "web": "Web: https://tidenote.app"
       }
     }
   }

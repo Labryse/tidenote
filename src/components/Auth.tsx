@@ -4,6 +4,7 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithP
 import { useNoteStore } from "../store/useNoteStore";
 import { useTranslation } from "react-i18next";
 import { isElectron, getLogoSrc } from "../lib/utils";
+import { getAuthRedirectUrl } from "../lib/platform";
 
 const logoSrc = getLogoSrc();
 
@@ -20,7 +21,7 @@ export default function Auth() {
   const handleGoogleSignIn = async () => {
     if (isElectron()) {
       await (window as Window & { electronAPI?: { openExternal: (url: string) => Promise<void> } }).electronAPI?.openExternal(
-        "https://tidenote-22fde.web.app/#/auth-redirect"
+        getAuthRedirectUrl()
       );
       showToast(
         "Tarayıcıda Google hesabınızı seçin...",

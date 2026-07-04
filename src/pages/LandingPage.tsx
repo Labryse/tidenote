@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
-import { useNoteStore } from "../store/useNoteStore";
+import { useNoteStore, PREMIUM_ENABLED } from "../store/useNoteStore";
 import { useEffect, useState } from "react";
 import {
   FileText, PenSquare, Cloud, Moon, FolderOpen, CalendarDays,
@@ -186,89 +186,91 @@ export default function LandingPage() {
       </section>
 
       {/* ── PRICING ───────────────────────────────────────── */}
-      <section id="pricing" className="lp-section lp-pricing-section">
-        <div className="lp-section-inner">
-          <div className="reveal">
-            <p className="lp-eyebrow">{isTr ? "FİYATLANDIRMA" : "PRICING"}</p>
-            <h2 className="lp-section-title">
-              {t("landing.pricingTitle", "Başlamak ücretsiz.")}
-            </h2>
-          </div>
-
-          {/* Billing cycle toggle */}
-          <div className="lp-billing-toggle reveal">
-            <button
-              className={`lp-billing-btn ${billingCycle === "monthly" ? "active" : ""}`}
-              onClick={() => setBillingCycle("monthly")}
-            >
-              {t("landing.pricing.monthly", "Aylık")}
-            </button>
-            <button
-              className={`lp-billing-btn ${billingCycle === "yearly" ? "active" : ""}`}
-              onClick={() => setBillingCycle("yearly")}
-            >
-              {t("landing.pricing.yearly", "Yıllık")}
-              <span className="lp-billing-badge">{t("landing.pricing.yearlyBadge", "2 ay ücretsiz")}</span>
-            </button>
-          </div>
-
-          <div className="lp-pricing-grid">
-            {/* FREE */}
-            <div className="lp-pricing-card reveal">
-              <p className="lp-plan-name">{t("landing.pricing.free", "Ücretsiz")}</p>
-              <div className="lp-plan-price">
-                <span className="lp-price-num">$0</span>
-                <span className="lp-price-per">/{t("settings.month", "ay")}</span>
-              </div>
-              <ul className="lp-plan-list">
-                {freeFeatures.map((feat, i) => (
-                  <li key={i}><Check size={14} /><span>{feat}</span></li>
-                ))}
-              </ul>
-              <Link to={user ? "/app" : "/login"} className="lp-plan-btn lp-plan-btn-free">
-                {t("landing.pricing.freeBtn", "Hemen Başla")}
-              </Link>
+      {PREMIUM_ENABLED && (
+        <section id="pricing" className="lp-section lp-pricing-section">
+          <div className="lp-section-inner">
+            <div className="reveal">
+              <p className="lp-eyebrow">{isTr ? "FİYATLANDIRMA" : "PRICING"}</p>
+              <h2 className="lp-section-title">
+                {t("landing.pricingTitle", "Başlamak ücretsiz.")}
+              </h2>
             </div>
 
-            {/* PREMIUM */}
-            <div className="lp-pricing-card lp-pricing-popular reveal" style={{ transitionDelay: "0.1s" }}>
-              <span className="lp-popular-badge">{t("landing.pricing.popular", "En Popüler")}</span>
-              <p className="lp-plan-name">{t("landing.pricing.premium", "Premium")}</p>
-              <div className="lp-plan-price">
-                {billingCycle === "yearly" ? (
-                  <>
-                    <span className="lp-price-num">$24.99</span>
-                    <span className="lp-price-per">/{t("settings.year", "yıl")}</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="lp-price-num">$2.99</span>
-                    <span className="lp-price-per">/{t("settings.month", "ay")}</span>
-                  </>
-                )}
-              </div>
-              <ul className="lp-plan-list">
-                {premiumFeatures.map((feat, i) => (
-                  <li key={i}><Check size={14} /><span>{feat}</span></li>
-                ))}
-              </ul>
+            {/* Billing cycle toggle */}
+            <div className="lp-billing-toggle reveal">
               <button
-                className="lp-plan-btn lp-plan-btn-premium"
-                onClick={() => {
-                  if (user) {
-                    setSettingsTab("billing");
-                    setIsSettingsOpen(true);
-                  } else {
-                    navigate("/login");
-                  }
-                }}
+                className={`lp-billing-btn ${billingCycle === "monthly" ? "active" : ""}`}
+                onClick={() => setBillingCycle("monthly")}
               >
-                {t("landing.pricing.premiumBtn", "Premium'a Geç")}
+                {t("landing.pricing.monthly", "Aylık")}
+              </button>
+              <button
+                className={`lp-billing-btn ${billingCycle === "yearly" ? "active" : ""}`}
+                onClick={() => setBillingCycle("yearly")}
+              >
+                {t("landing.pricing.yearly", "Yıllık")}
+                <span className="lp-billing-badge">{t("landing.pricing.yearlyBadge", "2 ay ücretsiz")}</span>
               </button>
             </div>
+
+            <div className="lp-pricing-grid">
+              {/* FREE */}
+              <div className="lp-pricing-card reveal">
+                <p className="lp-plan-name">{t("landing.pricing.free", "Ücretsiz")}</p>
+                <div className="lp-plan-price">
+                  <span className="lp-price-num">$0</span>
+                  <span className="lp-price-per">/{t("settings.month", "ay")}</span>
+                </div>
+                <ul className="lp-plan-list">
+                  {freeFeatures.map((feat, i) => (
+                    <li key={i}><Check size={14} /><span>{feat}</span></li>
+                  ))}
+                </ul>
+                <Link to={user ? "/app" : "/login"} className="lp-plan-btn lp-plan-btn-free">
+                  {t("landing.pricing.freeBtn", "Hemen Başla")}
+                </Link>
+              </div>
+
+              {/* PREMIUM */}
+              <div className="lp-pricing-card lp-pricing-popular reveal" style={{ transitionDelay: "0.1s" }}>
+                <span className="lp-popular-badge">{t("landing.pricing.popular", "En Popüler")}</span>
+                <p className="lp-plan-name">{t("landing.pricing.premium", "Premium")}</p>
+                <div className="lp-plan-price">
+                  {billingCycle === "yearly" ? (
+                    <>
+                      <span className="lp-price-num">$24.99</span>
+                      <span className="lp-price-per">/{t("settings.year", "yıl")}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="lp-price-num">$2.99</span>
+                      <span className="lp-price-per">/{t("settings.month", "ay")}</span>
+                    </>
+                  )}
+                </div>
+                <ul className="lp-plan-list">
+                  {premiumFeatures.map((feat, i) => (
+                    <li key={i}><Check size={14} /><span>{feat}</span></li>
+                  ))}
+                </ul>
+                <button
+                  className="lp-plan-btn lp-plan-btn-premium"
+                  onClick={() => {
+                    if (user) {
+                      setSettingsTab("billing");
+                      setIsSettingsOpen(true);
+                    } else {
+                      navigate("/login");
+                    }
+                  }}
+                >
+                  {t("landing.pricing.premiumBtn", "Premium'a Geç")}
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ── FOOTER ────────────────────────────────────────── */}
       <footer className="lp-footer">

@@ -21,13 +21,18 @@ export const db = initializeFirestore(app, {
     tabManager: persistentMultipleTabManager()
   }),
   experimentalForceLongPolling: false,
-  useFetchStreams: true
+  useFetchStreams: true,
+  ignoreUndefinedProperties: true,
 } as any);
 
 // Initialize Firebase Auth and export it
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const storage = getStorage(app);
+
+export function syncAuthLanguage(lang: string) {
+  auth.languageCode = lang;
+}
 
 if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => {

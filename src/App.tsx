@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useParams, useNavigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Editor from "./components/Editor";
 import Canvas from "./components/Canvas";
@@ -14,7 +14,7 @@ import EmptyState from "./components/EmptyState";
 import SettingsModal from "./components/SettingsModal";
 import QuickCapture from "./components/QuickCapture";
 import UpdateNotification from "./components/UpdateNotification";
-import { useNoteStore } from "./store/useNoteStore";
+import { useNoteStore, PREMIUM_ENABLED } from "./store/useNoteStore";
 import { isElectron, calculateStorageBytes } from "./lib/utils";
 import { auth, db } from "./lib/firebase";
 import { onAuthStateChanged, sendEmailVerification } from "firebase/auth";
@@ -67,6 +67,9 @@ function VerificationBanner() {
 }
 
 function WorkspaceApp() {
+  const { noteId } = useParams<{ noteId?: string }>();
+  const navigate = useNavigate();
+
   const {
     activeNoteId,
     setActiveNoteId,
@@ -107,18 +110,44 @@ function WorkspaceApp() {
     setIsCanvasFullscreen(false);
   }, [activeNoteId, setIsCanvasFullscreen]);
 
-  // Load note from URL query parameter (?note=ID)
+  const lastSyncedNoteId = useRef<string | null>(null);
+
+  // Sync activeNoteId and URL bidirectional with guard ref
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const noteIdFromUrl = params.get("note");
-    if (noteIdFromUrl && notes.length > 0) {
-      if (notes.some((n) => n.id === noteIdFromUrl)) {
-        if (activeNoteId !== noteIdFromUrl) {
-          setActiveNoteId(noteIdFromUrl);
+    if (isLoading) return;
+
+    const currentNoteId = noteId || null;
+
+    // 1. URL changed -> sync to State
+    if (currentNoteId !== lastSyncedNoteId.current) {
+      lastSyncedNoteId.current = currentNoteId;
+      if (currentNoteId) {
+        const noteExists = notes.some((n) => n.id === currentNoteId);
+        if (noteExists) {
+          if (activeNoteId !== currentNoteId) {
+            setActiveNoteId(currentNoteId);
+          }
+        } else {
+          navigate("/app", { replace: true });
+        }
+      } else {
+        if (activeNoteId) {
+          setActiveNoteId(null);
         }
       }
+      return;
     }
-  }, [notes, activeNoteId, setActiveNoteId]);
+
+    // 2. State changed -> sync to URL
+    if (activeNoteId !== lastSyncedNoteId.current) {
+      lastSyncedNoteId.current = activeNoteId;
+      if (activeNoteId) {
+        navigate(`/app/${activeNoteId}`);
+      } else {
+        navigate("/app");
+      }
+    }
+  }, [isLoading, notes, noteId, activeNoteId, setActiveNoteId, navigate]);
 
   const activeNote = notes.find((n) => n.id === activeNoteId);
   const activeNoteType = activeNote?.type || "document";
@@ -128,7 +157,7 @@ function WorkspaceApp() {
 
     const usedBytes = calculateStorageBytes(notes);
     const usedMB = usedBytes / (1024 * 1024);
-    const limitMB = userTier === "premium" ? 10240 : 1024;
+    const limitMB = 1024;
     const percentage = (usedMB / limitMB) * 100;
 
     if (percentage > 80) {
@@ -136,15 +165,22 @@ function WorkspaceApp() {
       const lastShown = localStorage.getItem("lastStorageWarningDate");
       if (lastShown !== today) {
         localStorage.setItem("lastStorageWarningDate", today);
-        showToast(
-          `⚠️ Depolama alanınız %${percentage.toFixed(1)} dolu. Premium'a geçerek 10GB'a yükseltin.`,
-          "warning",
-          "Planı Gör",
-          () => {
-            setSettingsTab("billing");
-            setIsSettingsOpen(true);
-          }
-        );
+        if (PREMIUM_ENABLED) {
+          showToast(
+            `⚠️ Depolama alanınız %${percentage.toFixed(1)} dolu. Premium'a geçerek 10GB'a yükseltin.`,
+            "warning",
+            "Planı Gör",
+            () => {
+              setSettingsTab("billing");
+              setIsSettingsOpen(true);
+            }
+          );
+        } else {
+          showToast(
+            `⚠️ Depolama alanınız %${percentage.toFixed(1)} dolu. Lütfen bazı notlarınızı veya dosyalarınızı temizleyerek yer açın.`,
+            "warning"
+          );
+        }
       }
     }
   }, [isLoading, notes, user, userTier, showToast, setIsSettingsOpen, setSettingsTab]);
@@ -349,20 +385,34 @@ function App() {
   useEffect(() => {
     let isMounted = true;
     let unsubscribeUserDoc: (() => void) | null = null;
+    // Tracks which uid the user-doc listener is currently attached to, so that
+    // repeat onAuthStateChanged firings for the SAME user (e.g. silent token
+    // refresh) don't tear down and immediately re-create the identical
+    // Firestore listener — doing so races the SDK's internal target-teardown
+    // and throws "Target ID already exists".
+    let subscribedUid: string | null = null;
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       if (!isMounted) return;
 
-      if (unsubscribeUserDoc) {
-        unsubscribeUserDoc();
-        unsubscribeUserDoc = null;
-      }
-
       if (firebaseUser) {
         setUser(firebaseUser);
-        
+
+        if (subscribedUid === firebaseUser.uid) {
+          // Same user re-emitted (e.g. token refresh) — listener already active.
+          setAuthChecking(false);
+          setIsLoading(false);
+          return;
+        }
+
+        if (unsubscribeUserDoc) {
+          unsubscribeUserDoc();
+          unsubscribeUserDoc = null;
+        }
+        subscribedUid = firebaseUser.uid;
+
         const userDocRef = doc(db, "users", firebaseUser.uid);
-        
+
         // Listen to changes on the user doc
         const unsub = onSnapshot(userDocRef, async (docSnap) => {
           if (!isMounted) {
@@ -399,6 +449,11 @@ function App() {
         });
         unsubscribeUserDoc = unsub;
       } else {
+        if (unsubscribeUserDoc) {
+          unsubscribeUserDoc();
+          unsubscribeUserDoc = null;
+        }
+        subscribedUid = null;
         setUser(null);
         setUserTier("free");
         setFirestoreUser(null);
@@ -437,7 +492,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={user ? <Navigate to="/app" replace /> : <Auth />} />
         <Route path="/auth-redirect" element={<AuthRedirectPage />} />
-        <Route path="/app" element={user ? <WorkspaceApp /> : <Navigate to="/login" replace />} />
+        <Route path="/app/:noteId?" element={user ? <WorkspaceApp /> : <Navigate to="/login" replace />} />
         <Route path="/note/:noteId" element={<PublicNotePage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { auth, googleProvider } from "../lib/firebase";
 import { getLogoSrc } from "../lib/utils";
+import { CheckCircle2, XCircle } from "lucide-react";
 
 const logoSrc = getLogoSrc();
 
@@ -71,7 +72,7 @@ export default function AuthRedirectPage() {
             left: c.left,
             right: c.right,
             borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(8,145,178,0.10), transparent)",
+            background: "radial-gradient(circle, var(--color-accent-soft, rgba(8,145,178,0.06)), transparent)",
             animation: `auth-circle-float ${c.dur} linear infinite`,
             animationDirection: c.dir || "normal"
           }} />
@@ -90,16 +91,15 @@ export default function AuthRedirectPage() {
         zIndex: 1,
         padding: "48px 24px"
       }}>
-        {/* Kart */}
         <div style={{
           background: "var(--color-bg-card)",
           border: "1px solid var(--color-border)",
-          borderRadius: "20px",
-          padding: "48px 40px",
+          borderRadius: "16px",
+          padding: "36px 32px",
           maxWidth: "420px",
           width: "100%",
           margin: "0 auto",
-          boxShadow: "0 24px 64px rgba(0,0,0,0.12)",
+          boxShadow: "0 12px 32px rgba(0,0,0,0.08)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -231,13 +231,14 @@ export default function AuthRedirectPage() {
               textAlign: 'center'
             }}>
               <div style={{
-                width: '64px', height: '64px',
-                background: 'rgba(16,185,129,0.1)',
-                borderRadius: '50%',
-                display: 'flex', alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '32px'
-              }}>✅</div>
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--color-accent, #0891B2)",
+                marginBottom: "4px"
+              }}>
+                <CheckCircle2 size={64} strokeWidth={1.2} />
+              </div>
               
               <div>
                 <p style={{
@@ -261,28 +262,21 @@ export default function AuthRedirectPage() {
               <button
                 onClick={() => window.close()}
                 style={{
-                  background: 'var(--color-accent)',
+                  background: 'var(--color-accent, #0891B2)',
                   color: 'white', border: 'none',
-                  borderRadius: '12px',
-                  padding: '14px 32px',
-                  fontSize: '16px', fontWeight: 700,
+                  borderRadius: '10px',
+                  padding: '12px 24px',
+                  fontSize: '15px', fontWeight: 600,
                   cursor: 'pointer',
                   fontFamily: 'inherit',
                   width: '100%',
-                  boxShadow: '0 4px 16px rgba(8,145,178,0.3)',
                   transition: 'all 0.15s'
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.transform =
-                    'translateY(-2px)'
-                  e.currentTarget.style.boxShadow =
-                    '0 8px 24px rgba(8,145,178,0.4)'
+                  e.currentTarget.style.filter = 'brightness(1.1)';
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.transform =
-                    'translateY(0)'
-                  e.currentTarget.style.boxShadow =
-                    '0 4px 16px rgba(8,145,178,0.3)'
+                  e.currentTarget.style.filter = 'none';
                 }}
               >
                 ✓ Sekmeyi Kapat
@@ -307,15 +301,14 @@ export default function AuthRedirectPage() {
               gap: "16px"
             }}>
               <div style={{
-                width: "56px",
-                height: "56px",
-                background: "var(--color-danger-soft)",
-                borderRadius: "50%",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: "28px"
-              }}>❌</div>
+                color: "var(--color-danger, #ef4444)",
+                marginBottom: "4px"
+              }}>
+                <XCircle size={56} strokeWidth={1.2} />
+              </div>
               <p style={{
                 color: "var(--color-danger)",
                 fontWeight: 600,
@@ -329,16 +322,23 @@ export default function AuthRedirectPage() {
                 type="button"
                 onClick={handleGoogleAuth}
                 style={{
-                  background: "var(--color-accent)",
+                  background: "var(--color-accent, #0891B2)",
                   color: "white",
                   border: "none",
                   borderRadius: "10px",
                   padding: "12px 24px",
                   cursor: "pointer",
-                  fontSize: "14px",
+                  fontSize: "15px",
                   fontWeight: 600,
                   fontFamily: "inherit",
-                  width: "100%"
+                  width: "100%",
+                  transition: "all 0.15s"
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.filter = 'brightness(1.1)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.filter = 'none';
                 }}
               >
                 Tekrar Dene

@@ -1,4 +1,4 @@
-﻿import React, { useEffect } from "react";
+import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useNoteStore } from "../store/useNoteStore";
@@ -301,8 +301,8 @@ export default function TermsPage() {
               </a>
             </li>
             <li>
-              <a href="https://tidenote-22fde.web.app" target="_blank" rel="noreferrer" className="legal-external-link">
-                https://tidenote-22fde.web.app
+              <a href="https://tidenote.app" target="_blank" rel="noreferrer" className="legal-external-link">
+                https://tidenote.app
               </a>
             </li>
           </ul>

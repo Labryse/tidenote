@@ -11,6 +11,7 @@ import BugReportModal from "./BugReportModal";
 import CollectionModal, { getCollectionIcon } from "./CollectionModal";
 import { extractTextFromBlocks } from "../lib/searchUtils";
 import { getResolvedName, isElectron, getLogoSrc } from "../lib/utils";
+import { getNoteRoute } from "../lib/platform";
 import { isWebOnly } from "../lib/platformDetect";
 import { getLatestRelease, findAssetForPlatform } from "../lib/githubReleases";
 
@@ -612,31 +613,42 @@ export default function Sidebar() {
     setIsLoading(true)
     let isMounted = true;
 
-    const q = query(
-      collection(db, 'notes'),
-      where('ownerId', '==', user.uid),
-      orderBy('updatedAt', 'desc')
-    )
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const timer = setTimeout(() => {
       if (!isMounted) return;
-      const notesList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Note[]
-      setNotes(notesList)
-      setIsLoading(false)
-    }, (error) => {
-      console.error('onSnapshot error:', error)
-      if (isMounted) {
-        setIsLoading(false);
-      }
-    })
 
-    notesUnsubRef.current = unsubscribe;
+      const q = query(
+        collection(db, 'notes'),
+        where('ownerId', '==', user.uid),
+        orderBy('updatedAt', 'desc')
+      )
+
+      const unsubscribe = onSnapshot(q, { includeMetadataChanges: true }, (snapshot) => {
+        if (!isMounted) return;
+        // Skip snapshots that only contain our own local (optimistic) writes.
+        // hasPendingWrites:true means Firestore echoed back what WE just wrote —
+        // processing this causes a setNotes → re-render loop that breaks the
+        // BlockNote slash menu while the user is still interacting with it.
+        if (snapshot.docs.every(d => d.metadata.hasPendingWrites)) return;
+
+        const notesList = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Note[]
+        setNotes(notesList)
+        setIsLoading(false)
+      }, (error) => {
+        console.error('onSnapshot error:', error)
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      })
+
+      notesUnsubRef.current = unsubscribe;
+    }, 50);
 
     return () => {
       isMounted = false;
+      clearTimeout(timer);
       if (notesUnsubRef.current) {
         notesUnsubRef.current();
         notesUnsubRef.current = null;
@@ -653,19 +665,25 @@ export default function Sidebar() {
 
     if (!user) { setFolders([]); return; }
     let isMounted = true;
-    const q = query(
-      collection(db, "users", user.uid, "folders"),
-      orderBy("createdAt", "asc")
-    );
-    const unsubscribe = onSnapshot(q, (snap) => {
-      if (!isMounted) return;
-      setFolders(snap.docs.map(d => ({ id: d.id, ...d.data() } as Folder)));
-    }, (err) => { console.error("folders onSnapshot error:", err); });
 
-    foldersUnsubRef.current = unsubscribe;
+    const timer = setTimeout(() => {
+      if (!isMounted) return;
+
+      const q = query(
+        collection(db, "users", user.uid, "folders"),
+        orderBy("createdAt", "asc")
+      );
+      const unsubscribe = onSnapshot(q, (snap) => {
+        if (!isMounted) return;
+        setFolders(snap.docs.map(d => ({ id: d.id, ...d.data() } as Folder)));
+      }, (err) => { console.error("folders onSnapshot error:", err); });
+
+      foldersUnsubRef.current = unsubscribe;
+    }, 50);
 
     return () => {
       isMounted = false;
+      clearTimeout(timer);
       if (foldersUnsubRef.current) {
         foldersUnsubRef.current();
         foldersUnsubRef.current = null;
@@ -682,19 +700,25 @@ export default function Sidebar() {
 
     if (!user) { setCollections([]); return; }
     let isMounted = true;
-    const q = query(
-      collection(db, "users", user.uid, "collections"),
-      orderBy("createdAt", "asc")
-    );
-    const unsubscribe = onSnapshot(q, (snap) => {
-      if (!isMounted) return;
-      setCollections(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)));
-    }, (err) => { console.error("collections onSnapshot error:", err); });
 
-    collectionsUnsubRef.current = unsubscribe;
+    const timer = setTimeout(() => {
+      if (!isMounted) return;
+
+      const q = query(
+        collection(db, "users", user.uid, "collections"),
+        orderBy("createdAt", "asc")
+      );
+      const unsubscribe = onSnapshot(q, (snap) => {
+        if (!isMounted) return;
+        setCollections(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)));
+      }, (err) => { console.error("collections onSnapshot error:", err); });
+
+      collectionsUnsubRef.current = unsubscribe;
+    }, 50);
 
     return () => {
       isMounted = false;
+      clearTimeout(timer);
       if (collectionsUnsubRef.current) {
         collectionsUnsubRef.current();
         collectionsUnsubRef.current = null;
@@ -1535,7 +1559,7 @@ export default function Sidebar() {
                 className="note-menu-item"
                 onClick={() => {
                   setOpenMenuNoteId(null);
-                  window.open(window.location.origin + "/#/note/" + note.id, "_blank");
+                  window.open(window.location.origin + getNoteRoute(note.id), "_blank");
                 }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
