@@ -60,6 +60,66 @@ const getBaseFontFamily = (family: number): number => {
   return 2;
 };
 
+// Mirror of the helpers in Canvas.tsx — keep in sync. Used so the toolbar's
+// bold/italic buttons apply the style directly instead of relying on Canvas'
+// onChange to convert customData into a bold/italic fontFamily + fontSize.
+const resolveFontFamilyId = (baseFamily: number, weight?: string, style?: string): number => {
+  let base = baseFamily;
+  if ([1, 13, 14, 15].includes(baseFamily)) base = 1;
+  else if ([2, 10, 11, 12].includes(baseFamily)) base = 2;
+  else if ([3, 16, 17, 18].includes(baseFamily)) base = 3;
+  else base = 2;
+
+  const isBold = weight === "bold";
+  const isItalic = style === "italic";
+
+  if (base === 1) {
+    if (isBold && isItalic) return 15;
+    if (isBold) return 13;
+    if (isItalic) return 14;
+    return 1;
+  } else if (base === 2) {
+    if (isBold && isItalic) return 12;
+    if (isBold) return 10;
+    if (isItalic) return 11;
+    return 2;
+  } else if (base === 3) {
+    if (isBold && isItalic) return 18;
+    if (isBold) return 16;
+    if (isItalic) return 17;
+    return 3;
+  }
+  return base;
+};
+
+class StyledFontSize {
+  public size: number;
+  public weight: string | undefined;
+  public style: string | undefined;
+
+  constructor(size: number, weight?: string, style?: string) {
+    this.size = Number(size) || 16;
+    this.weight = weight;
+    this.style = style;
+  }
+
+  toString() {
+    const parts: string[] = [];
+    if (this.style === "italic") parts.push("italic");
+    if (this.weight === "bold") parts.push("bold");
+    parts.push(`${this.size}`);
+    return parts.join(" ");
+  }
+
+  valueOf() {
+    return this.size;
+  }
+
+  toJSON() {
+    return this.size;
+  }
+}
+
 const CANVAS_FONTS = [
   { id: FONT_FAMILY.Helvetica as number, label: "Helvetica" },
   { id: FONT_FAMILY["Liberation Sans"] as number, label: "Liberation Sans" },
@@ -300,35 +360,40 @@ export default function CanvasToolbar({
           ...(e.customData || {}),
           [prop]: value
         };
-        
-        let updatedElement = {
+
+        const weight = nextCustomData.fontWeight;
+        const style = nextCustomData.fontStyle;
+        const isBold = weight === "bold";
+        const isItalic = style === "italic";
+
+        // Apply the bold/italic rendering directly instead of relying on Canvas'
+        // onChange: swap fontFamily to the variant and wrap fontSize in StyledFontSize
+        // so its toString() injects "bold"/"italic" into Excalidraw's font shorthand.
+        const baseFamily = getBaseFontFamily(e.fontFamily);
+        const targetFamilyId = resolveFontFamilyId(baseFamily, weight, style);
+        const rawSize = typeof e.fontSize === "object" ? e.fontSize.size : e.fontSize;
+        const nextFontSize = (isBold || isItalic)
+          ? (new StyledFontSize(rawSize, weight, style) as any)
+          : rawSize;
+
+        // Measure with new custom styling
+        const { width, height } = measureTextDimensions(e.text, rawSize, baseFamily, isBold, isItalic);
+        const dx = (width - e.width) / 2;
+        const dy = (height - e.height) / 2;
+
+        return {
           ...e,
           customData: nextCustomData,
+          fontFamily: targetFamilyId,
+          fontSize: nextFontSize,
+          width,
+          height,
+          x: e.x - dx,
+          y: e.y - dy,
           updated: Date.now(),
           version: e.version + 1,
           versionNonce: Math.floor(Math.random() * 999999)
         };
-        
-        // Measure with new custom styling
-        const fontSize = typeof e.fontSize === "object" ? e.fontSize.size : e.fontSize;
-        const fontFamilyId = e.fontFamily || 2;
-        const isBold = nextCustomData.fontWeight === "bold";
-        const isItalic = nextCustomData.fontStyle === "italic";
-        
-        const { width, height } = measureTextDimensions(e.text, fontSize, fontFamilyId, isBold, isItalic);
-        
-        const dx = (width - e.width) / 2;
-        const dy = (height - e.height) / 2;
-        
-        updatedElement = {
-          ...updatedElement,
-          width,
-          height,
-          x: e.x - dx,
-          y: e.y - dy
-        };
-        
-        return updatedElement;
       }
       return e;
     });
@@ -1582,12 +1647,29 @@ export default function CanvasToolbar({
                           onClick={() => updateTextProp("strokeColor", color)}
                         />
                       ))}
-                      <input
-                        type="color"
-                        className="mini-bar-color-input"
-                        value={activeText.strokeColor?.startsWith("#") ? activeText.strokeColor : "#000000"}
-                        onChange={e => updateTextProp("strokeColor", e.target.value)}
-                      />
+                      <label
+                        className="mini-bar-swatch"
+                        style={{
+                          borderRadius: "50%",
+                          overflow: "hidden",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                          border: "1.5px dashed var(--color-border, #e5e7eb)",
+                          backgroundColor: "transparent",
+                          position: "relative"
+                        }}
+                        title={isTr ? "Özel Renk" : "Custom Color"}
+                      >
+                        <Palette size={12} />
+                        <input
+                          type="color"
+                          style={{ position: "absolute", opacity: 0, width: "100%", height: "100%", cursor: "pointer" }}
+                          value={activeText.strokeColor?.startsWith("#") ? activeText.strokeColor : "#000000"}
+                          onChange={e => updateTextProp("strokeColor", e.target.value)}
+                        />
+                      </label>
                     </div>
                   </>
                 )}

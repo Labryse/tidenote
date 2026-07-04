@@ -40,6 +40,7 @@
     "@pdf-lib/fontkit": "^1.1.1",
     "@react-pdf/renderer": "^4.5.1",
     "docx": "^9.7.1",
+    "electron-log": "^5.4.4",
     "electron-updater": "^6.8.9",
     "file-saver": "^2.0.5",
     "firebase": "^12.15.0",
@@ -117,9 +118,11 @@
       "category": "Office"
     },
     "nsis": {
-      "oneClick": true,
+      "oneClick": false,
       "perMachine": false,
-      "allowToChangeInstallationDirectory": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
       "deleteAppDataOnUninstall": false
     },
     "publish": {

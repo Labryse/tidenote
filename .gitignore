@@ -33,3 +33,5 @@ ios/
 
 # Electron build folder
 dist-electron/
+
+CLAUDE.md

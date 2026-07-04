@@ -1,4 +1,17 @@
 {
+  "update": {
+    "availableTitle": "Güncelleme Mevcut — v{{version}}",
+    "availableDesc": "Yeni sürüm indirilebilir",
+    "downloadingTitle": "İndiriliyor… %{{percent}}",
+    "downloadingDesc": "Lütfen bekleyin…",
+    "readyTitle": "Güncelleme Hazır",
+    "readyDesc": "Yüklemek için yeniden başlatın",
+    "download": "İndir",
+    "later": "Sonra",
+    "restart": "Yeniden Başlat",
+    "restartingTitle": "Güncellemek için yeniden başlatılıyor…",
+    "restartingDesc": "TideNote kapanacak, güncellemeyi yükleyecek ve otomatik olarak yeniden açılacak. Lütfen bilgisayarınızı kapatmayın."
+  },
   "sidebar": {
     "newNote": "Yeni Not",
     "newDocument": "Yeni Belge",

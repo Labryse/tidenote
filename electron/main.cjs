@@ -1,6 +1,11 @@
 const { app, BrowserWindow, shell, Menu, ipcMain } = require("electron");
 const path = require("path");
 const { autoUpdater } = require("electron-updater");
+const log = require("electron-log/main");
+
+// Updater loglarını dosyaya yaz (%LOCALAPPDATA%\noteapp-updater\logs\ ...)
+log.transports.file.level = "info";
+autoUpdater.logger = log;
 
 // Auto updater ayarları
 autoUpdater.autoDownload = false;
@@ -34,10 +39,13 @@ function setupAutoUpdater(win) {
   });
 
   ipcMain.handle("install-update", () => {
-    autoUpdater.quitAndInstall(
-      true,  // isSilent
-      true   // isForceRunAfter
-    );
+    // Renderer "yeniden başlatılıyor" ekranını göstersin diye kısa gecikme,
+    // sonra ASISTANLI (isSilent=false) kurulumu başlat: NSIS çalışan uygulamayı
+    // kendisi kapatıp dosyaları güvenle değiştirir ve kilitli dosyada sessizce
+    // patlamak yerine yeniden dener; isForceRunAfter kurulum sonrası uygulamayı açar.
+    setTimeout(() => {
+      autoUpdater.quitAndInstall(false, true);
+    }, 400);
   });
 
   ipcMain.handle("check-for-updates", () => {

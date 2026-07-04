@@ -92,6 +92,50 @@ const resolveFontFamilyId = (baseFamily: number, weight?: string, style?: string
   return base;
 };
 
+// Measure a canvas text element's bounding box for a given bold/italic combination.
+// Mirrors the measurement logic in CanvasToolbar.updateTextCustomData so that the
+// Ctrl+B / Ctrl+I keyboard shortcuts resize text identically to the toolbar buttons.
+// Keep this in sync with CanvasToolbar.tsx if that logic changes.
+const measureCanvasText = (
+  text: string,
+  fontSize: number,
+  fontFamilyId: number,
+  isBold: boolean,
+  isItalic: boolean
+) => {
+  let fontFamily = "Helvetica, Arial";
+  if (fontFamilyId === 1) {
+    fontFamily = "Virgil, Segoe UI Emoji";
+  } else if (fontFamilyId === 3) {
+    fontFamily = "Cascadia, Courier New";
+  }
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return { width: 100, height: 30 };
+
+  const stylePart = isItalic ? "italic " : "";
+  const weightPart = isBold ? "bold " : "";
+  ctx.font = `${stylePart}${weightPart}${fontSize}px ${fontFamily}`;
+
+  const lines = text.split("\n");
+  let maxWidth = 0;
+  for (const line of lines) {
+    const metrics = ctx.measureText(line);
+    if (metrics.width > maxWidth) {
+      maxWidth = metrics.width;
+    }
+  }
+
+  const lineHeight = fontSize * 1.25;
+  const height = lines.length * lineHeight;
+
+  return {
+    width: Math.max(10, Math.ceil(maxWidth)),
+    height: Math.max(10, Math.ceil(height))
+  };
+};
+
 class StyledFontSize {
   public size: number;
   public weight: string | undefined;
@@ -232,7 +276,108 @@ export default function Canvas() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [excalidrawAPI]);
 
+  // Bold (Ctrl/Cmd+B) and italic (Ctrl/Cmd+I) shortcuts for the selected canvas text.
+  // Excalidraw has no native bold/italic shortcut, so these do nothing by default;
+  // here we mirror CanvasToolbar's updateTextCustomData (toggle customData + re-measure)
+  // and resolve the target text element from the current selection/editing state.
+  // Registered in the capture phase so we intercept the combo before it falls through.
+  useEffect(() => {
+    if (!excalidrawAPI) return;
 
+    const handleStyleShortcut = (e: KeyboardEvent) => {
+      const isModifierPressed = e.metaKey || e.ctrlKey;
+      // Ignore Alt so we never clash with Excalidraw's Ctrl+Alt+C (copy styles) etc.
+      if (!isModifierPressed || e.altKey) return;
+      const key = e.key.toLowerCase();
+      if (key !== "b" && key !== "i") return;
+
+      // Don't hijack the combo while the user types in a non-Excalidraw input.
+      const active = document.activeElement as HTMLElement | null;
+      const inExcalidrawEditor = !!active && active.classList.contains("excalidraw-texteditor");
+      const inOtherInput =
+        !!active &&
+        (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable) &&
+        !inExcalidrawEditor;
+      if (inOtherInput) return;
+
+      const appState = excalidrawAPI.getAppState();
+      const elements = excalidrawAPI.getSceneElements() || [];
+
+      // Resolve the active text element: editing, directly selected, or bound to a selected container
+      let textEl: any = null;
+      const editing = appState.editingElement;
+      if (editing && editing.type === "text") {
+        textEl = elements.find((el: any) => el.id === editing.id) || editing;
+      } else {
+        const selIds = Object.keys(appState.selectedElementIds || {}).filter(
+          (id) => appState.selectedElementIds[id]
+        );
+        const selEls = elements.filter((el: any) => selIds.includes(el.id) && !el.isDeleted);
+        textEl = selEls.find((el: any) => el.type === "text") || null;
+        if (!textEl) {
+          const container = selEls.find(
+            (el: any) =>
+              Array.isArray(el.boundElements) &&
+              el.boundElements.some((b: any) => b && b.type === "text")
+          );
+          if (container) {
+            const boundId = container.boundElements.find((b: any) => b.type === "text").id;
+            textEl = elements.find((el: any) => el.id === boundId) || null;
+          }
+        }
+      }
+      if (!textEl) return;
+
+      // We're handling it — keep the browser/Excalidraw from also acting on the combo.
+      e.preventDefault();
+      e.stopPropagation();
+
+      const prop = key === "b" ? "fontWeight" : "fontStyle";
+      const onValue = key === "b" ? "bold" : "italic";
+      const nextValue = textEl.customData?.[prop] === onValue ? "normal" : onValue;
+
+      const updated = elements.map((el: any) => {
+        if (el.id !== textEl.id) return el;
+
+        const nextCustomData = { ...(el.customData || {}), [prop]: nextValue };
+        const weight = nextCustomData.fontWeight;
+        const style = nextCustomData.fontStyle;
+        const isBold = weight === "bold";
+        const isItalic = style === "italic";
+
+        // Apply the bold/italic rendering directly instead of relying on onChange:
+        // swap fontFamily to the registered variant and wrap fontSize in StyledFontSize
+        // so its toString() injects "bold"/"italic" into Excalidraw's font shorthand.
+        const baseFamily = getBaseFontFamily(el.fontFamily);
+        const targetFamilyId = resolveFontFamilyId(baseFamily, weight, style);
+        const rawSize = typeof el.fontSize === "object" ? el.fontSize.size : el.fontSize;
+        const nextFontSize =
+          isBold || isItalic ? (new StyledFontSize(rawSize, weight, style) as any) : rawSize;
+
+        const { width, height } = measureCanvasText(el.text, rawSize, baseFamily, isBold, isItalic);
+        const dx = (width - el.width) / 2;
+        const dy = (height - el.height) / 2;
+
+        return {
+          ...el,
+          customData: nextCustomData,
+          fontFamily: targetFamilyId,
+          fontSize: nextFontSize,
+          width,
+          height,
+          x: el.x - dx,
+          y: el.y - dy,
+          updated: Date.now(),
+          version: el.version + 1,
+          versionNonce: Math.floor(Math.random() * 999999)
+        };
+      });
+      excalidrawAPI.updateScene({ elements: updated });
+    };
+
+    window.addEventListener("keydown", handleStyleShortcut, true);
+    return () => window.removeEventListener("keydown", handleStyleShortcut, true);
+  }, [excalidrawAPI]);
 
   const handlePointerDownCapture = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!customBlockTypeRef.current || customBlockTypeRef.current === "schema" || !excalidrawAPI) return;

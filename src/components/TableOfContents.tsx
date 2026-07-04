@@ -69,7 +69,7 @@ export default function TableOfContents({ headings }: TableOfContentsProps) {
     <div className="toc-container">
       <h4 className="toc-title">{t("editor.tableOfContents", "İçindekiler")}</h4>
       <ul className="toc-list">
-        {headings.map((heading) => {
+        {headings.map((heading, index) => {
           const isActive = activeId === heading.id;
           
           let paddingLeft = 0;
@@ -85,7 +85,7 @@ export default function TableOfContents({ headings }: TableOfContentsProps) {
 
           return (
             <li
-              key={heading.id}
+              key={`${heading.id}-${index}`}
               className={`toc-item ${isActive ? "active" : ""}`}
               style={{ paddingLeft: `${paddingLeft}px` }}
               onClick={() => handleHeadingClick(heading.id)}

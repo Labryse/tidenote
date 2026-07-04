@@ -1,4 +1,17 @@
 {
+  "update": {
+    "availableTitle": "Update Available — v{{version}}",
+    "availableDesc": "A new version is ready to download",
+    "downloadingTitle": "Downloading… {{percent}}%",
+    "downloadingDesc": "Please wait…",
+    "readyTitle": "Update Ready",
+    "readyDesc": "Restart to install",
+    "download": "Download",
+    "later": "Later",
+    "restart": "Restart",
+    "restartingTitle": "Restarting to update…",
+    "restartingDesc": "TideNote will close, install the update, and reopen automatically. Please don't turn off your computer."
+  },
   "sidebar": {
     "newNote": "New Note",
     "newDocument": "New Document",
