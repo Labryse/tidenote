@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { fetchCanvasFileDataURL, isCanvasFileRef } from "../lib/canvasStorage";
+import "../lib/canvasFonts"; // register canvas font variants for public view
 import { Excalidraw } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
 import LoadingSpinner from "../components/LoadingSpinner";

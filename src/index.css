@@ -8573,56 +8573,8 @@ body {
   font-style: italic;
 }
 
-@font-face {
-  font-family: 'Comic Shanns Bold';
-  src: local('Comic Shanns'), local('Cascadia Code'), local('Courier New');
-  font-weight: bold;
-}
-@font-face {
-  font-family: 'Comic Shanns Italic';
-  src: local('Comic Shanns'), local('Cascadia Code'), local('Courier New');
-  font-style: italic;
-}
-@font-face {
-  font-family: 'Comic Shanns Bold Italic';
-  src: local('Comic Shanns'), local('Cascadia Code'), local('Courier New');
-  font-weight: bold;
-  font-style: italic;
-}
-
-@font-face {
-  font-family: 'Cascadia Bold';
-  src: local('Cascadia Code'), local('Courier New');
-  font-weight: bold;
-}
-@font-face {
-  font-family: 'Cascadia Italic';
-  src: local('Cascadia Code'), local('Courier New');
-  font-style: italic;
-}
-@font-face {
-  font-family: 'Cascadia Bold Italic';
-  src: local('Cascadia Code'), local('Courier New');
-  font-weight: bold;
-  font-style: italic;
-}
-
-@font-face {
-  font-family: 'Virgil Bold';
-  src: local('Virgil');
-  font-weight: bold;
-}
-@font-face {
-  font-family: 'Virgil Italic';
-  src: local('Virgil');
-  font-style: italic;
-}
-@font-face {
-  font-family: 'Virgil Bold Italic';
-  src: local('Virgil');
-  font-weight: bold;
-  font-style: italic;
-}
+/* Nunito/Cascadia/Inter/Poppins/Bebas variant faces are injected with real
+   woff2 files by src/lib/canvasFonts.ts (registerCanvasFonts). */
 
 /* TideNote Table Custom Styling */
 .bn-block[data-content-type="table"] table {

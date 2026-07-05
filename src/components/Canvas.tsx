@@ -31,139 +31,13 @@ import {
   ChevronRight
 } from "lucide-react";
 
-const FLOATING_FONTS = [
-  { id: FONT_FAMILY.Excalifont as number, label: "Excalifont" },
-  { id: FONT_FAMILY.Helvetica as number, label: "Helvetica" },
-  { id: FONT_FAMILY["Liberation Sans"] as number, label: "Liberation Sans" },
-  { id: FONT_FAMILY.Nunito as number, label: "Nunito" },
-  { id: FONT_FAMILY["Comic Shanns"] as number, label: "Comic Shanns" },
-  { id: FONT_FAMILY.Cascadia as number, label: "Cascadia" },
-  { id: (FONT_FAMILY as any).Virgil ?? 1, label: "Virgil" },
-];
+import {
+  resolveFontVariant,
+  fontSupports,
+  sanitizeTextElementFont,
+  measureCanvasText,
+} from "../lib/canvasFonts";
 
-// Register custom font families in Excalidraw FONT_FAMILY constant at runtime
-(FONT_FAMILY as any)["Helvetica Bold"] = 10;
-(FONT_FAMILY as any)["Helvetica Italic"] = 11;
-(FONT_FAMILY as any)["Helvetica Bold Italic"] = 12;
-
-(FONT_FAMILY as any)["Virgil Bold"] = 13;
-(FONT_FAMILY as any)["Virgil Italic"] = 14;
-(FONT_FAMILY as any)["Virgil Bold Italic"] = 15;
-
-(FONT_FAMILY as any)["Comic Shanns Bold"] = 16;
-(FONT_FAMILY as any)["Comic Shanns Italic"] = 17;
-(FONT_FAMILY as any)["Comic Shanns Bold Italic"] = 18;
-(FONT_FAMILY as any)["Cascadia Bold"] = 16;
-(FONT_FAMILY as any)["Cascadia Italic"] = 17;
-(FONT_FAMILY as any)["Cascadia Bold Italic"] = 18;
-
-const getBaseFontFamily = (family: number): number => {
-  if ([1, 13, 14, 15].includes(family)) return 1;
-  if ([2, 10, 11, 12].includes(family)) return 2;
-  if ([3, 16, 17, 18].includes(family)) return 3;
-  return 2;
-};
-
-const resolveFontFamilyId = (baseFamily: number, weight?: string, style?: string): number => {
-  let base = baseFamily;
-  if ([1, 13, 14, 15].includes(baseFamily)) base = 1;
-  else if ([2, 10, 11, 12].includes(baseFamily)) base = 2;
-  else if ([3, 16, 17, 18].includes(baseFamily)) base = 3;
-  else base = 2;
-
-  const isBold = weight === "bold";
-  const isItalic = style === "italic";
-
-  if (base === 1) {
-    if (isBold && isItalic) return 15;
-    if (isBold) return 13;
-    if (isItalic) return 14;
-    return 1;
-  } else if (base === 2) {
-    if (isBold && isItalic) return 12;
-    if (isBold) return 10;
-    if (isItalic) return 11;
-    return 2;
-  } else if (base === 3) {
-    if (isBold && isItalic) return 18;
-    if (isBold) return 16;
-    if (isItalic) return 17;
-    return 3;
-  }
-  return base;
-};
-
-// Measure a canvas text element's bounding box for a given bold/italic combination.
-// Mirrors the measurement logic in CanvasToolbar.updateTextCustomData so that the
-// Ctrl+B / Ctrl+I keyboard shortcuts resize text identically to the toolbar buttons.
-// Keep this in sync with CanvasToolbar.tsx if that logic changes.
-const measureCanvasText = (
-  text: string,
-  fontSize: number,
-  fontFamilyId: number,
-  isBold: boolean,
-  isItalic: boolean
-) => {
-  let fontFamily = "Helvetica, Arial";
-  if (fontFamilyId === 1) {
-    fontFamily = "Virgil, Segoe UI Emoji";
-  } else if (fontFamilyId === 3) {
-    fontFamily = "Cascadia, Courier New";
-  }
-
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return { width: 100, height: 30 };
-
-  const stylePart = isItalic ? "italic " : "";
-  const weightPart = isBold ? "bold " : "";
-  ctx.font = `${stylePart}${weightPart}${fontSize}px ${fontFamily}`;
-
-  const lines = text.split("\n");
-  let maxWidth = 0;
-  for (const line of lines) {
-    const metrics = ctx.measureText(line);
-    if (metrics.width > maxWidth) {
-      maxWidth = metrics.width;
-    }
-  }
-
-  const lineHeight = fontSize * 1.25;
-  const height = lines.length * lineHeight;
-
-  return {
-    width: Math.max(10, Math.ceil(maxWidth)),
-    height: Math.max(10, Math.ceil(height))
-  };
-};
-
-class StyledFontSize {
-  public size: number;
-  public weight: string | undefined;
-  public style: string | undefined;
-
-  constructor(size: number, weight?: string, style?: string) {
-    this.size = Number(size) || 16;
-    this.weight = weight;
-    this.style = style;
-  }
-
-  toString() {
-    const parts: string[] = [];
-    if (this.style === "italic") parts.push("italic");
-    if (this.weight === "bold") parts.push("bold");
-    parts.push(`${this.size}`);
-    return parts.join(" ");
-  }
-
-  valueOf() {
-    return this.size;
-  }
-
-  toJSON() {
-    return this.size;
-  }
-}
 
 export default function Canvas() {
   const { t, i18n } = useTranslation();
@@ -329,6 +203,10 @@ export default function Canvas() {
       }
       if (!textEl) return;
 
+      // Skip fonts that don't support the requested style (e.g. Bebas Neue).
+      const caps = fontSupports(textEl.fontFamily);
+      if ((key === "b" && !caps.bold) || (key === "i" && !caps.italic)) return;
+
       // We're handling it — keep the browser/Excalidraw from also acting on the combo.
       e.preventDefault();
       e.stopPropagation();
@@ -341,21 +219,13 @@ export default function Canvas() {
         if (el.id !== textEl.id) return el;
 
         const nextCustomData = { ...(el.customData || {}), [prop]: nextValue };
-        const weight = nextCustomData.fontWeight;
-        const style = nextCustomData.fontStyle;
-        const isBold = weight === "bold";
-        const isItalic = style === "italic";
 
-        // Apply the bold/italic rendering directly instead of relying on onChange:
-        // swap fontFamily to the registered variant and wrap fontSize in StyledFontSize
-        // so its toString() injects "bold"/"italic" into Excalidraw's font shorthand.
-        const baseFamily = getBaseFontFamily(el.fontFamily);
-        const targetFamilyId = resolveFontFamilyId(baseFamily, weight, style);
-        const rawSize = typeof el.fontSize === "object" ? el.fontSize.size : el.fontSize;
-        const nextFontSize =
-          isBold || isItalic ? (new StyledFontSize(rawSize, weight, style) as any) : rawSize;
+        // Bold/italic = swap to the real variant font family; fontSize stays a
+        // plain number (Excalidraw's move/resize math requires it).
+        const targetFamilyId = resolveFontVariant(el.fontFamily, nextCustomData.fontWeight, nextCustomData.fontStyle);
+        const rawSize = typeof el.fontSize === "object" ? Number(el.fontSize.size) || 16 : el.fontSize;
 
-        const { width, height } = measureCanvasText(el.text, rawSize, baseFamily, isBold, isItalic);
+        const { width, height } = measureCanvasText(el.text, rawSize, targetFamilyId);
         const dx = (width - el.width) / 2;
         const dy = (height - el.height) / 2;
 
@@ -363,7 +233,7 @@ export default function Canvas() {
           ...el,
           customData: nextCustomData,
           fontFamily: targetFamilyId,
-          fontSize: nextFontSize,
+          fontSize: rawSize,
           width,
           height,
           x: el.x - dx,
@@ -1562,6 +1432,9 @@ export default function Canvas() {
       }
     }
 
+    // Heal legacy font data (old variant ids, wrapped fontSize) on load.
+    elements = elements.map((el: any) => sanitizeTextElementFont(el));
+
     lastSavedRef.current = JSON.stringify(elements);
 
     // Only entries that already carry an inline dataURL can render at mount.
@@ -1898,44 +1771,23 @@ export default function Canvas() {
           }
         }
         
-        // 2. Bold/Italic fontFamily mapping and fontSize wrapping
+        // 2. Keep fontFamily in sync with customData style + heal legacy data:
+        //    non-numeric fontSize (old StyledFontSize wrapper) is unwrapped and
+        //    old variant ids are remapped. fontSize must stay a plain number —
+        //    the wrapper class crashed Excalidraw's move/resize math.
         if (nextEl.type === "text" && !nextEl.isDeleted) {
-          const hasCustomStyle = nextEl.customData?.fontWeight === "bold" || nextEl.customData?.fontStyle === "italic";
-          const isWrapped = typeof nextEl.fontSize !== "number";
-          
-          const rawSize = isWrapped ? (nextEl.fontSize as any).size : nextEl.fontSize;
-          const targetWeight = nextEl.customData?.fontWeight;
-          const targetStyle = nextEl.customData?.fontStyle;
-          
-          const currentBaseFamily = getBaseFontFamily(nextEl.fontFamily);
-          const targetFamilyId = resolveFontFamilyId(currentBaseFamily, targetWeight, targetStyle);
-          
-          let elUpdated = false;
-          let elUpdates: any = {};
+          const healed = sanitizeTextElementFont(nextEl);
+          const targetFamilyId = resolveFontVariant(
+            healed.fontFamily,
+            healed.customData?.fontWeight,
+            healed.customData?.fontStyle
+          );
 
-          if (nextEl.fontFamily !== targetFamilyId) {
-            elUpdated = true;
-            elUpdates.fontFamily = targetFamilyId;
-          }
-
-          if (hasCustomStyle) {
-            const currentWeight = isWrapped ? (nextEl.fontSize as any).weight : undefined;
-            const currentStyle = isWrapped ? (nextEl.fontSize as any).style : undefined;
-            
-            if (!isWrapped || currentWeight !== targetWeight || currentStyle !== targetStyle) {
-              elUpdated = true;
-              elUpdates.fontSize = new StyledFontSize(rawSize, targetWeight, targetStyle) as any;
-            }
-          } else if (isWrapped) {
-            elUpdated = true;
-            elUpdates.fontSize = rawSize;
-          }
-
-          if (elUpdated) {
+          if (healed !== nextEl || healed.fontFamily !== targetFamilyId) {
             elementsChanged = true;
             nextEl = {
-              ...nextEl,
-              ...elUpdates,
+              ...healed,
+              fontFamily: targetFamilyId,
               version: nextEl.version + 1,
               versionNonce: Math.floor(Math.random() * 999999)
             };
