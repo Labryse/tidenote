@@ -1295,7 +1295,18 @@ export default function Canvas() {
           .filter((e: any) => e.type === "image" && !e.isDeleted && e.fileId)
           .map((e: any) => e.fileId)
       );
-      const refs: Record<string, CanvasFileRef> = {};
+
+      // What the note doc currently holds, so we can PRESERVE an entry we fail to
+      // persist this round (legacy inline base64, or a prior ref) instead of
+      // overwriting it with nothing — otherwise a failed save (rules not yet
+      // deployed, offline) would permanently destroy the only copy of an image.
+      let storedFiles: Record<string, any> = {};
+      try {
+        const storedRaw = useNoteStore.getState().notes.find((n) => n.id === noteId)?.files;
+        if (storedRaw) storedFiles = JSON.parse(storedRaw);
+      } catch { /* ignore */ }
+
+      const refs: Record<string, any> = {};
       let retryableFileError = false;
       let hardFileError = false;
 
@@ -1306,10 +1317,15 @@ export default function Canvas() {
         }
         const entry: any = (files || {})[fileId];
         const dataURL: string | undefined = entry?.dataURL;
-        if (!dataURL) continue; // data not in memory yet; a later save will persist it
+        if (!dataURL) {
+          // No in-memory data yet — keep whatever the doc already had for it.
+          if (storedFiles[fileId]) refs[fileId] = storedFiles[fileId];
+          continue;
+        }
 
         if (dataURLByteSize(dataURL) > MAX_ORIGINAL_BYTES) {
           hardFileError = true;
+          if (storedFiles[fileId]) refs[fileId] = storedFiles[fileId];
           if (!oversizedFileIdsRef.current.has(fileId)) {
             oversizedFileIdsRef.current.add(fileId);
             store.showToast(t("toast.imageTooLarge"), "error");
@@ -1323,9 +1339,11 @@ export default function Canvas() {
           persistedFilesRef.current[fileId] = ref;
           refs[fileId] = ref;
         } catch (e) {
-          // Offline / transient: keep the drawing saving, retry the image later.
+          // Offline / rules not deployed: keep the drawing saving, retry later,
+          // and preserve any existing doc copy so nothing is lost meanwhile.
           console.error("Canvas image persist failed:", e);
           retryableFileError = true;
+          if (storedFiles[fileId]) refs[fileId] = storedFiles[fileId];
         }
       }
 
