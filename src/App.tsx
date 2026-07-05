@@ -17,6 +17,7 @@ import UpdateNotification from "./components/UpdateNotification";
 import { useNoteStore, PREMIUM_ENABLED } from "./store/useNoteStore";
 import { isElectron, calculateStorageBytes } from "./lib/utils";
 import { auth, db } from "./lib/firebase";
+import { setFatalRecoveryHandler } from "./lib/firestoreSubscriptions";
 import { onAuthStateChanged, sendEmailVerification } from "firebase/auth";
 import { doc, setDoc, onSnapshot, serverTimestamp } from "firebase/firestore";
 import AuthRedirectPage from "./pages/AuthRedirectPage";
@@ -336,6 +337,14 @@ function App() {
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
+
+  // When a fatal Firestore assertion wedges the client, flag "not saved" before
+  // firestoreSubscriptions triggers the controlled reload that recovers it.
+  useEffect(() => {
+    setFatalRecoveryHandler(() => {
+      useNoteStore.getState().setSaveStatus("error");
+    });
+  }, []);
 
   useEffect(() => {
     if (!isElectron()) return;

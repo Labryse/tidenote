@@ -4,6 +4,7 @@ import LoadingSpinner from "./LoadingSpinner";
 import "@excalidraw/excalidraw/index.css";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { uploadCanvasFile, fetchCanvasFileDataURL, isCanvasFileRef } from "../lib/canvasStorage";
 import { useNoteStore } from "../store/useNoteStore";
 import { useTranslation } from "react-i18next";
 import CanvasToolbar from "./CanvasToolbar";
@@ -1363,6 +1364,12 @@ export default function Canvas() {
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSaveRef = useRef<{ noteId: string; elements: any[]; appState: any; files: any } | null>(null);
   const isWritingRef = useRef<boolean>(false);
+  // fileId -> Storage ref for images already uploaded for the current note.
+  const uploadedFilesRef = useRef<Record<string, { storagePath: string; mimeType?: string }>>({});
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Files parsed from the note doc that still need resolving/migrating once the
+  // Excalidraw API is ready (Storage refs to fetch, or legacy base64 to migrate).
+  const pendingFileResolveRef = useRef<{ noteId: string; files: any } | null>(null);
 
   // Direct sync function to save canvas to Firestore
   const saveCanvasToFirestore = async (noteId: string, elements: any[], appState: any, files: any) => {
@@ -1377,33 +1384,74 @@ export default function Canvas() {
     }
 
     isWritingRef.current = true;
+    const store = useNoteStore.getState();
+    store.setSaveStatus("saving");
     try {
       const cleanElements = JSON.parse(JSON.stringify(elements));
       const cleanAppState = JSON.parse(JSON.stringify({
         viewBackgroundColor: appState?.viewBackgroundColor || "#ffffff",
       }));
-      const cleanFiles = files ? JSON.parse(JSON.stringify(files)) : {};
+
+      // Images go to Firebase Storage; the doc keeps only small refs so it can
+      // never exceed Firestore's 1 MB limit.
+      const uid = store.user?.uid;
+      const refs: Record<string, { storagePath: string; mimeType?: string }> = {};
+      let uploadFailed = false;
+      for (const [fileId, entry] of Object.entries<any>(files || {})) {
+        if (uploadedFilesRef.current[fileId]) {
+          refs[fileId] = uploadedFilesRef.current[fileId];
+        } else if (isCanvasFileRef(entry)) {
+          refs[fileId] = { storagePath: entry.storagePath, mimeType: entry.mimeType };
+          uploadedFilesRef.current[fileId] = refs[fileId];
+        } else if (entry?.dataURL && uid) {
+          try {
+            const r = await uploadCanvasFile(uid, noteId, fileId, entry.dataURL, entry.mimeType);
+            uploadedFilesRef.current[fileId] = r;
+            refs[fileId] = r;
+          } catch (e) {
+            // Offline / transient: keep drawing saving, retry the image later.
+            console.error("Canvas image upload failed:", e);
+            uploadFailed = true;
+          }
+        }
+      }
 
       const noteRef = doc(db, "notes", noteId);
       await updateDoc(noteRef, {
         elements: JSON.stringify(cleanElements),
         appState: JSON.stringify(cleanAppState),
-        files: JSON.stringify(cleanFiles),
+        files: JSON.stringify(refs),
         updatedAt: serverTimestamp(),
       });
+
+      if (uploadFailed) {
+        store.setSaveStatus("error");
+        scheduleSaveRetry(noteId, elements, appState, files);
+      } else {
+        store.setSaveStatus("saved");
+      }
     } catch (error: any) {
       console.error("Error saving canvas to Firestore:", error);
+      store.setSaveStatus("error");
       if (error.code === 'failed-precondition' || error.message?.includes('INTERNAL ASSERTION')) {
         console.warn('Firestore connection issue, retrying...');
-        setTimeout(() => {
-          saveCanvasToFirestore(noteId, elements, appState, files);
-        }, 2000);
       } else {
-        useNoteStore.getState().showToast(t("toast.saveError"));
+        store.showToast(t("toast.saveError"));
       }
+      scheduleSaveRetry(noteId, elements, appState, files);
     } finally {
       isWritingRef.current = false;
     }
+  };
+
+  // Retry a failed save (image upload offline, or transient Firestore error)
+  // without stacking timers.
+  const scheduleSaveRetry = (noteId: string, elements: any[], appState: any, files: any) => {
+    if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
+    retryTimeoutRef.current = setTimeout(() => {
+      retryTimeoutRef.current = null;
+      saveCanvasToFirestore(noteId, elements, appState, files);
+    }, 3000);
   };
 
   // Debounced auto-save function
@@ -1447,6 +1495,7 @@ export default function Canvas() {
 
     initializedNoteIdRef.current = activeNoteId;
     isInitializedRef.current = true;
+    uploadedFilesRef.current = {};
 
     let elements: any[] = [];
     let appState: any = {};
@@ -1515,6 +1564,15 @@ export default function Canvas() {
 
     lastSavedRef.current = JSON.stringify(elements);
 
+    // Only entries that already carry an inline dataURL can render at mount.
+    // Storage refs (and legacy base64 to migrate) are handled once the API is
+    // ready — see the file-resolution effect below.
+    const renderFiles: any = {};
+    for (const [fileId, entry] of Object.entries<any>(files || {})) {
+      if (entry?.dataURL) renderFiles[fileId] = entry;
+    }
+    pendingFileResolveRef.current = { noteId: activeNoteId, files };
+
     setInitialData({
       elements,
       appState: {
@@ -1530,9 +1588,65 @@ export default function Canvas() {
         currentItemBackgroundColor: "#1e293b",
         currentItemRoughness: 0
       },
-      files
+      files: renderFiles
     });
   }, [activeNoteId, notes]);
+
+  // Resolve Storage-backed images and migrate any legacy inline base64 once the
+  // Excalidraw API is ready for the freshly-opened note.
+  useEffect(() => {
+    const pending = pendingFileResolveRef.current;
+    if (!excalidrawAPI || !pending || pending.noteId !== activeNoteId) return;
+    pendingFileResolveRef.current = null;
+
+    let cancelled = false;
+    (async () => {
+      const noteId = pending.noteId;
+      const files = pending.files || {};
+      const uid = useNoteStore.getState().user?.uid;
+
+      const toAdd: any[] = [];
+      const legacy: { fileId: string; dataURL: string; mimeType?: string }[] = [];
+
+      for (const [fileId, entry] of Object.entries<any>(files)) {
+        if (isCanvasFileRef(entry)) {
+          uploadedFilesRef.current[fileId] = { storagePath: entry.storagePath, mimeType: entry.mimeType };
+          try {
+            const dataURL = await fetchCanvasFileDataURL(entry.storagePath);
+            toAdd.push({ id: fileId, dataURL, mimeType: entry.mimeType || "image/png", created: Date.now() });
+          } catch (e) {
+            console.error("Canvas image fetch failed:", e);
+          }
+        } else if (entry?.dataURL) {
+          legacy.push({ fileId, dataURL: entry.dataURL, mimeType: entry.mimeType });
+        }
+      }
+
+      if (cancelled) return;
+      if (toAdd.length && excalidrawAPI) {
+        try { excalidrawAPI.addFiles(toAdd); } catch (e) { console.error(e); }
+      }
+
+      // Migrate legacy base64 → Storage, then shrink the doc to refs only.
+      if (uid && legacy.length) {
+        try {
+          const refs: Record<string, { storagePath: string; mimeType?: string }> = { ...uploadedFilesRef.current };
+          for (const f of legacy) {
+            const r = await uploadCanvasFile(uid, noteId, f.fileId, f.dataURL, f.mimeType);
+            uploadedFilesRef.current[f.fileId] = r;
+            refs[f.fileId] = r;
+          }
+          if (!cancelled) {
+            await updateDoc(doc(db, "notes", noteId), { files: JSON.stringify(refs) });
+          }
+        } catch (e) {
+          console.error("Canvas legacy image migration failed:", e);
+        }
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [excalidrawAPI, activeNoteId, initialData]);
 
   // Flush any pending save immediately when switching active notes
   useEffect(() => {
@@ -1559,6 +1673,9 @@ export default function Canvas() {
       }
       if (scrollZoomTimeoutRef.current) {
         clearTimeout(scrollZoomTimeoutRef.current);
+      }
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
       }
     };
   }, []);

@@ -64,6 +64,7 @@ interface NoteState {
   user: User | null;
   firestoreUser: any | null;
   toast: ToastState | null;
+  saveStatus: "saved" | "saving" | "error";
   theme: "light" | "dark";
   isMobileSidebarOpen: boolean;
   userTier: "free" | "premium";
@@ -76,6 +77,7 @@ interface NoteState {
   setFirestoreUser: (firestoreUser: any | null) => void;
   showToast: (message: string, type?: "success" | "error" | "warning", actionLabel?: string, onActionClick?: () => void) => void;
   hideToast: () => void;
+  setSaveStatus: (status: "saved" | "saving" | "error") => void;
   setTheme: (theme: "light" | "dark") => void;
   setIsMobileSidebarOpen: (isOpen: boolean) => void;
   setUserTier: (tier: "free" | "premium") => void;
@@ -120,6 +122,7 @@ export const useNoteStore = create<NoteState>((set) => ({
   user: null,
   firestoreUser: null,
   toast: null,
+  saveStatus: "saved",
   theme: (localStorage.getItem("theme") as "light" | "dark") || "dark",
   isMobileSidebarOpen: false,
   userTier: "free",
@@ -136,6 +139,7 @@ export const useNoteStore = create<NoteState>((set) => ({
   setFirestoreUser: (firestoreUser) => set({ firestoreUser }),
   showToast: (message: string, type: "success" | "error" | "warning" = "error", actionLabel?: string, onActionClick?: () => void) => set({ toast: { message, type, actionLabel, onActionClick } }),
   hideToast: () => set({ toast: null }),
+  setSaveStatus: (saveStatus) => set({ saveStatus }),
   setTheme: (theme) => {
     localStorage.setItem("theme", theme);
     document.documentElement.setAttribute("data-theme", theme);

@@ -33,7 +33,7 @@ export default function TopBar({ note }: TopBarProps) {
     isExportDropdownOpen, setIsExportDropdownOpen,
     activeNoteTitle, setActiveNoteTitle, updateNoteTitle,
     isCanvasFullscreen, setIsCanvasFullscreen, setInfoModalNoteId,
-    setIsSettingsOpen, setSettingsTab
+    setIsSettingsOpen, setSettingsTab, saveStatus
   } = useNoteStore();
 
   const [isAddingTag, setIsAddingTag] = useState(false);
@@ -527,6 +527,34 @@ export default function TopBar({ note }: TopBarProps) {
       >
         <Info size={14} />
       </button>
+
+      {saveStatus === "error" && (
+        <span
+          className="top-bar-save-status"
+          title={t("save.notSavedHint")}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            fontSize: "12px",
+            fontWeight: 500,
+            padding: "0 8px",
+            whiteSpace: "nowrap",
+            color: "#dc2626"
+          }}
+        >
+          <span
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: "50%",
+              flexShrink: 0,
+              background: "#dc2626"
+            }}
+          />
+          {t("save.notSaved")}
+        </span>
+      )}
 
       <div className="top-bar-tags-container">
         <div className="top-bar-tags-list">

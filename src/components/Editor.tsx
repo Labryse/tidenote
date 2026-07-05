@@ -277,6 +277,8 @@ export default function Editor() {
 
   // Direct sync function to save to Firestore
   const saveNoteToFirestore = async (noteId: string, document: any[]) => {
+    const store = useNoteStore.getState();
+    store.setSaveStatus("saving");
     try {
       const noteRef = doc(db, "notes", noteId);
       const sanitizedDocument = JSON.parse(JSON.stringify(document));
@@ -284,13 +286,15 @@ export default function Editor() {
         content: sanitizedDocument,
         updatedAt: serverTimestamp(),
       });
+      store.setSaveStatus("saved");
     } catch (error: any) {
       console.error("Error saving note to Firestore:", error);
+      store.setSaveStatus("error");
       if (error.code === 'failed-precondition' || error.message?.includes('INTERNAL ASSERTION')) {
         console.warn('Firestore connection issue, retrying...');
         setTimeout(() => saveNoteToFirestore(noteId, document), 2000);
       } else {
-        useNoteStore.getState().showToast(t("toast.saveError"));
+        store.showToast(t("toast.saveError"));
       }
     }
   };

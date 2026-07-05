@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, enableNetwork, disableNetwork } from "firebase/firestore";
+import { initializeFirestore, persistentLocalCache, persistentSingleTabManager, enableNetwork, disableNetwork } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 
@@ -16,9 +16,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Initialize Cloud Firestore and export it
+// Single-tab persistence: the multi-tab manager's shared watch-stream lease is
+// the known trigger for fatal "Target ID already exists" assertions that wedge
+// the client. Electron is single-window; web tabs each keep their own cache.
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager()
+    tabManager: persistentSingleTabManager(undefined)
   }),
   experimentalForceLongPolling: false,
   useFetchStreams: true,

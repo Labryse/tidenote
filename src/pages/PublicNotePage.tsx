@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { fetchCanvasFileDataURL, isCanvasFileRef } from "../lib/canvasStorage";
 import { Excalidraw } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -82,6 +83,36 @@ function CanvasPublicView({ note }: { note: any }) {
   try { appState = note.appState ? JSON.parse(note.appState) : {}; } catch { /* ignore */ }
   try { files = note.files ? JSON.parse(note.files) : {}; } catch { /* ignore */ }
 
+  const [api, setApi] = useState<any>(null);
+
+  // Inline (legacy base64) images render immediately; Storage-backed images are
+  // fetched into the viewer once the API is ready.
+  const renderFiles: any = {};
+  for (const [fileId, entry] of Object.entries<any>(files)) {
+    if (entry?.dataURL) renderFiles[fileId] = entry;
+  }
+
+  useEffect(() => {
+    if (!api) return;
+    let cancelled = false;
+    (async () => {
+      const toAdd: any[] = [];
+      for (const [fileId, entry] of Object.entries<any>(files)) {
+        if (isCanvasFileRef(entry)) {
+          try {
+            const dataURL = await fetchCanvasFileDataURL(entry.storagePath);
+            toAdd.push({ id: fileId, dataURL, mimeType: entry.mimeType || "image/png", created: Date.now() });
+          } catch (e) { console.error("Public canvas image fetch failed:", e); }
+        }
+      }
+      if (!cancelled && toAdd.length) {
+        try { api.addFiles(toAdd); } catch (e) { console.error(e); }
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api]);
+
   return (
     <div className="public-note-canvas-page">
       <header className="public-note-header">
@@ -95,10 +126,11 @@ function CanvasPublicView({ note }: { note: any }) {
       </header>
       <div className="public-note-canvas-wrapper">
         <Excalidraw
+          excalidrawAPI={(a) => setApi(a)}
           initialData={{
             elements,
             appState: { ...appState, viewBackgroundColor: "#ffffff" },
-            files,
+            files: renderFiles,
           }}
           viewModeEnabled={true}
           zenModeEnabled={false}

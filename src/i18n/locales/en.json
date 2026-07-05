@@ -1,4 +1,9 @@
 {
+  "save": {
+    "saving": "Saving…",
+    "notSaved": "Changes not saved",
+    "notSavedHint": "Couldn't save to the cloud (e.g. you're offline or an image failed to upload). Retrying automatically — keep the app open."
+  },
   "update": {
     "availableTitle": "Update Available — v{{version}}",
     "availableDesc": "A new version is ready to download",

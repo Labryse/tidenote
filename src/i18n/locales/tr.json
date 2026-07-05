@@ -1,4 +1,9 @@
 {
+  "save": {
+    "saving": "Kaydediliyor…",
+    "notSaved": "Değişiklikler kaydedilmedi",
+    "notSavedHint": "Buluta kaydedilemedi (çevrimdışı olabilirsiniz ya da bir görsel yüklenemedi). Otomatik olarak yeniden deneniyor — lütfen uygulamayı açık tutun."
+  },
   "update": {
     "availableTitle": "Güncelleme Mevcut — v{{version}}",
     "availableDesc": "Yeni sürüm indirilebilir",
