@@ -28,7 +28,8 @@ import {
   AlignRight,
   AlignHorizontalSpaceAround,
   AlignVerticalSpaceAround,
-  Palette
+  Palette,
+  Crop
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -254,6 +255,17 @@ export default function CanvasToolbar({
     });
     excalidrawAPI.updateScene({ elements: updated });
     forceUpdate();
+  };
+
+  // Enter Excalidraw's native image crop mode (drag handles crop; Escape/Enter
+  // exits). Same appState transition as its internal crop action.
+  const handleCropImage = () => {
+    if (!excalidrawAPI || selectedElements.length !== 1) return;
+    const el = selectedElements[0];
+    if (el.type !== "image") return;
+    excalidrawAPI.updateScene({
+      appState: { croppingElementId: el.id, isCropping: false }
+    });
   };
 
   const changeShapeType = (targetType: "rectangle" | "rounded-rectangle" | "ellipse" | "diamond") => {
@@ -1376,6 +1388,20 @@ export default function CanvasToolbar({
 
             {miniBarCategory === "selection" && (
               <div className="mini-bar-group">
+                {/* 0. IMAGE SELECTED — crop */}
+                {selectedElements.length === 1 && selectedElements[0].type === "image" && (
+                  <button
+                    type="button"
+                    className="mini-bar-btn"
+                    onClick={handleCropImage}
+                    title={isTr ? "Görseli Kırp" : "Crop Image"}
+                    style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "4px 8px" }}
+                  >
+                    <Crop size={15} />
+                    <span style={{ fontSize: "12px" }}>{isTr ? "Kırp" : "Crop"}</span>
+                  </button>
+                )}
+
                 {/* 1. TEXT ELEMENT SELECTED OR CONTAINER WITH BOUND TEXT */}
                 {activeText && (() => {
                   const rawSize = typeof activeText.fontSize === "object" ? (activeText.fontSize as any).size : (activeText.fontSize || 16);
@@ -1425,35 +1451,6 @@ export default function CanvasToolbar({
                         <option value={28}>{isTr ? "L (28px)" : "L (28px)"}</option>
                         <option value={36}>{isTr ? "XL (36px)" : "XL (36px)"}</option>
                       </select>
-
-                      {/* Direct Font Size Incrementor / Decrementor */}
-                      <div className="mini-bar-font-size-adjuster" style={{ display: "inline-flex", alignItems: "center", gap: "2px", marginLeft: "4px" }}>
-                        <button
-                          type="button"
-                          className="mini-bar-btn"
-                          style={{ padding: "0 6px", height: "24px", minWidth: "20px", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid var(--border-color)", borderRadius: "4px" }}
-                          onClick={() => {
-                            updateTextProp("fontSize", Math.max(8, Math.round(rawSize) - 2));
-                          }}
-                          title={isTr ? "Küçült" : "Decrease"}
-                        >
-                          -
-                        </button>
-                        <span style={{ fontSize: "11px", fontWeight: "600", minWidth: "28px", textAlign: "center", color: "var(--color-text-primary)" }}>
-                          {Math.round(rawSize)}px
-                        </span>
-                        <button
-                          type="button"
-                          className="mini-bar-btn"
-                          style={{ padding: "0 6px", height: "24px", minWidth: "20px", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid var(--border-color)", borderRadius: "4px" }}
-                          onClick={() => {
-                            updateTextProp("fontSize", Math.min(120, Math.round(rawSize) + 2));
-                          }}
-                          title={isTr ? "Büyüt" : "Increase"}
-                        >
-                          +
-                        </button>
-                      </div>
 
                       {/* Alignments */}
                       <div className="mini-bar-separator" />
