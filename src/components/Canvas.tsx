@@ -4,7 +4,16 @@ import LoadingSpinner from "./LoadingSpinner";
 import "@excalidraw/excalidraw/index.css";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { uploadCanvasFile, fetchCanvasFileDataURL, isCanvasFileRef } from "../lib/canvasStorage";
+import {
+  type CanvasFileRef,
+  isCanvasFileRef,
+  compressImageDataURL,
+  dataURLByteSize,
+  saveCanvasFile,
+  deleteCanvasFile,
+  loadCanvasFiles,
+  MAX_ORIGINAL_BYTES,
+} from "../lib/canvasFiles";
 import { useNoteStore } from "../store/useNoteStore";
 import { useTranslation } from "react-i18next";
 import CanvasToolbar from "./CanvasToolbar";
@@ -1249,11 +1258,13 @@ export default function Canvas() {
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSaveRef = useRef<{ noteId: string; elements: any[]; appState: any; files: any } | null>(null);
   const isWritingRef = useRef<boolean>(false);
-  // fileId -> Storage ref for images already uploaded for the current note.
-  const uploadedFilesRef = useRef<Record<string, { storagePath: string; mimeType?: string }>>({});
+  // fileId -> subcollection ref for images already persisted for the current note.
+  const persistedFilesRef = useRef<Record<string, CanvasFileRef>>({});
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Guard so the "image too large" toast fires once, not on every retry.
+  const oversizedFileIdsRef = useRef<Set<string>>(new Set());
   // Files parsed from the note doc that still need resolving/migrating once the
-  // Excalidraw API is ready (Storage refs to fetch, or legacy base64 to migrate).
+  // Excalidraw API is ready (load persisted docs; migrate legacy inline base64).
   const pendingFileResolveRef = useRef<{ noteId: string; files: any } | null>(null);
 
   // Direct sync function to save canvas to Firestore
@@ -1277,27 +1288,55 @@ export default function Canvas() {
         viewBackgroundColor: appState?.viewBackgroundColor || "#ffffff",
       }));
 
-      // Images go to Firebase Storage; the doc keeps only small refs so it can
-      // never exceed Firestore's 1 MB limit.
-      const uid = store.user?.uid;
-      const refs: Record<string, { storagePath: string; mimeType?: string }> = {};
-      let uploadFailed = false;
-      for (const [fileId, entry] of Object.entries<any>(files || {})) {
-        if (uploadedFilesRef.current[fileId]) {
-          refs[fileId] = uploadedFilesRef.current[fileId];
-        } else if (isCanvasFileRef(entry)) {
-          refs[fileId] = { storagePath: entry.storagePath, mimeType: entry.mimeType };
-          uploadedFilesRef.current[fileId] = refs[fileId];
-        } else if (entry?.dataURL && uid) {
-          try {
-            const r = await uploadCanvasFile(uid, noteId, fileId, entry.dataURL, entry.mimeType);
-            uploadedFilesRef.current[fileId] = r;
-            refs[fileId] = r;
-          } catch (e) {
-            // Offline / transient: keep drawing saving, retry the image later.
-            console.error("Canvas image upload failed:", e);
-            uploadFailed = true;
+      // Images live in the notes/{id}/files subcollection (compressed, chunked);
+      // the note doc keeps only tiny refs so it can never approach the 1 MB limit.
+      const usedFileIds = new Set<string>(
+        cleanElements
+          .filter((e: any) => e.type === "image" && !e.isDeleted && e.fileId)
+          .map((e: any) => e.fileId)
+      );
+      const refs: Record<string, CanvasFileRef> = {};
+      let retryableFileError = false;
+      let hardFileError = false;
+
+      for (const fileId of Array.from(usedFileIds)) {
+        if (persistedFilesRef.current[fileId]) {
+          refs[fileId] = persistedFilesRef.current[fileId];
+          continue;
+        }
+        const entry: any = (files || {})[fileId];
+        const dataURL: string | undefined = entry?.dataURL;
+        if (!dataURL) continue; // data not in memory yet; a later save will persist it
+
+        if (dataURLByteSize(dataURL) > MAX_ORIGINAL_BYTES) {
+          hardFileError = true;
+          if (!oversizedFileIdsRef.current.has(fileId)) {
+            oversizedFileIdsRef.current.add(fileId);
+            store.showToast(t("toast.imageTooLarge"), "error");
           }
+          continue;
+        }
+
+        try {
+          const { dataURL: compressed, mimeType } = await compressImageDataURL(dataURL);
+          const ref = await saveCanvasFile(noteId, fileId, compressed, mimeType);
+          persistedFilesRef.current[fileId] = ref;
+          refs[fileId] = ref;
+        } catch (e) {
+          // Offline / transient: keep the drawing saving, retry the image later.
+          console.error("Canvas image persist failed:", e);
+          retryableFileError = true;
+        }
+      }
+
+      // Delete subcollection docs for images that are no longer on the canvas.
+      for (const fileId of Object.keys(persistedFilesRef.current)) {
+        if (!usedFileIds.has(fileId)) {
+          const stale = persistedFilesRef.current[fileId];
+          delete persistedFilesRef.current[fileId];
+          deleteCanvasFile(noteId, fileId, stale.chunks).catch((e) =>
+            console.error("Canvas file delete failed:", e)
+          );
         }
       }
 
@@ -1309,9 +1348,12 @@ export default function Canvas() {
         updatedAt: serverTimestamp(),
       });
 
-      if (uploadFailed) {
+      if (retryableFileError) {
         store.setSaveStatus("error");
         scheduleSaveRetry(noteId, elements, appState, files);
+      } else if (hardFileError) {
+        // Permanent (oversized) — surfaced via the indicator, but don't retry.
+        store.setSaveStatus("error");
       } else {
         store.setSaveStatus("saved");
       }
@@ -1380,7 +1422,8 @@ export default function Canvas() {
 
     initializedNoteIdRef.current = activeNoteId;
     isInitializedRef.current = true;
-    uploadedFilesRef.current = {};
+    persistedFilesRef.current = {};
+    oversizedFileIdsRef.current = new Set();
 
     let elements: any[] = [];
     let appState: any = {};
@@ -1480,8 +1523,8 @@ export default function Canvas() {
     });
   }, [activeNoteId, notes]);
 
-  // Resolve Storage-backed images and migrate any legacy inline base64 once the
-  // Excalidraw API is ready for the freshly-opened note.
+  // Load persisted images from the files subcollection, and migrate any legacy
+  // inline base64 into it, once the Excalidraw API is ready for the open note.
   useEffect(() => {
     const pending = pendingFileResolveRef.current;
     if (!excalidrawAPI || !pending || pending.noteId !== activeNoteId) return;
@@ -1493,36 +1536,46 @@ export default function Canvas() {
       const files = pending.files || {};
       const uid = useNoteStore.getState().user?.uid;
 
-      const toAdd: any[] = [];
-      const legacy: { fileId: string; dataURL: string; mimeType?: string }[] = [];
-
+      // Mark refs already recorded in the note doc as persisted.
       for (const [fileId, entry] of Object.entries<any>(files)) {
-        if (isCanvasFileRef(entry)) {
-          uploadedFilesRef.current[fileId] = { storagePath: entry.storagePath, mimeType: entry.mimeType };
-          try {
-            const dataURL = await fetchCanvasFileDataURL(entry.storagePath);
-            toAdd.push({ id: fileId, dataURL, mimeType: entry.mimeType || "image/png", created: Date.now() });
-          } catch (e) {
-            console.error("Canvas image fetch failed:", e);
-          }
-        } else if (entry?.dataURL) {
-          legacy.push({ fileId, dataURL: entry.dataURL, mimeType: entry.mimeType });
+        if (isCanvasFileRef(entry)) persistedFilesRef.current[fileId] = { mimeType: entry.mimeType, chunks: entry.chunks };
+      }
+
+      const toAdd: any[] = [];
+
+      // 1. Load whatever is stored in the subcollection (one query).
+      try {
+        const stored = await loadCanvasFiles(noteId);
+        for (const [fileId, v] of Object.entries(stored)) {
+          toAdd.push({ id: fileId, dataURL: v.dataURL, mimeType: v.mimeType, created: Date.now() });
+        }
+      } catch (e) {
+        console.error("Canvas files load failed:", e);
+      }
+
+      // 2. Legacy inline base64 still living in the note doc: render + migrate.
+      const legacy: { fileId: string; dataURL: string }[] = [];
+      for (const [fileId, entry] of Object.entries<any>(files)) {
+        if (entry?.dataURL) {
+          legacy.push({ fileId, dataURL: entry.dataURL });
+          toAdd.push({ id: fileId, dataURL: entry.dataURL, mimeType: entry.mimeType || "image/png", created: Date.now() });
         }
       }
 
       if (cancelled) return;
-      if (toAdd.length && excalidrawAPI) {
+      if (toAdd.length) {
         try { excalidrawAPI.addFiles(toAdd); } catch (e) { console.error(e); }
       }
 
-      // Migrate legacy base64 → Storage, then shrink the doc to refs only.
       if (uid && legacy.length) {
         try {
-          const refs: Record<string, { storagePath: string; mimeType?: string }> = { ...uploadedFilesRef.current };
+          const refs: Record<string, CanvasFileRef> = { ...persistedFilesRef.current };
           for (const f of legacy) {
-            const r = await uploadCanvasFile(uid, noteId, f.fileId, f.dataURL, f.mimeType);
-            uploadedFilesRef.current[f.fileId] = r;
-            refs[f.fileId] = r;
+            if (dataURLByteSize(f.dataURL) > MAX_ORIGINAL_BYTES) continue; // leave untouched
+            const { dataURL: compressed, mimeType } = await compressImageDataURL(f.dataURL);
+            const ref = await saveCanvasFile(noteId, f.fileId, compressed, mimeType);
+            persistedFilesRef.current[f.fileId] = ref;
+            refs[f.fileId] = ref;
           }
           if (!cancelled) {
             await updateDoc(doc(db, "notes", noteId), { files: JSON.stringify(refs) });

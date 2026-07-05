@@ -88,7 +88,8 @@
     "saveSuccess": "Kaydedildi.",
     "createSuccess": "Not başarıyla oluşturuldu.",
     "deleteSuccess": "Not başarıyla silindi.",
-    "loadError": "Notlar yüklenirken hata oluştu."
+    "loadError": "Notlar yüklenirken hata oluştu.",
+    "imageTooLarge": "Görsel çok büyük (en fazla 5 MB) ve kaydedilmedi. Lütfen daha küçük bir görsel kullanın."
   },
   "editor": {
     "placeholder": "Yazmaya başla veya '/' ile komut gir...",

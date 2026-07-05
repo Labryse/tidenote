@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { fetchCanvasFileDataURL, isCanvasFileRef } from "../lib/canvasStorage";
+import { loadCanvasFiles } from "../lib/canvasFiles";
 import "../lib/canvasFonts"; // register canvas font variants for public view
 import { Excalidraw } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
@@ -98,12 +98,17 @@ function CanvasPublicView({ note }: { note: any }) {
     let cancelled = false;
     (async () => {
       const toAdd: any[] = [];
+      // Persisted images live in the files subcollection.
+      try {
+        const stored = await loadCanvasFiles(note.id);
+        for (const [fileId, v] of Object.entries(stored)) {
+          toAdd.push({ id: fileId, dataURL: v.dataURL, mimeType: v.mimeType, created: Date.now() });
+        }
+      } catch (e) { console.error("Public canvas files load failed:", e); }
+      // Legacy inline base64 still in the note doc.
       for (const [fileId, entry] of Object.entries<any>(files)) {
-        if (isCanvasFileRef(entry)) {
-          try {
-            const dataURL = await fetchCanvasFileDataURL(entry.storagePath);
-            toAdd.push({ id: fileId, dataURL, mimeType: entry.mimeType || "image/png", created: Date.now() });
-          } catch (e) { console.error("Public canvas image fetch failed:", e); }
+        if (entry?.dataURL) {
+          toAdd.push({ id: fileId, dataURL: entry.dataURL, mimeType: entry.mimeType || "image/png", created: Date.now() });
         }
       }
       if (!cancelled && toAdd.length) {
