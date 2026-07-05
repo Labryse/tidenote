@@ -38,6 +38,7 @@ import {
   measureCanvasText,
 } from "../lib/canvasFonts";
 import { installExcalidrawDomPatches } from "../lib/excalidrawDomPatches";
+import { installCanvasEmoticons } from "../lib/canvasEmoticons";
 
 export default function Canvas() {
   const { t, i18n } = useTranslation();
@@ -1235,6 +1236,12 @@ export default function Canvas() {
     if (!wrapperRef.current) return;
     return installExcalidrawDomPatches(wrapperRef.current, () => i18n.language);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [excalidrawAPI]);
+
+  // Emoticon → emoji auto-conversion inside the canvas text editor.
+  useEffect(() => {
+    if (!wrapperRef.current) return;
+    return installCanvasEmoticons(wrapperRef.current);
   }, [excalidrawAPI]);
 
   const initializedNoteIdRef = useRef<string | null>(null);
