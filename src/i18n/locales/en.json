@@ -259,7 +259,23 @@
       "bottom": "Bottom",
       "left": "Left",
       "right": "Right"
-    }
+    },
+    "textColor": "Text Color",
+    "customColor": "Custom Color",
+    "shapeStyle": "Color & Style",
+    "fill": "Fill",
+    "transparent": "Transparent",
+    "border": "Border",
+    "lineStyle": "Line Style",
+    "solid": "Solid",
+    "dashed": "Dashed",
+    "none": "None",
+    "thin": "Thin",
+    "medium": "Medium",
+    "thick": "Thick",
+    "cornerRadius": "Corner Radius",
+    "sharp": "Sharp",
+    "rounded": "Rounded"
   },
   "topbar": {
     "share_button": "Share",

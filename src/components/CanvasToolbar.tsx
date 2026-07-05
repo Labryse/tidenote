@@ -33,6 +33,15 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+// 26-color palette for the Word-style color pickers (rows of 6, + custom cell)
+const COLOR_PALETTE_26 = [
+  "#000000", "#1e293b", "#475569", "#64748b", "#94a3b8", "#ffffff",
+  "#dc2626", "#ea580c", "#f59e0b", "#eab308", "#84cc16", "#22c55e",
+  "#10b981", "#14b8a6", "#06b6d4", "#0891b2", "#3b82f6", "#6366f1",
+  "#8b5cf6", "#a855f7", "#d946ef", "#ec4899", "#f43f5e", "#92400e",
+  "#166534", "#1e3a8a",
+];
+
 const RoundedSquareIcon = ({ size = 16, ...props }: { size?: number; [key: string]: any }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
     <rect x="3" y="3" width="18" height="18" rx="4" ry="4" />
@@ -87,6 +96,26 @@ export default function CanvasToolbar({
   const [isShapeDropdownOpen, setIsShapeDropdownOpen] = useState(false);
   const [isMainShapeDropdownOpen, setIsMainShapeDropdownOpen] = useState(false);
   const mainShapeDropdownRef = useRef<HTMLDivElement>(null);
+  const [isTextColorOpen, setIsTextColorOpen] = useState(false);
+  const [isShapePanelOpen, setIsShapePanelOpen] = useState(false);
+  const textColorRef = useRef<HTMLDivElement>(null);
+  const shapePanelRef = useRef<HTMLDivElement>(null);
+
+  // Close color popovers on outside click
+  useEffect(() => {
+    if (!isTextColorOpen && !isShapePanelOpen) return;
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (isTextColorOpen && textColorRef.current && !textColorRef.current.contains(target)) {
+        setIsTextColorOpen(false);
+      }
+      if (isShapePanelOpen && shapePanelRef.current && !shapePanelRef.current.contains(target)) {
+        setIsShapePanelOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [isTextColorOpen, isShapePanelOpen]);
 
 
 
@@ -254,6 +283,20 @@ export default function CanvasToolbar({
       return e;
     });
     excalidrawAPI.updateScene({ elements: updated });
+    forceUpdate();
+  };
+
+  // Patch the single selected shape (and optionally the current-item defaults).
+  const updateSelectedShape = (patch: Record<string, any>, appStatePatch?: Record<string, any>) => {
+    if (!excalidrawAPI || selectedElements.length !== 1) return;
+    const id = selectedElements[0].id;
+    const updated = excalidrawAPI.getSceneElements().map((e: any) =>
+      e.id === id
+        ? { ...e, ...patch, updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
+        : e
+    );
+    excalidrawAPI.updateScene({ elements: updated });
+    if (appStatePatch) excalidrawAPI.updateScene({ appState: appStatePatch });
     forceUpdate();
   };
 
@@ -1498,43 +1541,46 @@ export default function CanvasToolbar({
                   );
                 })()}
 
-                {/* Color Palette */}
+                {/* Text color — Word-style "A" button; menu opens above the bar */}
                 {activeText && (
                   <>
                     <div className="mini-bar-separator" />
-                    <div className="mini-bar-palette">
-                      {strokePresets.map((color, index) => (
-                        <button
-                          key={`textstroke-${index}-${color}`}
-                          type="button"
-                          className={`mini-bar-swatch ${activeText.strokeColor === color ? "active" : ""}`}
-                          style={{ backgroundColor: color }}
-                          onClick={() => updateTextProp("strokeColor", color)}
-                        />
-                      ))}
-                      <label
-                        className="mini-bar-swatch"
-                        style={{
-                          borderRadius: "50%",
-                          overflow: "hidden",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          cursor: "pointer",
-                          border: "1.5px dashed var(--color-border, #e5e7eb)",
-                          backgroundColor: "transparent",
-                          position: "relative"
-                        }}
-                        title={isTr ? "Özel Renk" : "Custom Color"}
+                    <div ref={textColorRef} style={{ position: "relative", display: "inline-flex" }}>
+                      <button
+                        type="button"
+                        className={`mini-bar-btn tn-textcolor-btn ${isTextColorOpen ? "active" : ""}`}
+                        onClick={() => setIsTextColorOpen(!isTextColorOpen)}
+                        title={t("canvas.textColor", "Metin Rengi")}
                       >
-                        <Palette size={12} />
-                        <input
-                          type="color"
-                          style={{ position: "absolute", opacity: 0, width: "100%", height: "100%", cursor: "pointer" }}
-                          value={activeText.strokeColor?.startsWith("#") ? activeText.strokeColor : "#000000"}
-                          onChange={e => updateTextProp("strokeColor", e.target.value)}
+                        <span className="tn-textcolor-a">A</span>
+                        <span
+                          className="tn-textcolor-underline"
+                          style={{ background: activeText.strokeColor?.startsWith("#") ? activeText.strokeColor : "#000000" }}
                         />
-                      </label>
+                      </button>
+                      {isTextColorOpen && (
+                        <div className="tn-color-popover" onMouseDown={e => e.stopPropagation()}>
+                          <div className="tn-color-popover-title">{t("canvas.textColor", "Metin Rengi")}</div>
+                          <div className="tn-color-grid">
+                            {COLOR_PALETTE_26.map((color) => (
+                              <button
+                                key={`tc-${color}`}
+                                type="button"
+                                className={`tn-swatch ${activeText.strokeColor === color ? "active" : ""}`}
+                                style={{ backgroundColor: color }}
+                                onClick={() => { updateTextProp("strokeColor", color); setIsTextColorOpen(false); }}
+                              />
+                            ))}
+                            <label className="tn-swatch tn-swatch-rainbow" title={t("canvas.customColor", "Özel Renk")}>
+                              <input
+                                type="color"
+                                value={activeText.strokeColor?.startsWith("#") ? activeText.strokeColor : "#000000"}
+                                onChange={e => updateTextProp("strokeColor", e.target.value)}
+                              />
+                            </label>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </>
                 )}
@@ -1542,197 +1588,156 @@ export default function CanvasToolbar({
                 {/* 2. RECTANGLE / ELLIPSE / DIAMOND SELECTED */}
                 {selectedElements.length === 1 && (selectedElements[0].type === "rectangle" || selectedElements[0].type === "ellipse" || selectedElements[0].type === "diamond") && (
                   <>
-                    {/* Fill Palette */}
-                    <div className="mini-bar-section">
-                      <span className="mini-bar-label">{isTr ? "Dolgu:" : "Fill:"}</span>
-                      <div className="mini-bar-palette">
-                        {/* Transparent fill button */}
-                        <button
-                          type="button"
-                          className={`mini-bar-swatch swatch-transparent ${selectedElements[0].backgroundColor === "transparent" ? "active" : ""}`}
-                          style={{ backgroundColor: "transparent" }}
-                          onClick={() => {
-                            const updated = excalidrawAPI.getSceneElements().map((e: any) =>
-                              e.id === selectedElements[0].id
-                                ? { ...e, backgroundColor: "transparent", fillStyle: "hachure", updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
-                                : e
-                            );
-                            excalidrawAPI.updateScene({ elements: updated });
-                            forceUpdate();
-                          }}
-                          title={isTr ? "Şeffaf" : "Transparent"}
-                        />
-                        {fillPresets.map((color, idx) => (
-                          <button
-                            key={`selfill-${idx}-${color}`}
-                            type="button"
-                            className={`mini-bar-swatch ${selectedElements[0].backgroundColor === color ? "active" : ""}`}
-                            style={{ backgroundColor: color }}
-                            onClick={() => {
-                              const updated = excalidrawAPI.getSceneElements().map((e: any) =>
-                                e.id === selectedElements[0].id
-                                  ? { ...e, backgroundColor: color, fillStyle: "solid", updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
-                                  : e
-                              );
-                              excalidrawAPI.updateScene({ elements: updated });
-                              forceUpdate();
-                            }}
-                          />
-                        ))}
-                        <label
-                          className="mini-bar-swatch"
+                    {/* Consolidated color & style panel */}
+                    <div ref={shapePanelRef} style={{ position: "relative", display: "inline-flex" }}>
+                      <button
+                        type="button"
+                        className={`mini-bar-btn ${isShapePanelOpen ? "active" : ""}`}
+                        onClick={() => setIsShapePanelOpen(!isShapePanelOpen)}
+                        title={t("canvas.shapeStyle", "Renk ve Stil")}
+                        style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "4px 8px" }}
+                      >
+                        <Palette size={15} />
+                        <span
+                          className="tn-fill-indicator"
                           style={{
-                            borderRadius: "50%",
-                            overflow: "hidden",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            cursor: "pointer",
-                            border: "1.5px dashed var(--color-border, #e5e7eb)",
-                            backgroundColor: "transparent",
-                            position: "relative"
+                            background: selectedElements[0].backgroundColor === "transparent"
+                              ? "repeating-conic-gradient(#d1d5db 0% 25%, transparent 0% 50%) 50% / 8px 8px"
+                              : selectedElements[0].backgroundColor
                           }}
-                          title={isTr ? "Özel Renk" : "Custom Color"}
-                        >
-                          <Palette size={12} />
-                          <input
-                            type="color"
-                            style={{ position: "absolute", opacity: 0, width: "100%", height: "100%", cursor: "pointer" }}
-                            value={(() => {
-                              const bg = selectedElements[0].backgroundColor;
-                              if (!bg || bg === "transparent" || !bg.startsWith("#")) return "#ffffff";
-                              return bg;
-                            })()}
-                            onChange={e => {
-                              const val = e.target.value;
-                              const updated = excalidrawAPI.getSceneElements().map((el: any) =>
-                                el.id === selectedElements[0].id
-                                  ? { ...el, backgroundColor: val, fillStyle: "solid", updated: Date.now(), version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
-                                  : el
-                              );
-                              excalidrawAPI.updateScene({ elements: updated });
-                              forceUpdate();
-                            }}
-                          />
-                        </label>
-                      </div>
-                    </div>
+                        />
+                      </button>
 
-                    {/* Stroke Width */}
-                    <div className="mini-bar-separator" />
-                    <div className="mini-bar-section">
-                      <span className="mini-bar-label">{isTr ? "Kenar:" : "Stroke:"}</span>
-                      <div className="mini-bar-options">
-                        {[{ label: isTr ? "Yok" : "None", w: 0 }, { label: isTr ? "İnce" : "Thin", w: 1 }, { label: isTr ? "Orta" : "Med", w: 2 }, { label: isTr ? "Kalın" : "Thick", w: 4 }].map(opt => (
-                          <button
-                            key={opt.w}
-                            type="button"
-                            className={`mini-bar-option-btn ${selectedElements[0].strokeWidth === opt.w ? "active" : ""}`}
-                            style={{ fontSize: "10px", minWidth: "28px" }}
-                            onClick={() => {
-                              const newColor = opt.w === 0 ? "transparent" : (selectedElements[0].strokeColor === "transparent" ? "#1e293b" : selectedElements[0].strokeColor);
-                              const updated = excalidrawAPI.getSceneElements().map((e: any) =>
-                                e.id === selectedElements[0].id
-                                  ? { ...e, strokeWidth: opt.w, strokeColor: newColor, updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
-                                  : e
-                              );
-                              excalidrawAPI.updateScene({ elements: updated });
-                              lastShapeStrokeWidthRef.current = opt.w;
-                              lastShapeStrokeColorRef.current = newColor;
-                              excalidrawAPI.updateScene({
-                                appState: {
-                                  currentItemStrokeWidth: opt.w,
-                                  currentItemStrokeColor: newColor
-                                }
-                              });
-                              forceUpdate();
-                            }}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                      {isShapePanelOpen && (() => {
+                        const shape = selectedElements[0];
+                        const strokeNone = shape.strokeWidth === 0 || shape.strokeColor === "transparent";
+                        const setStroke = (patch: Record<string, any>) => {
+                          const next = { strokeWidth: shape.strokeWidth, strokeStyle: shape.strokeStyle, strokeColor: shape.strokeColor, ...patch };
+                          lastShapeStrokeWidthRef.current = next.strokeWidth;
+                          lastShapeStrokeColorRef.current = next.strokeColor;
+                          updateSelectedShape(next, {
+                            currentItemStrokeWidth: next.strokeWidth,
+                            currentItemStrokeColor: next.strokeColor
+                          });
+                        };
+                        return (
+                          <div className="tn-color-popover tn-shape-panel" onMouseDown={e => e.stopPropagation()}>
+                            {/* Fill */}
+                            <div className="tn-color-popover-title">{t("canvas.fill", "Dolgu")}</div>
+                            <div className="tn-color-grid">
+                              <button
+                                type="button"
+                                className={`tn-swatch tn-swatch-transparent ${shape.backgroundColor === "transparent" ? "active" : ""}`}
+                                onClick={() => updateSelectedShape({ backgroundColor: "transparent", fillStyle: "hachure" })}
+                                title={t("canvas.transparent", "Şeffaf")}
+                              />
+                              {COLOR_PALETTE_26.map((color) => (
+                                <button
+                                  key={`fill-${color}`}
+                                  type="button"
+                                  className={`tn-swatch ${shape.backgroundColor === color ? "active" : ""}`}
+                                  style={{ backgroundColor: color }}
+                                  onClick={() => updateSelectedShape({ backgroundColor: color, fillStyle: "solid" })}
+                                />
+                              ))}
+                              <label className="tn-swatch tn-swatch-rainbow" title={t("canvas.customColor", "Özel Renk")}>
+                                <input
+                                  type="color"
+                                  value={shape.backgroundColor?.startsWith("#") ? shape.backgroundColor : "#ffffff"}
+                                  onChange={e => updateSelectedShape({ backgroundColor: e.target.value, fillStyle: "solid" })}
+                                />
+                              </label>
+                            </div>
 
-                    {/* Stroke Color Palette (only if strokeWidth > 0) */}
-                    {selectedElements[0].strokeWidth > 0 && (
-                      <>
-                        <div className="mini-bar-separator" />
-                        <div className="mini-bar-palette">
-                          {strokePresets.map((color, idx) => (
-                            <button
-                              key={`selstroke-${idx}-${color}`}
-                              type="button"
-                              className={`mini-bar-swatch ${selectedElements[0].strokeColor === color ? "active" : ""}`}
-                              style={{ backgroundColor: color }}
-                              onClick={() => {
-                                const newWidth = selectedElements[0].strokeWidth === 0 ? 1 : selectedElements[0].strokeWidth;
-                                const updated = excalidrawAPI.getSceneElements().map((e: any) =>
-                                  e.id === selectedElements[0].id
-                                    ? { ...e, strokeColor: color, strokeWidth: newWidth, updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
-                                    : e
-                                );
-                                excalidrawAPI.updateScene({ elements: updated });
-                                lastShapeStrokeColorRef.current = color;
-                                lastShapeStrokeWidthRef.current = newWidth;
-                                excalidrawAPI.updateScene({
-                                  appState: {
-                                    currentItemStrokeColor: color,
-                                    currentItemStrokeWidth: newWidth
-                                  }
-                                });
-                                forceUpdate();
-                              }}
-                            />
-                          ))}
-                          <label
-                            className="mini-bar-swatch"
-                            style={{
-                              borderRadius: "50%",
-                              overflow: "hidden",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              cursor: "pointer",
-                              border: "1.5px dashed var(--color-border, #e5e7eb)",
-                              backgroundColor: "transparent",
-                              position: "relative"
-                            }}
-                            title={isTr ? "Özel Renk" : "Custom Color"}
-                          >
-                            <Palette size={12} />
-                            <input
-                              type="color"
-                              style={{ position: "absolute", opacity: 0, width: "100%", height: "100%", cursor: "pointer" }}
-                              value={(() => {
-                                const sc = selectedElements[0].strokeColor;
-                                if (!sc || sc === "transparent" || !sc.startsWith("#")) return "#1e293b";
-                                return sc;
-                              })()}
-                              onChange={e => {
-                                const val = e.target.value;
-                                const newWidth = selectedElements[0].strokeWidth === 0 ? 1 : selectedElements[0].strokeWidth;
-                                const updated = excalidrawAPI.getSceneElements().map((el: any) =>
-                                  el.id === selectedElements[0].id
-                                    ? { ...el, strokeColor: val, strokeWidth: newWidth, updated: Date.now(), version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
-                                    : el
-                                );
-                                excalidrawAPI.updateScene({ elements: updated });
-                                lastShapeStrokeColorRef.current = val;
-                                lastShapeStrokeWidthRef.current = newWidth;
-                                excalidrawAPI.updateScene({
-                                  appState: {
-                                    currentItemStrokeColor: val,
-                                    currentItemStrokeWidth: newWidth
-                                  }
-                                });
-                                forceUpdate();
-                              }}
-                            />
-                          </label>
-                        </div>
-                      </>
-                    )}
+                            {/* Border color */}
+                            <div className="tn-color-popover-title">{t("canvas.border", "Kenarlık")}</div>
+                            <div className="tn-color-grid tn-color-grid-compact">
+                              {strokePresets.map((color: string) => (
+                                <button
+                                  key={`border-${color}`}
+                                  type="button"
+                                  className={`tn-swatch ${shape.strokeColor === color ? "active" : ""}`}
+                                  style={{ backgroundColor: color }}
+                                  onClick={() => setStroke({ strokeColor: color, strokeWidth: shape.strokeWidth === 0 ? 1 : shape.strokeWidth })}
+                                />
+                              ))}
+                              <label className="tn-swatch tn-swatch-rainbow" title={t("canvas.customColor", "Özel Renk")}>
+                                <input
+                                  type="color"
+                                  value={shape.strokeColor?.startsWith("#") ? shape.strokeColor : "#1e293b"}
+                                  onChange={e => setStroke({ strokeColor: e.target.value, strokeWidth: shape.strokeWidth === 0 ? 1 : shape.strokeWidth })}
+                                />
+                              </label>
+                            </div>
+
+                            {/* Line style */}
+                            <div className="tn-color-popover-title">{t("canvas.lineStyle", "Çizgi Stili")}</div>
+                            <div className="tn-panel-row">
+                              <button
+                                type="button"
+                                className={`mini-bar-option-btn ${!strokeNone && shape.strokeStyle !== "dashed" ? "active" : ""}`}
+                                onClick={() => setStroke({ strokeStyle: "solid", strokeWidth: shape.strokeWidth === 0 ? 1 : shape.strokeWidth, strokeColor: shape.strokeColor === "transparent" ? "#1e293b" : shape.strokeColor })}
+                              >
+                                {t("canvas.solid", "Düz")}
+                              </button>
+                              <button
+                                type="button"
+                                className={`mini-bar-option-btn ${!strokeNone && shape.strokeStyle === "dashed" ? "active" : ""}`}
+                                onClick={() => setStroke({ strokeStyle: "dashed", strokeWidth: shape.strokeWidth === 0 ? 1 : shape.strokeWidth, strokeColor: shape.strokeColor === "transparent" ? "#1e293b" : shape.strokeColor })}
+                              >
+                                {t("canvas.dashed", "Kesikli")}
+                              </button>
+                              <button
+                                type="button"
+                                className={`mini-bar-option-btn ${strokeNone ? "active" : ""}`}
+                                onClick={() => setStroke({ strokeWidth: 0, strokeColor: "transparent" })}
+                              >
+                                {t("canvas.none", "Yok")}
+                              </button>
+                            </div>
+
+                            {/* Border width (hidden when line style = none) */}
+                            {!strokeNone && (
+                              <div className="tn-panel-row">
+                                {[{ label: t("canvas.thin", "İnce"), w: 1 }, { label: t("canvas.medium", "Orta"), w: 2 }, { label: t("canvas.thick", "Kalın"), w: 4 }].map(opt => (
+                                  <button
+                                    key={opt.w}
+                                    type="button"
+                                    className={`mini-bar-option-btn ${shape.strokeWidth === opt.w ? "active" : ""}`}
+                                    onClick={() => setStroke({ strokeWidth: opt.w })}
+                                  >
+                                    {opt.label}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Corner radius — rectangles only */}
+                            {shape.type === "rectangle" && (
+                              <>
+                                <div className="tn-color-popover-title">{t("canvas.cornerRadius", "Köşe Yumuşaklığı")}</div>
+                                <div className="tn-panel-row">
+                                  <button
+                                    type="button"
+                                    className={`mini-bar-option-btn ${shape.roundness === null ? "active" : ""}`}
+                                    onClick={() => updateSelectedShape({ roundness: null })}
+                                  >
+                                    {t("canvas.sharp", "Sivri")}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={`mini-bar-option-btn ${shape.roundness !== null ? "active" : ""}`}
+                                    onClick={() => updateSelectedShape({ roundness: { type: 3, value: 10 } })}
+                                  >
+                                    {t("canvas.rounded", "Yumuşak")}
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
 
                     {/* Add Text */}
                     {!activeText && (
