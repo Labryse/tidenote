@@ -130,6 +130,24 @@ export async function deleteCanvasFile(noteId: string, fileId: string, chunks: n
 }
 
 /**
+ * Delete the entire files subcollection for a note. Firestore doesn't cascade
+ * subcollection deletes, so call this before deleting a note document to avoid
+ * orphaned file docs. Batched in groups of 400 (well under the 500 op limit).
+ */
+export async function deleteAllCanvasFiles(noteId: string): Promise<void> {
+  const filesCol = collection(db, "notes", noteId, "files");
+  const snap = await getDocs(filesCol);
+  if (snap.empty) return;
+
+  const docs = snap.docs;
+  for (let i = 0; i < docs.length; i += 400) {
+    const batch = writeBatch(db);
+    for (const d of docs.slice(i, i + 400)) batch.delete(d.ref);
+    await batch.commit();
+  }
+}
+
+/**
  * Load every stored file for a note in a single query and reassemble each into
  * a data URL keyed by fileId. Works for owner and public readers alike.
  */

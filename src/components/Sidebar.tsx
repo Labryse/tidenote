@@ -3,6 +3,7 @@ import { db, auth } from "../lib/firebase";
 import { collection, query, orderBy, addDoc, serverTimestamp, doc, deleteDoc, where, updateDoc, getDocs } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { subscribeSnapshot } from "../lib/firestoreSubscriptions";
+import { deleteAllCanvasFiles } from "../lib/canvasFiles";
 import { useNoteStore, type Note, type Folder } from "../store/useNoteStore";
 import { useTranslation } from "react-i18next";
 import ConfirmModal from "./ConfirmModal";
@@ -1150,6 +1151,16 @@ export default function Sidebar() {
           setActiveNoteId(remainingNotes[0].id);
         } else {
           setActiveNoteId(null);
+        }
+      }
+      // Purge the canvas files subcollection first — once the note doc is gone
+      // the security rules can no longer authorize deleting its file docs.
+      const deletingNote = notes.find((n) => n.id === deleteNoteId);
+      if (!deletingNote || deletingNote.type === "canvas") {
+        try {
+          await deleteAllCanvasFiles(deleteNoteId);
+        } catch (e) {
+          console.error("Failed to purge canvas files:", e);
         }
       }
       await deleteDoc(doc(db, "notes", deleteNoteId));

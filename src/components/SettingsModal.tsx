@@ -9,6 +9,7 @@ import { updatePassword, deleteUser, updateProfile, EmailAuthProvider, reauthent
 import { doc, deleteDoc, serverTimestamp, collection, addDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import ConfirmModal from "./ConfirmModal";
+import { deleteAllCanvasFiles } from "../lib/canvasFiles";
 import { getLogoSrc, calculateStorageBytes } from "../lib/utils";
 import DownloadButton from "./DownloadButton";
 import { isWebOnly } from "../lib/platformDetect";
@@ -236,8 +237,17 @@ export default function SettingsModal() {
     if (!currentUser) return;
 
     try {
-      // 1. Delete all note documents owned by this user
+      // 1. Delete all note documents owned by this user (purge each canvas
+      //    note's files subcollection first, while the parent note still exists
+      //    so the rules can authorize it).
       for (const note of notes) {
+        if (note.type === "canvas") {
+          try {
+            await deleteAllCanvasFiles(note.id);
+          } catch (e) {
+            console.error("Failed to purge canvas files:", e);
+          }
+        }
         await deleteDoc(doc(db, "notes", note.id));
       }
 
