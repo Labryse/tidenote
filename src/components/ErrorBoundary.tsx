@@ -54,10 +54,16 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     minHeight: "100vh",
+    // Fill the viewport even when the boundary is mounted inside a flex-row
+    // layout (sidebar + content) — otherwise the card hugs the left edge.
+    width: "100%",
+    position: "fixed" as const,
+    inset: 0,
     backgroundColor: "#0f172a",
     fontFamily: "Inter, sans-serif",
     color: "#f1f5f9",
     padding: "20px",
+    zIndex: 100000,
   },
   card: {
     backgroundColor: "#1e293b",

@@ -482,13 +482,9 @@ function App() {
   }, [setUser, setUserTier, setIsLoading, setFirestoreUser]);
 
   if (authChecking) {
-    return (
-      <div className="auth-page-container">
-        <div className="empty-state">
-          <LoadingSpinner label="Kimlik Doğrulanıyor..." />
-        </div>
-      </div>
-    );
+    // No visible interstitial while auth resolves (usually <1s) — just a
+    // theme-colored screen so there's neither a text flash nor a white flash.
+    return <div style={{ position: "fixed", inset: 0, background: "var(--color-bg-app, var(--color-bg-main))" }} />;
   }
 
   return (

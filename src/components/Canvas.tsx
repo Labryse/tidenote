@@ -37,7 +37,7 @@ import {
   sanitizeTextElementFont,
   measureCanvasText,
 } from "../lib/canvasFonts";
-
+import { installExcalidrawDomPatches } from "../lib/excalidrawDomPatches";
 
 export default function Canvas() {
   const { t, i18n } = useTranslation();
@@ -1229,6 +1229,14 @@ export default function Canvas() {
     };
   }, []);
 
+  // Patch Excalidraw-internal UI (context menu clamp + Zen mode removal,
+  // "Copied styles" toast behavior, missing TR strings in the stats panel).
+  useEffect(() => {
+    if (!wrapperRef.current) return;
+    return installExcalidrawDomPatches(wrapperRef.current, () => i18n.language);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [excalidrawAPI]);
+
   const initializedNoteIdRef = useRef<string | null>(null);
   const lastSavedRef = useRef<string>("");
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1793,7 +1801,24 @@ export default function Canvas() {
             };
           }
         }
-        
+
+        // 3. Bound text must never outlive its container. Deleting a text box
+        //    could leave its bound text orphaned (invisible to selection, only
+        //    reachable by double-click) — cascade the deletion here, which also
+        //    heals any orphans already saved in existing notes.
+        if (nextEl.type === "text" && nextEl.containerId && !nextEl.isDeleted) {
+          const parent = elements.find((c: any) => c.id === nextEl.containerId);
+          if (!parent || parent.isDeleted) {
+            elementsChanged = true;
+            nextEl = {
+              ...nextEl,
+              isDeleted: true,
+              version: nextEl.version + 1,
+              versionNonce: Math.floor(Math.random() * 999999)
+            };
+          }
+        }
+
         return nextEl;
       });
 

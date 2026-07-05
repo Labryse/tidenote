@@ -8576,6 +8576,39 @@ body {
 /* Nunito/Cascadia/Inter/Poppins/Bebas variant faces are injected with real
    woff2 files by src/lib/canvasFonts.ts (registerCanvasFonts). */
 
+/* ── Excalidraw internal UI fixes (paired with lib/excalidrawDomPatches.ts) ── */
+
+/* Context menu: keep above app toolbars; never taller than the viewport */
+.excalidraw .context-menu {
+  z-index: 10000 !important;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+}
+
+/* "Copied styles." toast: behave like a normal app toast (bottom-center,
+   above all canvas UI) instead of floating mid-canvas */
+.excalidraw .Toast {
+  position: fixed !important;
+  left: 50% !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: 28px !important;
+  transform: translateX(-50%) !important;
+  z-index: 10001 !important;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+/* Stats panel ("Canvas & Shape properties"): tidy spacing + stacking */
+.excalidraw .exc-stats {
+  z-index: 9999;
+}
+.excalidraw .exc-stats__row--heading {
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
 /* TideNote Table Custom Styling */
 .bn-block[data-content-type="table"] table {
   border-collapse: separate;
