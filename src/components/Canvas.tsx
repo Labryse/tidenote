@@ -54,7 +54,7 @@ const getHitTransformHandle = (
   canvasX: number,
   canvasY: number,
   zoom: number
-): boolean => {
+): "edge" | "corner" | null => {
   const cx = image.x + image.width / 2;
   const cy = image.y + image.height / 2;
   
@@ -67,14 +67,14 @@ const getHitTransformHandle = (
   const localY = ry - image.y;
   
   const handles = [
-    { x: 0, y: 0 },
-    { x: image.width / 2, y: 0 },
-    { x: image.width, y: 0 },
-    { x: image.width, y: image.height / 2 },
-    { x: image.width, y: image.height },
-    { x: image.width / 2, y: image.height },
-    { x: 0, y: image.height },
-    { x: 0, y: image.height / 2 },
+    { type: "corner" as const, x: 0, y: 0 },
+    { type: "edge" as const, x: image.width / 2, y: 0 },
+    { type: "corner" as const, x: image.width, y: 0 },
+    { type: "edge" as const, x: image.width, y: image.height / 2 },
+    { type: "corner" as const, x: image.width, y: image.height },
+    { type: "edge" as const, x: image.width / 2, y: image.height },
+    { type: "corner" as const, x: 0, y: image.height },
+    { type: "edge" as const, x: 0, y: image.height / 2 },
   ];
   
   const threshold = 16 / zoom;
@@ -83,10 +83,10 @@ const getHitTransformHandle = (
     const dx = localX - h.x;
     const dy = localY - h.y;
     if (Math.sqrt(dx * dx + dy * dy) <= threshold) {
-      return true;
+      return h.type;
     }
   }
-  return false;
+  return null;
 };
 
 export default function Canvas() {
@@ -317,21 +317,20 @@ export default function Canvas() {
         const canvasX = (e.clientX - rect.left - scrollX * z) / z;
         const canvasY = (e.clientY - rect.top - scrollY * z) / z;
 
-        if (getHitTransformHandle(image, canvasX, canvasY, z)) {
-          if (e.shiftKey) {
-            // Shift + drag => Resize (scale)
-            if (appState.croppingElementId) {
-              excalidrawAPI.updateScene({
-                appState: { croppingElementId: null }
-              });
-            }
-          } else {
-            // Normal drag => Crop (trim frame)
-            if (!appState.croppingElementId) {
-              excalidrawAPI.updateScene({
-                appState: { croppingElementId: image.id }
-              });
-            }
+        const handleType = getHitTransformHandle(image, canvasX, canvasY, z);
+        if (handleType === "edge") {
+          // Edge handles => Crop (trim frame)
+          if (!appState.croppingElementId) {
+            excalidrawAPI.updateScene({
+              appState: { croppingElementId: image.id }
+            });
+          }
+        } else if (handleType === "corner") {
+          // Corner handles => Proportional Resize (lock aspect ratio)
+          if (appState.croppingElementId) {
+            excalidrawAPI.updateScene({
+              appState: { croppingElementId: null }
+            });
           }
         }
       }
