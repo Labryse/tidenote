@@ -1,0 +1,505 @@
+{
+  "save": {
+    "saving": "Saving…",
+    "notSaved": "Changes not saved",
+    "notSavedHint": "Couldn't save to the cloud (e.g. you're offline or an image failed to upload). Retrying automatically — keep the app open."
+  },
+  "update": {
+    "availableTitle": "Update Available — v{{version}}",
+    "availableDesc": "A new version is ready to download",
+    "downloadingTitle": "Downloading… {{percent}}%",
+    "downloadingDesc": "Please wait…",
+    "readyTitle": "Update Ready",
+    "readyDesc": "Restart to install",
+    "download": "Download",
+    "later": "Later",
+    "restart": "Restart",
+    "restartingTitle": "Restarting to update…",
+    "restartingDesc": "TideNote will close, install the update, and reopen automatically. Please don't turn off your computer."
+  },
+  "sidebar": {
+    "newNote": "New Note",
+    "newDocument": "New Document",
+    "newCanvas": "New Canvas",
+    "untitledNote": "Untitled Note",
+    "untitledCanvas": "Untitled Canvas",
+    "noNotes": "No notes yet.\nCreate one with +",
+    "searchPlaceholder": "Search notes...",
+    "sortBy": "Sort by",
+    "sortUpdated": "Last Updated",
+    "sortCreated": "Date Created",
+    "sortTitle": "Title (A-Z)",
+    "pinnedSection": "Pinned",
+    "notesSection": "Notes",
+    "favoritesSection": "Favorites",
+    "archiveSection": "Archive",
+    "archiveTitle": "Archived Notes",
+    "unarchive": "Unarchive",
+    "deletePermanent": "Delete Permanently",
+    "allTags": "All",
+    "addTag": "+ Tag",
+    "tagPlaceholder": "New tag...",
+    "createFromTemplate": "Create from Template"
+  },
+  "journal": {
+    "today": "Today",
+    "sidebarSuffix": "Journal",
+    "howFeel": "🌅 How do I feel today?",
+    "todo": "✅ Today's tasks",
+    "notes": "💭 Notes & Thoughts",
+    "summary": "🌙 Summary of the day"
+  },
+  "quickCapture": {
+    "title": "Quick Capture",
+    "placeholder": "Title...",
+    "bodyPlaceholder": "What's on your mind? (optional)",
+    "save": "Save",
+    "document": "Document",
+    "canvas": "Canvas"
+  },
+  "auth": {
+    "login": "Sign In",
+    "register": "Sign Up",
+    "loginSuccess": "Successfully signed in.",
+    "registerSuccess": "Account successfully created.",
+    "email": "Email",
+    "password": "Password",
+    "passwordRepeat": "Repeat Password",
+    "passwordMismatch": "Passwords do not match.",
+    "weakPassword": "Password must be at least 6 characters.",
+    "emailInUse": "This email is already registered.",
+    "invalidCredentials": "Invalid email or password.",
+    "unknownError": "An error occurred. Please try again.",
+    "logout": "Sign Out",
+    "continueWithGoogle": "Continue with Google",
+    "or": "or",
+    "verificationEmailSent": "Verification email sent. Please check your inbox."
+  },
+  "modal": {
+    "deleteTitle": "Delete Note",
+    "deleteMessage": "This note will be permanently deleted. Are you sure?",
+    "cancel": "Cancel",
+    "delete": "Delete"
+  },
+  "toast": {
+    "saveError": "Could not save note.",
+    "deleteError": "Could not delete note.",
+    "createError": "Could not create note.",
+    "saveSuccess": "Saved.",
+    "createSuccess": "Note successfully created.",
+    "deleteSuccess": "Note successfully deleted.",
+    "loadError": "Could not load notes.",
+    "imageTooLarge": "Image is too large (max 5 MB) and was not saved. Please use a smaller image.",
+    "imageLoadError": "Some images could not be loaded."
+  },
+  "editor": {
+    "placeholder": "Start writing or type '/' for commands...",
+    "tableOfContents": "Table of Contents",
+    "callout": {
+      "group": "Callouts",
+      "infoTitle": "Info Note",
+      "infoSubtext": "A blue box to highlight important info",
+      "infoLabel": "INFO",
+      "warningTitle": "Warning",
+      "warningSubtext": "A yellow box to show warnings",
+      "warningLabel": "WARNING",
+      "successTitle": "Success",
+      "successSubtext": "A green box to show success",
+      "successLabel": "SUCCESS",
+      "dangerTitle": "Danger",
+      "dangerSubtext": "A red box to show danger or error",
+      "dangerLabel": "DANGER",
+      "tipTitle": "Tip",
+      "tipSubtext": "A purple box to show useful tips",
+      "tipLabel": "TIP"
+    }
+  },
+  "sidebar-extra": {
+    "saving": "Saving..."
+  },
+  "language": {
+    "select": "Language",
+    "tr": "TR",
+    "en": "EN"
+  },
+  "landing": {
+    "badge": "✦ Note-taking reimagined",
+    "title": "An infinite space\nfor your thoughts.",
+    "subtitle": "Block editor and infinite canvas together. Your notes, drawings, and ideas — all in one place.",
+    "startFree": "Start for Free",
+    "startFreeArrow": "Start for Free →",
+    "howItWorks": "How It Works",
+    "login": "Sign In",
+    "goApp": "Go to App",
+    "previewTitle": "App preview coming soon",
+    "featuresTitle": "Everything is easier than you think.",
+    "features": {
+      "editorTitle": "Block Editor",
+      "editorDesc": "Add headers, lists, and task boxes with slash commands. Drag and rearrange blocks.",
+      "canvasTitle": "Infinite Canvas",
+      "canvasDesc": "Draw, add shapes, create diagrams. No boundaries, no zoom limits, no restrictions.",
+      "syncTitle": "Cloud Sync",
+      "syncDesc": "Instant access on phone, tablet, computer — any device. Saved automatically.",
+      "themeTitle": "Light & Dark Theme",
+      "themeDesc": "A modern interface that adapts to your preferences, easy on the eyes."
+    },
+    "pricingTitle": "Get started for free.",
+    "pricing": {
+      "free": "Free",
+      "freeDesc": "$0 / mo",
+      "premium": "Premium",
+      "premiumDesc": "$2.99 / mo",
+      "popular": "Most Popular",
+      "freeBtn": "Get Started",
+      "premiumBtn": "Upgrade to Premium",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "yearlyBadge": "2 months free",
+      "yearlyDesc": "$24.99 / yr",
+      "fUnlimited": "Unlimited notes and canvas",
+      "fStorage1": "1 GB cloud storage",
+      "fStorage10": "10 GB cloud storage",
+      "fCore": "All core features",
+      "fThemes": "Light & dark theme",
+      "fApps": "Mobile & desktop app",
+      "fEverything": "Everything in Free",
+      "fPdf": "PDF & batch export",
+      "fHistory": "Version history (coming soon)",
+      "fSupport": "Priority support"
+    },
+    "footer": {
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service"
+    }
+  },
+  "common": {
+    "comingSoon": "Coming Soon",
+    "backToHome": "Back to Home"
+  },
+  "emptyState": {
+    "title": "Your notes will appear here",
+    "description": "Create a new document or canvas from the left panel. Your thoughts, drawings, and ideas in one place."
+  },
+  "dashboard": {
+    "greeting": "Hello, {{name}}!",
+    "recentNotes": "RECENT NOTES",
+    "quickCreate": "Quick Create"
+  },
+  "settings": {
+    "title": "Settings",
+    "account": "Account",
+    "appearance": "Appearance",
+    "storage": "Storage",
+    "billing": "Plan & Billing",
+    "import": "Import",
+    "about": "About",
+    "username": "Username",
+    "email": "Email Address",
+    "changePasswordTitle": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "savePasswordBtn": "Update Password",
+    "deleteAccountTitle": "Delete Account",
+    "deleteAccountDesc": "This action is irreversible. All notes and data will be permanently deleted.",
+    "deleteAccountBtn": "Permanently Delete My Account",
+    "deleteAccountConfirmMsg": "Are you sure you want to delete your account? This action is irreversible and all your notes will be permanently deleted.",
+    "reauthRequired": "For security reasons, you must log in again to perform this action.",
+    "theme": "Interface Theme",
+    "language": "Language",
+    "editorFontSize": "Editor Font Size",
+    "fontSizeSmall": "Small",
+    "fontSizeMedium": "Medium",
+    "fontSizeLarge": "Large",
+    "listDensity": "Note List Density",
+    "densityCompact": "Compact",
+    "densityNormal": "Normal",
+    "densityComfortable": "Comfortable",
+    "usedSpace": "Used Space",
+    "storageWarningBold": "Your storage is almost full.",
+    "storageWarningText": "Upgrade to Premium to keep creating new notes.",
+    "noteStatistics": "Note Statistics",
+    "planActive": "Active",
+    "transparentPng": "Transparent PNG Export",
+    "chooseFile": "Choose File",
+    "importMdTitle": "Import Markdown File (.md)",
+    "importMdDesc": "Choose a .md file from your computer to import into TideNote.",
+    "importJsonTitle": "Import JSON (TideNote format)",
+    "importJsonDesc": "Restore your TideNote backup files (.json).",
+    "importNotionTitle": "Import from Notion",
+    "importNotionDesc": "Embed your Notion data directly into TideNote.",
+    "close": "Close",
+    "month": "mo",
+    "changePhotoTooltip": "Change photo",
+    "imageTooLarge": "File size cannot exceed 2MB",
+    "usernameRequired": "Username cannot be empty",
+    "profileUpdated": "Profile updated",
+    "saveProfile": "Save",
+    "keyboardShortcuts": "Keyboard Shortcuts",
+    "totalDocuments": "Total Documents",
+    "totalCanvas": "Total Canvas",
+    "year": "yr"
+  },
+  "canvas": {
+    "tool": {
+      "select": "Select",
+      "hand": "Hand",
+      "rectangle": "Rectangle",
+      "diamond": "Diamond",
+      "ellipse": "Ellipse",
+      "arrow": "Arrow",
+      "line": "Line",
+      "freedraw": "Pencil",
+      "text": "Text",
+      "image": "Image",
+      "eraser": "Eraser"
+    },
+    "toolbar": {
+      "changePosition": "Change Position"
+    },
+    "position": {
+      "top": "Top",
+      "bottom": "Bottom",
+      "left": "Left",
+      "right": "Right"
+    },
+    "textColor": "Text Color",
+    "customColor": "Custom Color",
+    "shapeStyle": "Color & Style",
+    "fill": "Fill",
+    "transparent": "Transparent",
+    "border": "Border",
+    "lineStyle": "Line Style",
+    "solid": "Solid",
+    "dashed": "Dashed",
+    "none": "None",
+    "thin": "Thin",
+    "medium": "Medium",
+    "thick": "Thick",
+    "cornerRadius": "Corner Radius",
+    "sharp": "Sharp",
+    "rounded": "Rounded"
+  },
+  "topbar": {
+    "share_button": "Share",
+    "link_copied": "Link copied"
+  },
+  "folders": {
+    "section": "FOLDERS",
+    "newFolder": "New Folder",
+    "untitledFolder": "Untitled Folder",
+    "rename": "Rename",
+    "addSubfolder": "Add Subfolder",
+    "delete": "Delete Folder",
+    "deleteConfirm": "This folder and its subfolders will be deleted. Notes inside will become unfiled. Are you sure?",
+    "unfoldered": "Unfiled Notes",
+    "allNotes": "All Notes",
+    "moveHere": "Move Here"
+  },
+  "info": {
+    "title": "Note Info",
+    "mode": "Document Mode",
+    "canvasModeLabel": "Infinite Canvas",
+    "documentModeLabel": "Document",
+    "creator": "Creator",
+    "createdAt": "Created At",
+    "updatedAt": "Updated At",
+    "wordCount": "Word Count",
+    "tags": "Tags",
+    "noTags": "No tags"
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "lastUpdated": "Last updated: June 22, 2026",
+    "tableOfContents": "Table of Contents",
+    "sections": {
+      "1": {
+        "title": "1. Overview",
+        "p1": "At TideNote (\"we\", \"app\"), we respect your privacy. This policy explains how personal data collected through the TideNote website, mobile apps, and desktop app (\"Service\") is processed. By using our Service, you agree to this policy."
+      },
+      "2": {
+        "title": "2. Data We Collect",
+        "sub1_title": "2.1 Account Information",
+        "sub1_item1": "Email address (collected during registration)",
+        "sub1_item2": "Username / display name",
+        "sub1_item3": "Profile picture (retrieved from your Google profile if logging in with Google, optional)",
+        "sub1_item4": "Password (stored as an encrypted hash only, never in plain text)",
+        "sub2_title": "2.2 Content Data",
+        "sub2_item1": "Notes, documents, and canvas drawings you create",
+        "sub2_item2": "Tags, titles, and organization preferences",
+        "sub2_item3": "Files and images (added to the canvas)",
+        "sub3_title": "2.3 Usage Data",
+        "sub3_item1": "In-app preferences (theme, language, editor size) stored in local storage",
+        "sub3_item2": "Error and crash reports (anonymous)",
+        "sub4_title": "2.4 Technical Data",
+        "sub4_item1": "IP address (automatically processed by the Firebase infrastructure)",
+        "sub4_item2": "Device type, operating system, browser information",
+        "sub4_item3": "Session login date and time"
+      },
+      "3": {
+        "title": "3. How We Use Data",
+        "p1": "We use your data for the following purposes:",
+        "item1": "Creating and managing your account",
+        "item2": "Syncing your notes across devices",
+        "item3": "Ensuring Service security",
+        "item4": "Verifying Premium subscriptions",
+        "item5": "Monitoring app performance and bugs",
+        "item6": "Fulfilling legal obligations",
+        "p2": "We never sell your data to third parties or use it for advertising purposes."
+      },
+      "4": {
+        "title": "4. Third-Party Services",
+        "sub1_title": "4.1 Google Firebase",
+        "sub1_p1": "Our Service uses the Google Firebase infrastructure:",
+        "sub1_item1": "Firebase Authentication: User authentication",
+        "sub1_item2": "Cloud Firestore: Note data storage",
+        "sub1_item3": "Firebase Hosting: Serving the web application",
+        "sub1_p2": "For Firebase's own Privacy Policy: https://firebase.google.com/support/privacy",
+        "sub2_title": "4.2 Sign in with Google",
+        "sub2_p1": "If you use \"Sign in with Google\", we retrieve your name, email, and profile picture from your Google profile. Google's Privacy Policy applies: https://policies.google.com/privacy",
+        "sub3_title": "4.3 RevenueCat (Premium Subscription)",
+        "sub3_p1": "We use RevenueCat to process Premium subscription requests. Your payment information (credit card, etc.) is never stored on our servers; it is processed directly by the Apple App Store or Google Play Store. RevenueCat Privacy Policy: https://www.revenuecat.com/privacy"
+      },
+      "5": {
+        "title": "5. Data Retention",
+        "p1": "We store your data until you delete your account.",
+        "p2": "Upon account deletion, your data is permanently removed from our systems within 30 days (including backup copies).",
+        "p3": "Some data may be retained for longer periods if required by law."
+      },
+      "6": {
+        "title": "6. Data Security",
+        "p1": "All data is encrypted in transit using SSL/TLS.",
+        "p2": "Passwords are securely hashed by Firebase Authentication, never stored in plain text.",
+        "p3": "Firebase Firestore security rules ensure you only access your own data — other users' data cannot be read.",
+        "p4": "To report security vulnerabilities: info@tidenote.app"
+      },
+      "7": {
+        "title": "7. Your Rights (GDPR / KVKK)",
+        "p1": "You have the following rights regarding your personal data:",
+        "item1": "Access: The right to know what data we store about you",
+        "item2": "Correction: The right to request correction of inaccurate data",
+        "item3": "Deletion: The right to request deletion of all data and your account (in-app Settings → Account → Delete Account)",
+        "item4": "Portability: The right to export your data (Settings → Import / Export)",
+        "item5": "Objection: The right to object to data processing",
+        "p2": "For requests: info@tidenote.app"
+      },
+      "8": {
+        "title": "8. Cookies & Local Storage",
+        "p1": "TideNote does not use third-party advertising cookies. We only store:",
+        "item1": "Session information (Firebase Authentication)",
+        "item2": "User preferences (theme, language, toolbar position) — in browser localStorage, on your device only"
+      },
+      "9": {
+        "title": "9. Children's Privacy",
+        "p1": "Our Service is not intended for children under 13. If we notice we have collected data from someone under 13, we delete it immediately."
+      },
+      "10": {
+        "title": "10. Policy Changes",
+        "p1": "We may update this policy from time to time. You will be notified via email for significant changes. The current policy is always published on this page."
+      },
+      "11": {
+        "title": "11. Contact",
+        "p1": "For your questions:",
+        "email": "Email: info@tidenote.app",
+        "web": "Web: https://tidenote.app"
+      }
+    }
+  },
+  "terms": {
+    "title": "Terms of Use",
+    "lastUpdated": "Last updated: June 22, 2026",
+    "tableOfContents": "Table of Contents",
+    "sections": {
+      "1": {
+        "title": "1. Acceptance of Terms",
+        "p1": "By using TideNote (\"Service\"), you agree to these Terms of Use (\"Terms\"). If you do not agree to these terms, do not use our Service."
+      },
+      "2": {
+        "title": "2. Service Description",
+        "p1": "TideNote is a cloud-based productivity tool that brings block-based note-taking and infinite canvas whiteboard features together in a single application. It is available on Web, iOS, Android, and Desktop platforms."
+      },
+      "3": {
+        "title": "3. Account Creation and Security",
+        "item1": "You must create an account with a valid email address to use the Service",
+        "item2": "You are responsible for the security of your account credentials and all activities occurring under your account",
+        "item3": "Do not share your password with anyone",
+        "item4": "If you notice unauthorized access to your account, contact us immediately: info@tidenote.app",
+        "item5": "A person can create only one account"
+      },
+      "4": {
+        "title": "4. Acceptable Use",
+        "p1": "You may not use our Service for the following purposes:",
+        "item1": "Creating or storing illegal content",
+        "item2": "Violating others' copyrights, trademarks, or intellectual property rights",
+        "item3": "Distributing malware, viruses, or malicious code",
+        "item4": "Disrupting or overloading the normal operations of the Service",
+        "item5": "Attempting unauthorized access to other users' data",
+        "item6": "Spamming, phishing, or fraudulent activities",
+        "item7": "Usage by children under 13 years of age",
+        "p2": "Accounts that violate these rules may be suspended or closed without prior notice."
+      },
+      "5": {
+        "title": "5. Intellectual Property",
+        "sub1_title": "5.1 Your Content",
+        "sub1_p1": "Notes, drawings, and other content you create belong to you. TideNote claims no ownership rights over your content.",
+        "sub1_p2": "You only grant TideNote this limited license: the right to process and store your content for the purpose of presenting, syncing, and backing it up for you.",
+        "sub2_title": "5.2 TideNote's Intellectual Property",
+        "sub2_p1": "The application name, logo, design, source code, and interface belong to TideNote and are protected by copyright laws. You may not copy, distribute, or create derivative works of these elements without permission."
+      },
+      "6": {
+        "title": "6. Subscriptions and Payments",
+        "sub1_title": "6.1 Free Plan",
+        "sub1_p1": "Basic features are offered for free. A 1 GB cloud storage limit is applied on the Free plan.",
+        "sub2_title": "6.2 Premium Subscription",
+        "sub2_item1": "$2.99 monthly (or local currency equivalent)",
+        "sub2_item2": "Subscriptions are processed via Stripe on Web, Apple App Store on iOS, and Google Play Store on Android",
+        "sub2_item3": "Subscriptions renew automatically every month unless canceled",
+        "sub2_item4": "Prices may change with prior notification",
+        "sub3_title": "6.3 Cancellation",
+        "sub3_item1": "Web: Cancel anytime under Settings → Plan & Billing",
+        "sub3_item2": "iOS: Via App Store subscription management",
+        "sub3_item3": "Android: Via Google Play subscription management",
+        "sub3_p1": "Upon cancellation, you will continue to enjoy Premium features until the end of your billing cycle.",
+        "sub4_title": "6.4 Refund Policy",
+        "sub4_item1": "Web subscriptions (Stripe): You can request a full refund within 7 days of purchase (info@tidenote.app)",
+        "sub4_item2": "iOS subscriptions: Apple's refund policy applies",
+        "sub4_item3": "Android subscriptions: Google Play's refund policy applies",
+        "sub4_p1": "Refund requests after 7 days will be reviewed but are not guaranteed."
+      },
+      "7": {
+        "title": "7. Modification and Termination of Service",
+        "sub1_title": "7.1 Modifications",
+        "sub1_p1": "TideNote reserves the right to modify features, pricing, or the service with prior notice. Important changes will be announced at least 30 days in advance.",
+        "sub2_title": "7.2 Account Termination",
+        "sub2_item1": "You can delete your account at any time under Settings → Account → Delete Account",
+        "sub2_item2": "TideNote may terminate your account without prior notice in case of a violation of the Terms of Use",
+        "sub2_item3": "When an account is deleted, all your data is permanently deleted within 30 days"
+      },
+      "8": {
+        "title": "8. Disclaimer of Warranties",
+        "p1": "The Service is provided \"as is\". TideNote does not warrant:",
+        "item1": "That the service will run uninterrupted or error-free",
+        "item2": "That no data loss will occur",
+        "item3": "The fitness of the service for a particular purpose",
+        "p2": "We recommend exporting your important content regularly (Settings → Export) to guard against any risk of data loss."
+      },
+      "9": {
+        "title": "9. Limitation of Liability",
+        "p1": "TideNote's maximum liability for any reason shall not exceed the subscription fees paid by you in the last 12 months. TideNote shall not be liable for any indirect, incidental, special, or consequential damages."
+      },
+      "10": {
+        "title": "10. Governing Law",
+        "p1": "These Terms are governed by the laws of the Republic of Turkey. İstanbul courts have jurisdiction over any disputes."
+      },
+      "11": {
+        "title": "11. Changes to Terms",
+        "p1": "We may update these Terms. You will be notified via email for significant changes. Continuing to use the Service after changes indicates your acceptance of the new Terms."
+      },
+      "12": {
+        "title": "12. Contact",
+        "p1": "For your questions:",
+        "email": "Email: info@tidenote.app",
+        "web": "Web: https://tidenote.app"
+      }
+    }
+  }
+}

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <script>
+      (function() {
+        const isElectron = typeof navigator !== 'undefined' && navigator.userAgent.includes('Electron');
+        const isFile = window.location.protocol === 'file:';
+        if (!isElectron && !isFile) {
+          document.write('<base href="/" />');
+        }
+      })();
+    </script>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/icon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&family=Lato:wght@300;400;700&family=Poppins:wght@300;400;500;600;700&family=Merriweather:wght@300;400;700&family=Playfair+Display:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500;600&family=Nunito:wght@300;400;500;600;700&family=Raleway:wght@300;400;500;600;700&family=Oswald:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>TideNote — Düşünceleriniz için sonsuz bir alan</title>
+    <meta name="description" content="TideNote; zengin blok editörü ve sonsuz canvas özelliklerini bir araya getiren modern bir not alma uygulamasıdır. Fikirlerinizi görselleştirin, tamamen ücretsiz." />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://tidenote.app" />
+    <meta property="og:title" content="TideNote — Düşünceleriniz için sonsuz bir alan" />
+    <meta property="og:description" content="TideNote; zengin blok editörü ve sonsuz canvas özelliklerini bir araya getiren modern bir not alma uygulamasıdır. Fikirlerinizi görselleştirin, tamamen ücretsiz." />
+    <meta property="og:image" content="https://tidenote.app/og-image.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://tidenote.app" />
+    <meta property="twitter:title" content="TideNote — Düşünceleriniz için sonsuz bir alan" />
+    <meta property="twitter:description" content="TideNote; zengin blok editörü ve sonsuz canvas özelliklerini bir araya getiren modern bir not alma uygulamasıdır. Fikirlerinizi görselleştirin, tamamen ücretsiz." />
+    <meta property="twitter:image" content="https://tidenote.app/og-image.png" />
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "TideNote",
+      "url": "https://tidenote.app",
+      "applicationCategory": "ProductivityApplication",
+      "operatingSystem": "Web, Windows, Android",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
