@@ -33,9 +33,9 @@ export function patchCanvasForEmojis() {
       return nativeFillText.call(this, text, x, y, maxWidth);
     }
 
-    // Check if the canvas belongs to Excalidraw and is in dark mode
-    const isExcalidrawDark = this.canvas && this.canvas.closest(".theme--dark");
-    if (!isExcalidrawDark) {
+    // Check if the app is in dark mode
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    if (!isDark) {
       return nativeFillText.call(this, text, x, y, maxWidth);
     }
 
@@ -61,8 +61,9 @@ export function patchCanvasForEmojis() {
       return nativeStrokeText.call(this, text, x, y, maxWidth);
     }
 
-    const isExcalidrawDark = this.canvas && this.canvas.closest(".theme--dark");
-    if (!isExcalidrawDark) {
+    // Check if the app is in dark mode
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    if (!isDark) {
       return nativeStrokeText.call(this, text, x, y, maxWidth);
     }
 
