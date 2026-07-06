@@ -1882,6 +1882,36 @@ export default function Canvas() {
     latestAppStateRef.current = appState;
     latestFilesRef.current = files;
 
+    // Selection redirect: if a bound text element is selected, select its container instead (when not editing)
+    if (excalidrawAPI && !appState.editingElement) {
+      const selectedIds = Object.keys(appState.selectedElementIds || {}).filter(
+        id => appState.selectedElementIds[id]
+      );
+      let selectionChanged = false;
+      const nextSelectedIds = { ...appState.selectedElementIds };
+
+      selectedIds.forEach(id => {
+        const el = elements.find((e: any) => e.id === id && !e.isDeleted);
+        if (el && el.type === "text" && el.containerId) {
+          const container = elements.find((e: any) => e.id === el.containerId && !e.isDeleted);
+          if (container) {
+            delete nextSelectedIds[id];
+            nextSelectedIds[container.id] = true;
+            selectionChanged = true;
+          }
+        }
+      });
+
+      if (selectionChanged) {
+        excalidrawAPI.updateScene({
+          appState: {
+            selectedElementIds: nextSelectedIds
+          }
+        });
+        return;
+      }
+    }
+
     // Auto-correct bound text colors and apply styled fontSize wrapping for Bold/Italic rendering
     if (excalidrawAPI) {
       let elementsChanged = false;
