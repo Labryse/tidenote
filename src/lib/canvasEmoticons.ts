@@ -29,7 +29,7 @@ const TOKENS = Object.keys(EMOTICONS).sort((a, b) => b.length - a.length);
 export function installCanvasEmoticons(container: HTMLElement): () => void {
   const onInput = (e: Event) => {
     const el = e.target as HTMLTextAreaElement;
-    if (!el || el.tagName !== "TEXTAREA" || !el.classList.contains("excalidraw-texteditor")) return;
+    if (!el || el.tagName !== "TEXTAREA" || !el.classList.contains("excalidraw-wysiwyg")) return;
 
     const caret = el.selectionStart ?? 0;
     if (caret < 2) return;
