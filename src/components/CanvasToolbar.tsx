@@ -1456,6 +1456,7 @@ export default function CanvasToolbar({
                         onChange={e => updateTextProp("fontFamily", Number(e.target.value))}
                         className="mini-bar-select"
                         style={{
+                          color: "var(--color-text-primary, #111827)",
                           background: "var(--color-bg-card, #ffffff)",
                           border: "1px solid var(--color-border, #e5e7eb)",
                           borderRadius: "6px",
@@ -1477,6 +1478,7 @@ export default function CanvasToolbar({
                         onChange={e => updateTextProp("fontSize", Number(e.target.value))}
                         className="mini-bar-select"
                         style={{
+                          color: "var(--color-text-primary, #111827)",
                           background: "var(--color-bg-card, #ffffff)",
                           border: "1px solid var(--color-border, #e5e7eb)",
                           borderRadius: "6px",

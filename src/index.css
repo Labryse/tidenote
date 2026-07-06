@@ -8015,6 +8015,17 @@ body {
   background: var(--color-border, #e5e7eb);
 }
 
+.mini-bar-select option {
+  color: var(--color-text-primary, #111827);
+  background: var(--color-bg-card, #ffffff);
+}
+
+:root[data-theme="dark"] .mini-bar-select option {
+  color: var(--color-text-primary, #f3f4f6);
+  background: #1c1c1e;
+}
+
+
 /* Aa Font Dropdown Position for fixed toolbar */
 .toolbar-font-dropdown.above {
   position: absolute;
