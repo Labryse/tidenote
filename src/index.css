@@ -8602,11 +8602,78 @@ body {
 /* Stats panel ("Canvas & Shape properties"): tidy spacing + stacking */
 .excalidraw .exc-stats {
   z-index: 9999;
+  background-color: var(--color-bg-card) !important;
+  color: var(--color-text-primary) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3) !important;
+  padding: 16px !important;
+  font-family: inherit !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  min-width: 260px !important;
 }
+
+.excalidraw .exc-stats__row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 16px !important;
+  padding: 6px 0 !important;
+  border-bottom: 1px dashed var(--color-border) !important;
+}
+
+.excalidraw .exc-stats__row:last-child {
+  border-bottom: none !important;
+}
+
 .excalidraw .exc-stats__row--heading {
-  font-size: 11px;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--color-text-primary) !important;
+  border-bottom: 2px solid var(--color-border) !important;
+  padding-bottom: 6px !important;
+  margin-top: 8px !important;
+  margin-bottom: 4px !important;
   letter-spacing: 0.02em;
   text-transform: none;
+}
+
+.excalidraw .exc-stats__row--heading:first-child {
+  margin-top: 0 !important;
+}
+
+.excalidraw .exc-stats__row span,
+.excalidraw .exc-stats__row label,
+.excalidraw .exc-stats__row p {
+  color: var(--color-text-secondary) !important;
+  font-size: 13px !important;
+}
+
+.excalidraw .exc-stats__row span:last-child,
+.excalidraw .exc-stats__row p:last-child {
+  color: var(--color-text-primary) !important;
+  font-weight: 600 !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+.excalidraw .exc-stats input {
+  background-color: var(--color-bg-body) !important;
+  color: var(--color-text-primary) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 6px !important;
+  padding: 3px 6px !important;
+  font-size: 12px !important;
+  width: 75px !important;
+  text-align: right !important;
+  outline: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.excalidraw .exc-stats input:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15) !important;
 }
 
 /* ── Canvas color pickers (Word-style text color + consolidated shape panel) ── */
