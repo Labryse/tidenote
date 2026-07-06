@@ -89,6 +89,23 @@ const getHitTransformHandle = (
   return null;
 };
 
+const getLuminance = (hex: string): number => {
+  const clean = hex.replace("#", "");
+  if (clean.length === 3) {
+    const r = parseInt(clean[0] + clean[0], 16) / 255;
+    const g = parseInt(clean[1] + clean[1], 16) / 255;
+    const b = parseInt(clean[2] + clean[2], 16) / 255;
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+  if (clean.length === 6) {
+    const r = parseInt(clean.slice(0, 2), 16) / 255;
+    const g = parseInt(clean.slice(2, 4), 16) / 255;
+    const b = parseInt(clean.slice(4, 6), 16) / 255;
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+  return 1;
+};
+
 export default function Canvas() {
   const { t, i18n } = useTranslation();
   const { activeNoteId, notes, theme, setExcalidrawAPI: storeSetExcalidrawAPI } = useNoteStore();
@@ -1930,15 +1947,50 @@ export default function Canvas() {
         if (el.type === "text" && el.containerId && !el.isDeleted) {
           const container = elements.find((c: any) => c.id === el.containerId && !c.isDeleted);
           if (container) {
-            // If container has dark background (#1e293b), bound text must be white (#ffffff)
-            if (container.backgroundColor === "#1e293b" && el.strokeColor !== "#ffffff") {
+            const bg = container.backgroundColor;
+            const textCol = el.strokeColor;
+            
+            const isBgDark = (bg === "transparent" || !bg) 
+              ? theme === "dark" 
+              : getLuminance(bg) < 0.5;
+
+            const targetColor = isBgDark ? "#ffffff" : "#1e293b";
+            
+            const textLuminance = textCol ? getLuminance(textCol) : null;
+            const bgLuminance = (bg === "transparent" || !bg) ? (theme === "dark" ? 0 : 1) : getLuminance(bg);
+            
+            const isSameLuminanceCategory = textLuminance !== null && (
+              (bgLuminance < 0.5 && textLuminance < 0.5) ||
+              (bgLuminance >= 0.5 && textLuminance >= 0.5)
+            );
+
+            const needsCorrection = !textCol || textCol === "transparent" || textCol === bg || isSameLuminanceCategory;
+            
+            if (needsCorrection && el.strokeColor !== targetColor) {
               elementsChanged = true;
-              nextEl = { ...nextEl, strokeColor: "#ffffff", originalText: el.text, version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) };
+              nextEl = { ...nextEl, strokeColor: targetColor, originalText: el.text, version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) };
             }
-            // If container has transparent or light background, and text is white, make it dark slate (#1e293b)
-            else if (container.backgroundColor === "transparent" && el.strokeColor === "#ffffff") {
+          }
+        }
+
+        // 1.3. Auto-initialize customData baseline for shape-bound text
+        if (nextEl.type === "text" && nextEl.containerId && !nextEl.isDeleted) {
+          const container = elements.find((c: any) => c.id === nextEl.containerId && !c.isDeleted);
+          if (container) {
+            const customData = nextEl.customData || {};
+            if (typeof customData.initialWidth !== "number" || typeof customData.initialHeight !== "number") {
               elementsChanged = true;
-              nextEl = { ...nextEl, strokeColor: "#1e293b", originalText: el.text, version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) };
+              nextEl = {
+                ...nextEl,
+                customData: {
+                  ...customData,
+                  initialWidth: container.width,
+                  initialHeight: container.height,
+                  initialFontSize: nextEl.fontSize
+                },
+                version: nextEl.version + 1,
+                versionNonce: Math.floor(Math.random() * 999999)
+              };
             }
           }
         }
