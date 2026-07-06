@@ -1103,13 +1103,27 @@ export default function Canvas() {
     const elements = excalidrawAPI.getSceneElements();
     const updated = elements.map((el: any) => {
       if (el.id === targetId) {
-        return { ...el, fontSize, updated: Date.now(), version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) };
+        const customData = el.customData || {};
+        const nextCustomData = {
+          ...customData,
+          initialFontSize: fontSize,
+          initialWidth: rect ? rect.width : (customData.initialWidth || 300),
+          initialHeight: rect ? rect.height : (customData.initialHeight || 100)
+        };
+        return {
+          ...el,
+          fontSize,
+          customData: nextCustomData,
+          updated: Date.now(),
+          version: el.version + 1,
+          versionNonce: Math.floor(Math.random() * 999999)
+        };
       }
       return el;
     });
     excalidrawAPI.updateScene({ elements: updated });
     setSelectedContainer(text
-      ? { rect, text: { ...text, fontSize } }
+      ? { rect, text: { ...text, fontSize, customData: { ...text.customData, initialFontSize: fontSize, initialWidth: rect.width, initialHeight: rect.height } } }
       : { rect: { ...rect, fontSize }, text: null }
     );
   };
@@ -1931,6 +1945,39 @@ export default function Canvas() {
             else if (container.backgroundColor === "transparent" && el.strokeColor === "#ffffff") {
               elementsChanged = true;
               nextEl = { ...nextEl, strokeColor: "#1e293b", originalText: el.text, version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) };
+            }
+          }
+        }
+
+        // 1.5. Bounded text size proportional scaling
+        if (nextEl.type === "text" && nextEl.containerId && !nextEl.isDeleted) {
+          const container = elements.find((c: any) => c.id === nextEl.containerId && !c.isDeleted);
+          if (container) {
+            const customData = nextEl.customData || {};
+            const initialWidth = customData.initialWidth || 300;
+            const initialHeight = customData.initialHeight || 100;
+            let initialFontSize = customData.initialFontSize;
+            if (typeof initialFontSize !== "number") {
+              if (container.customType === "h1") initialFontSize = 36;
+              else if (container.customType === "h2") initialFontSize = 28;
+              else if (container.customType === "h3") initialFontSize = 22;
+              else if (container.customType === "h4") initialFontSize = 18;
+              else if (container.customType === "h5") initialFontSize = 16;
+              else if (container.customType === "h6") initialFontSize = 14;
+              else initialFontSize = 16;
+            }
+
+            const scale = Math.min(container.width / initialWidth, container.height / initialHeight);
+            const targetFontSize = Math.max(12, Math.round(initialFontSize * scale));
+
+            if (nextEl.fontSize !== targetFontSize) {
+              elementsChanged = true;
+              nextEl = {
+                ...nextEl,
+                fontSize: targetFontSize,
+                version: nextEl.version + 1,
+                versionNonce: Math.floor(Math.random() * 999999)
+              };
             }
           }
         }
