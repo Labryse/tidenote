@@ -6,7 +6,7 @@
  */
 
 const EMOTICONS: Record<string, string> = {
-  ":D": "😀",
+  ":D": "😄",
   ":)": "🙂",
   ":(": "🙁",
   ":P": "😛",
@@ -25,14 +25,6 @@ const EMOTICONS: Record<string, string> = {
 
 // Longest first so ":D" doesn't shadow potential longer tokens.
 const TOKENS = Object.keys(EMOTICONS).sort((a, b) => b.length - a.length);
-
-// Native setter: React/Excalidraw ignore direct .value writes, so we go
-// through the prototype setter and re-dispatch a real input event.
-const setNativeValue = (el: HTMLTextAreaElement, value: string) => {
-  const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
-  setter?.call(el, value);
-  el.dispatchEvent(new Event("input", { bubbles: true }));
-};
 
 export function installCanvasEmoticons(container: HTMLElement): () => void {
   const onInput = (e: Event) => {
@@ -55,10 +47,10 @@ export function installCanvasEmoticons(container: HTMLElement): () => void {
       if (prev !== undefined && prev !== " " && prev !== "\n") return;
 
       const emoji = EMOTICONS[token];
-      const next = body.slice(0, -token.length) + emoji + sep + el.value.slice(caret);
-      const nextCaret = caret - token.length + emoji.length;
-      setNativeValue(el, next);
-      el.setSelectionRange(nextCaret, nextCaret);
+      // Select the token and the typed separator (e.g. ":D ")
+      el.setSelectionRange(caret - token.length - 1, caret);
+      // Perform undoable replacement via browser execCommand to preserve undo history
+      document.execCommand("insertText", false, emoji + sep);
       return;
     }
   };
