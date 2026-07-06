@@ -1584,7 +1584,7 @@ export default function Sidebar() {
         type="button"
         className="sidebar-collapse-btn"
         onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        title={isSidebarCollapsed ? (i18n.language.startsWith("tr") ? "Genişlet" : "Expand") : (i18n.language.startsWith("tr") ? "Daralt" : "Collapse")}
+        title={isSidebarCollapsed ? t("sidebar.expand", "Genişlet") : t("sidebar.collapse", "Daralt")}
       >
         {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>
@@ -1897,7 +1897,7 @@ export default function Sidebar() {
             </div>
           ) : filteredAndSortedNotes.length === 0 ? (
             <div style={{ textAlign: "center", padding: "2rem 0", color: "var(--color-text-muted)", fontSize: "0.82rem" }}>
-              {i18n.language.startsWith("tr") ? "Eşleşen not bulunamadı." : "No matching notes found."}
+              {t("sidebar.noMatchingNotes", "Eşleşen not bulunamadı.")}
             </div>
           ) : showArchived ? (
             <div className="notes-section-group">

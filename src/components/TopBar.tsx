@@ -115,7 +115,7 @@ export default function TopBar({ note }: TopBarProps) {
   };
 
   const handleInviteSend = () => {
-    showToast("Bu özellik yakında aktif olacak", "warning");
+    showToast(t("toast.comingSoon", "Bu özellik yakında aktif olacak"), "warning");
     setInviteEmail("");
   };
 
@@ -646,7 +646,7 @@ export default function TopBar({ note }: TopBarProps) {
           <div className="share-panel">
             {/* Header */}
             <div className="share-panel-header">
-              <span className="share-panel-title">Paylaş</span>
+              <span className="share-panel-title">{t("share.title", "Paylaş")}</span>
               <button type="button" className="share-panel-close" onClick={() => setIsSharePanelOpen(false)}>
                 ×
               </button>
@@ -661,14 +661,14 @@ export default function TopBar({ note }: TopBarProps) {
                 className={`share-panel-tab ${activeTab === "share" ? "active" : ""}`}
                 onClick={() => setActiveTab("share")}
               >
-                Paylaş
+                {t("share.title", "Paylaş")}
               </button>
               <button
                 type="button"
                 className={`share-panel-tab ${activeTab === "export" ? "active" : ""}`}
                 onClick={() => setActiveTab("export")}
               >
-                Dışa Aktar
+                {t("share.exportTab", "Dışa Aktar")}
               </button>
             </div>
 
@@ -684,30 +684,30 @@ export default function TopBar({ note }: TopBarProps) {
                       className={`share-copy-btn ${isCopied ? "copied" : ""}`}
                       onClick={handleCopyLink}
                     >
-                      {isCopied ? "Kopyalandı ✓" : "Kopyala"}
+                      {isCopied ? t("share.copied", "Kopyalandı ✓") : t("share.copy", "Kopyala")}
                     </button>
                   </div>
 
                   <div className="share-section-divider" />
 
                   {/* General access toggle */}
-                  <p className="share-section-label">GENEL ERİŞİM</p>
+                  <p className="share-section-label">{t("share.generalAccess", "GENEL ERİŞİM")}</p>
                   <div className="share-access-row">
                     <Globe size={14} style={{ color: isPublicToggle ? "var(--color-accent)" : "var(--color-text-muted)", flexShrink: 0 }} />
-                    <span className="share-access-text">Bağlantıya sahip herkes görüntüleyebilir</span>
+                    <span className="share-access-text">{t("share.accessDesc", "Bağlantıya sahip herkes görüntüleyebilir")}</span>
                     <button
                       type="button"
                       className={`share-toggle ${isPublicToggle ? "active" : ""}`}
                       onClick={handleTogglePublic}
                       disabled={isPublicSaving}
-                      title={isPublicToggle ? "Herkese açık — kapat" : "Herkese açık yap"}
+                      title={isPublicToggle ? t("share.makePrivate", "Herkese açık — kapat") : t("share.makePublic", "Herkese açık yap")}
                     >
                       <span className="share-toggle-thumb" />
                     </button>
                   </div>
                   {isPublicToggle && (
                     <p className="share-public-hint">
-                      Bu bağlantıya sahip herkes notu görüntüleyebilir.
+                      {t("share.publicInfo", "Bu bağlantıya sahip herkes notu görüntüleyebilir.")}
                     </p>
                   )}
 
@@ -716,13 +716,13 @@ export default function TopBar({ note }: TopBarProps) {
                   {/* Invite members */}
                   <div className="share-invite-header-row">
                     <UserPlus size={14} style={{ color: "var(--color-text-muted)", flexShrink: 0 }} />
-                    <span className="share-invite-text">Üyeleri Davet Et</span>
+                    <span className="share-invite-text">{t("share.inviteMembers", "Üyeleri Davet Et")}</span>
                   </div>
                   <div className="share-invite-input-row">
                     <input
                       type="email"
                       className="share-invite-email-input"
-                      placeholder="E-posta adresi gir..."
+                      placeholder={t("share.emailPlaceholder", "E-posta adresi gir...")}
                       value={inviteEmail}
                       onChange={(e) => setInviteEmail(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") handleInviteSend(); }}
@@ -732,7 +732,7 @@ export default function TopBar({ note }: TopBarProps) {
                       className="share-invite-send-btn"
                       onClick={handleInviteSend}
                     >
-                      Davet Gönder
+                      {t("share.sendInvite", "Davet Gönder")}
                     </button>
                   </div>
                 </>
@@ -743,39 +743,39 @@ export default function TopBar({ note }: TopBarProps) {
                     <div className="share-export-row">
                       <span className="share-export-label">
                         <Image size={14} />
-                        PNG İndir (beyaz arka plan)
+                        {t("share.exportPng", "PNG İndir (beyaz arka plan)")}
                       </span>
                       <button type="button" className="share-export-action-btn" onClick={() => handleExportPNG(false)}>
-                        İndir
+                        {t("share.download", "İndir")}
                       </button>
                     </div>
                     <div className="share-export-row">
                       <span className="share-export-label">
                         <Image size={14} />
-                        JPG İndir
+                        {t("share.exportJpg", "JPG İndir")}
                       </span>
                       <button type="button" className="share-export-action-btn" onClick={handleExportJPG}>
-                        İndir
+                        {t("share.download", "İndir")}
                       </button>
                     </div>
                     <div className={`share-export-row ${!isPremium ? "premium-locked" : ""}`}>
                       <span className="share-export-label">
                         <ImageOff size={14} />
-                        Şeffaf PNG
+                        {t("share.exportTransparentPng", "Şeffaf PNG")}
                         {!isPremium && <Lock size={11} style={{ color: "var(--color-text-muted)", flexShrink: 0 }} />}
                       </span>
                       <button
                         type="button"
                         className="share-export-action-btn"
-                        onClick={() => handlePremiumClick("Şeffaf PNG", () => handleExportPNG(true))}
+                        onClick={() => handlePremiumClick(t("share.exportTransparentPng", "Şeffaf PNG"), () => handleExportPNG(true))}
                       >
-                        İndir
+                        {t("share.download", "İndir")}
                       </button>
                     </div>
                     <div className={`share-export-row ${!isPremium ? "premium-locked" : ""}`}>
                       <span className="share-export-label">
                         <Pen size={14} />
-                        SVG İndir
+                        {t("share.exportSvg", "SVG İndir")}
                         {!isPremium && <Lock size={11} style={{ color: "var(--color-text-muted)", flexShrink: 0 }} />}
                       </span>
                       <button
@@ -783,7 +783,7 @@ export default function TopBar({ note }: TopBarProps) {
                         className="share-export-action-btn"
                         onClick={() => handlePremiumClick("SVG", handleExportSVG)}
                       >
-                        İndir
+                        {t("share.download", "İndir")}
                       </button>
                     </div>
                   </>
@@ -800,7 +800,7 @@ export default function TopBar({ note }: TopBarProps) {
                         className="share-export-action-btn"
                         onClick={() => handlePremiumClick("PDF", handleExportPDF)}
                       >
-                        İndir
+                        {t("share.download", "İndir")}
                       </button>
                     </div>
                     <div className={`share-export-row ${!isPremium ? "premium-locked" : ""}`}>
@@ -814,7 +814,7 @@ export default function TopBar({ note }: TopBarProps) {
                         className="share-export-action-btn"
                         onClick={() => handlePremiumClick("Word", handleExportWord)}
                       >
-                        İndir
+                        {t("share.download", "İndir")}
                       </button>
                     </div>
                   </>

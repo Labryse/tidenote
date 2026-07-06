@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { User } from "firebase/auth";
 import { db, auth } from "../lib/firebase";
+import i18n from "../i18n";
 import { collection, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
 
 let titleSaveTimeout: any = null;
@@ -186,7 +187,7 @@ export const useNoteStore = create<NoteState>((set) => ({
   createNote: async (type, title) => {
     const currentUser = auth.currentUser;
     if (!currentUser) {
-      set({ toast: { message: "Giriş hatası", type: "error" } });
+      set({ toast: { message: i18n.t("toast.loginError", "Giriş hatası"), type: "error" } });
       return null;
     }
     try {
@@ -204,7 +205,7 @@ export const useNoteStore = create<NoteState>((set) => ({
       return docRef.id;
     } catch (error: any) {
       console.error("Error creating note:", error);
-      set({ toast: { message: error.message || "Not oluşturulamadı", type: "error" } });
+      set({ toast: { message: error.message || i18n.t("toast.createError", "Not oluşturulamadı"), type: "error" } });
       return null;
     }
   },

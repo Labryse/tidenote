@@ -39,7 +39,12 @@
     "allTags": "Tümü",
     "addTag": "+ Etiket",
     "tagPlaceholder": "Yeni etiket...",
-    "createFromTemplate": "Şablondan Oluştur"
+    "createFromTemplate": "Şablondan Oluştur",
+    "removeFromFavorites": "Favorilerden Çıkar",
+    "addToFavorites": "Favorilere Ekle",
+    "unpin": "Sabitlemeyi Kaldır",
+    "pin": "Sabitle",
+    "organization": "KLASÖRLER & KOLEKSİYONLAR"
   },
   "journal": {
     "today": "Bugün",
@@ -501,5 +506,63 @@
         "web": "Web: https://tidenote.app"
       }
     }
+  },
+  "noteMenu": {
+    "colorLabel": "Renk Etiketi",
+    "customColor": "Özel Renk",
+    "clearColor": "Rengi Kaldır",
+    "openInNewTab": "Yeni Sekmede Aç",
+    "openInDesktop": "Masaüstü Uygulamasında Aç"
+  },
+  "collections": {
+    "section": "KOLEKSİYONLAR",
+    "newCollection": "Yeni Koleksiyon",
+    "edit": "Düzenle",
+    "delete": "Sil",
+    "deleteTitle": "Koleksiyonu Sil",
+    "deleteConfirm": "Bu koleksiyonu silmek istediğinize emin misiniz? Notlarınız silinmeyecektir.",
+    "deleteSuccess": "Koleksiyon silindi",
+    "deleteError": "Koleksiyon silinemedi",
+    "noteAdded": "Not koleksiyona eklendi",
+    "alreadyExists": "Not zaten bu koleksiyonda",
+    "addError": "Not koleksiyona eklenemedi"
+  },
+  "share": {
+    "title": "Paylaş",
+    "exportTab": "Dışa Aktar",
+    "copy": "Kopyala",
+    "copied": "Kopyalandı ✓",
+    "generalAccess": "GENEL ERİŞİM",
+    "accessDesc": "Bağlantıya sahip herkes görüntüleyebilir",
+    "makePublic": "Herkese açık yap",
+    "makePrivate": "Herkese açık — kapat",
+    "publicInfo": "Bu bağlantıya sahip herkes notu görüntüleyebilir.",
+    "inviteMembers": "Üyeleri Davet Et",
+    "sendInvite": "Davet Gönder",
+    "emailPlaceholder": "E-posta adresi gir...",
+    "exportPng": "PNG İndir (beyaz arka plan)",
+    "exportJpg": "JPG İndir",
+    "exportTransparentPng": "Şeffaf PNG",
+    "exportSvg": "SVG İndir",
+    "download": "İndir"
+  },
+  "public": {
+    "openInApp": "Uygulamada Aç",
+    "untitledNote": "Başlıksız Not",
+    "untitledCanvas": "Başlıksız Canvas",
+    "emptyNote": "Bu not henüz içerik içermiyor.",
+    "createdWith": "TideNote ile oluşturuldu",
+    "loading": "Yükleniyor...",
+    "privateTitle": "Bu not herkese açık değil",
+    "notFoundTitle": "Not bulunamadı",
+    "errorTitle": "Bir hata oluştu",
+    "privateDesc": "Bu notun sahibi içeriği herkese açık hale getirmemiş olabilir.",
+    "notFoundDesc": "Aradığınız not mevcut değil veya silinmiş olabilir.",
+    "errorDesc": "Not yüklenirken bir sorun oluştu. Lütfen daha sonra tekrar deneyin.",
+    "backToHome": "TideNote'a Dön"
+  },
+  "toast": {
+    "comingSoon": "Bu özellik yakında aktif olacak",
+    "loginError": "Giriş hatası"
   }
 }
