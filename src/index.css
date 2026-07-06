@@ -7756,7 +7756,7 @@ body {
    5. NEW CANVAS TWO-TIER TOOLBAR DESIGN
    ========================================== */
 .canvas-main-toolbar {
-  position: fixed;
+  position: absolute;
   bottom: 16px;
   left: 50%;
   transform: translateX(-50%);

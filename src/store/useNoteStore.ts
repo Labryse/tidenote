@@ -167,7 +167,10 @@ export const useNoteStore = create<NoteState>((set) => ({
   setIsQuickCaptureOpen: (isQuickCaptureOpen) => set({ isQuickCaptureOpen }),
   isUpgradeModalOpen: false,
   setIsUpgradeModalOpen: (isUpgradeModalOpen) => set({ isUpgradeModalOpen }),
-  isSidebarCollapsed: localStorage.getItem("sidebar-mode") === "mini",
+  isSidebarCollapsed: typeof window !== "undefined" && (
+    localStorage.getItem("sidebar-mode") === "mini" ||
+    (localStorage.getItem("sidebar-mode") === null && window.innerWidth <= 1366)
+  ),
   setIsSidebarCollapsed: (isSidebarCollapsed) => {
     localStorage.setItem("sidebar-mode", isSidebarCollapsed ? "mini" : "full");
     set({ isSidebarCollapsed });
