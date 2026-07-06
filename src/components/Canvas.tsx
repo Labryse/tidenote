@@ -49,6 +49,46 @@ import {
 import { installExcalidrawDomPatches } from "../lib/excalidrawDomPatches";
 import { installCanvasEmoticons } from "../lib/canvasEmoticons";
 
+const getHitTransformHandle = (
+  image: any,
+  canvasX: number,
+  canvasY: number,
+  zoom: number
+): boolean => {
+  const cx = image.x + image.width / 2;
+  const cy = image.y + image.height / 2;
+  
+  const cos = Math.cos(-image.angle);
+  const sin = Math.sin(-image.angle);
+  const rx = cx + (canvasX - cx) * cos - (canvasY - cy) * sin;
+  const ry = cy + (canvasX - cx) * sin + (canvasY - cy) * cos;
+  
+  const localX = rx - image.x;
+  const localY = ry - image.y;
+  
+  const handles = [
+    { x: 0, y: 0 },
+    { x: image.width / 2, y: 0 },
+    { x: image.width, y: 0 },
+    { x: image.width, y: image.height / 2 },
+    { x: image.width, y: image.height },
+    { x: image.width / 2, y: image.height },
+    { x: 0, y: image.height },
+    { x: 0, y: image.height / 2 },
+  ];
+  
+  const threshold = 16 / zoom;
+  
+  for (const h of handles) {
+    const dx = localX - h.x;
+    const dy = localY - h.y;
+    if (Math.sqrt(dx * dx + dy * dy) <= threshold) {
+      return true;
+    }
+  }
+  return false;
+};
+
 export default function Canvas() {
   const { t, i18n } = useTranslation();
   const { activeNoteId, notes, theme, setExcalidrawAPI: storeSetExcalidrawAPI } = useNoteStore();
@@ -261,6 +301,42 @@ export default function Canvas() {
   }, [excalidrawAPI]);
 
   const handlePointerDownCapture = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (excalidrawAPI) {
+      const appState = excalidrawAPI.getAppState();
+      const elements = excalidrawAPI.getSceneElements();
+      const selectedElements = elements.filter(
+        (el: any) => appState.selectedElementIds?.[el.id] && !el.isDeleted
+      );
+
+      if (selectedElements.length === 1 && selectedElements[0].type === "image") {
+        const image = selectedElements[0];
+        const rect = e.currentTarget.getBoundingClientRect();
+        const z = appState.zoom?.value ?? 1;
+        const scrollX = appState.scrollX ?? 0;
+        const scrollY = appState.scrollY ?? 0;
+        const canvasX = (e.clientX - rect.left - scrollX * z) / z;
+        const canvasY = (e.clientY - rect.top - scrollY * z) / z;
+
+        if (getHitTransformHandle(image, canvasX, canvasY, z)) {
+          if (e.shiftKey) {
+            // Shift + drag => Resize (scale)
+            if (appState.croppingElementId) {
+              excalidrawAPI.updateScene({
+                appState: { croppingElementId: null }
+              });
+            }
+          } else {
+            // Normal drag => Crop (trim frame)
+            if (!appState.croppingElementId) {
+              excalidrawAPI.updateScene({
+                appState: { croppingElementId: image.id }
+              });
+            }
+          }
+        }
+      }
+    }
+
     if (!customBlockTypeRef.current || customBlockTypeRef.current === "schema" || !excalidrawAPI) return;
 
     e.stopPropagation();
