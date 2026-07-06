@@ -84,7 +84,9 @@ function patchToast(toast: HTMLElement) {
   window.setTimeout(() => {
     toast.style.transition = "opacity 0.25s ease";
     toast.style.opacity = "0";
-    window.setTimeout(() => toast.remove(), 300);
+    window.setTimeout(() => {
+      toast.style.display = "none";
+    }, 300);
   }, 2000);
 }
 
