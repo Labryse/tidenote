@@ -89,7 +89,8 @@
     "createSuccess": "Not başarıyla oluşturuldu.",
     "deleteSuccess": "Not başarıyla silindi.",
     "loadError": "Notlar yüklenirken hata oluştu.",
-    "imageTooLarge": "Görsel çok büyük (en fazla 5 MB) ve kaydedilmedi. Lütfen daha küçük bir görsel kullanın."
+    "imageTooLarge": "Görsel çok büyük (en fazla 5 MB) ve kaydedilmedi. Lütfen daha küçük bir görsel kullanın.",
+    "imageLoadError": "Bazı görseller yüklenemedi."
   },
   "editor": {
     "placeholder": "Yazmaya başla veya '/' ile komut gir...",

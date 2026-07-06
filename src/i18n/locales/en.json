@@ -89,7 +89,8 @@
     "createSuccess": "Note successfully created.",
     "deleteSuccess": "Note successfully deleted.",
     "loadError": "Could not load notes.",
-    "imageTooLarge": "Image is too large (max 5 MB) and was not saved. Please use a smaller image."
+    "imageTooLarge": "Image is too large (max 5 MB) and was not saved. Please use a smaller image.",
+    "imageLoadError": "Some images could not be loaded."
   },
   "editor": {
     "placeholder": "Start writing or type '/' for commands...",
