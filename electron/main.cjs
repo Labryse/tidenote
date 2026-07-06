@@ -3,7 +3,7 @@ const path = require("path");
 const { autoUpdater } = require("electron-updater");
 const log = require("electron-log/main");
 
-// Updater loglarını dosyaya yaz (%LOCALAPPDATA%\noteapp-updater\logs\ ...)
+// Updater loglarını dosyaya yaz (%LOCALAPPDATA%\tidenote-updater\logs\ ...)
 log.transports.file.level = "info";
 autoUpdater.logger = log;
 
