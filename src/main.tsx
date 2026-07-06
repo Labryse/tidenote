@@ -1,4 +1,8 @@
 import { StrictMode } from 'react'
+import { patchCanvasForEmojis } from './lib/canvasEmojiPatch'
+
+patchCanvasForEmojis();
+
 import { createRoot } from 'react-dom/client'
 import { HashRouter, BrowserRouter } from 'react-router-dom'
 import ErrorBoundary from './components/ErrorBoundary.tsx'
