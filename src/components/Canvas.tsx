@@ -505,7 +505,7 @@ export default function Canvas() {
         strokeStyle: "solid",
         roughness: 0,
         opacity: 100,
-        groupIds: [],
+        groupIds: [groupId],
         frameId: null,
         roundness: { type: 3, value: 8 },
         seed: Math.floor(Math.random() * 999999),
@@ -516,7 +516,12 @@ export default function Canvas() {
         updated: Date.now(),
         link: null,
         locked: false,
-        customType: "text"
+        customType: "text",
+        customData: {
+          initialWidth: finalW,
+          initialHeight: finalH,
+          initialFontSize: 16
+        }
       };
 
       const boundText = {
@@ -534,7 +539,7 @@ export default function Canvas() {
         strokeStyle: "solid",
         roughness: 0,
         opacity: 100,
-        groupIds: [],
+        groupIds: [groupId],
         frameId: null,
         roundness: null,
         seed: Math.floor(Math.random() * 999999),
@@ -553,7 +558,12 @@ export default function Canvas() {
         containerId: rectId,
         originalText: "",
         lineHeight: 1.3,
-        autoResize: true
+        autoResize: true,
+        customData: {
+          initialWidth: finalW,
+          initialHeight: finalH,
+          initialFontSize: 16
+        }
       };
 
       elementsToAppend.push(containerRect, boundText);
@@ -668,7 +678,12 @@ export default function Canvas() {
         updated: Date.now(),
         link: customLink,
         locked: false,
-        customType: type
+        customType: type,
+        customData: {
+          initialWidth: finalW,
+          initialHeight: finalH,
+          initialFontSize: fontSize
+        }
       };
 
       const boundText = {
@@ -705,7 +720,12 @@ export default function Canvas() {
         containerId: rectId,
         originalText: text,
         lineHeight: 1.3,
-        autoResize: true
+        autoResize: true,
+        customData: {
+          initialWidth: finalW,
+          initialHeight: finalH,
+          initialFontSize: fontSize
+        }
       };
 
       elementsToAppend.push(containerRect, boundText);
@@ -794,7 +814,7 @@ export default function Canvas() {
     });
 
     if (["text", "postit", "h1", "h2", "h3", "h4", "h5", "h6"].includes(type)) {
-      const textElement = (type === "text" || type === "postit") 
+      const textElement = type === "postit"
         ? elementsToAppend[0] 
         : elementsToAppend[1]; // boundText for shape groups
         
@@ -1255,6 +1275,7 @@ export default function Canvas() {
 
   const initializedNoteIdRef = useRef<string | null>(null);
   const lastSavedRef = useRef<string>("");
+  const lastSavedFilesKeysRef = useRef<string>("");
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSaveRef = useRef<{ noteId: string; elements: any[]; appState: any; files: any } | null>(null);
   const isWritingRef = useRef<boolean>(false);
@@ -1512,6 +1533,12 @@ export default function Canvas() {
     elements = elements.map((el: any) => sanitizeTextElementFont(el));
 
     lastSavedRef.current = JSON.stringify(elements);
+    const initialFilesWithData = Object.entries(files || {})
+      .filter(([_, entry]: [string, any]) => !!entry?.dataURL)
+      .map(([id]) => id)
+      .sort()
+      .join(",");
+    lastSavedFilesKeysRef.current = initialFilesWithData;
 
     // Only entries that already carry an inline dataURL can render at mount.
     // Storage refs (and legacy base64 to migrate) are handled once the API is
@@ -1583,6 +1610,27 @@ export default function Canvas() {
       if (cancelled) return;
       if (toAdd.length) {
         try { excalidrawAPI.addFiles(toAdd); } catch (e) { console.error(e); }
+      }
+
+      // Check for broken image references and show a non-blocking toast warning.
+      if (!cancelled) {
+        const sceneElements = excalidrawAPI.getSceneElements() || [];
+        const expectedFileIds = new Set<string>(
+          sceneElements
+            .filter((el: any) => el.type === "image" && !el.isDeleted && el.fileId)
+            .map((el: any) => el.fileId)
+        );
+        const loadedFileIds = new Set<string>(toAdd.map(f => f.id));
+        let hasMissingFiles = false;
+        for (const fid of Array.from(expectedFileIds)) {
+          if (!loadedFileIds.has(fid)) {
+            hasMissingFiles = true;
+            console.warn(`Canvas image file missing: ${fid}`);
+          }
+        }
+        if (hasMissingFiles) {
+          useNoteStore.getState().showToast(t("toast.imageLoadError"), "error");
+        }
       }
 
       if (uid && legacy.length) {
@@ -2078,10 +2126,22 @@ export default function Canvas() {
     }
 
     const currentStr = JSON.stringify(elements);
-    if (currentStr === lastSavedRef.current) return;
+    
+    // Check if the set of files carrying a dataURL has changed.
+    const fileIdsWithData = Object.entries(files || {})
+      .filter(([_, entry]: [string, any]) => !!entry?.dataURL)
+      .map(([id]) => id)
+      .sort()
+      .join(",");
+
+    const elementsChanged = currentStr !== lastSavedRef.current;
+    const filesChanged = fileIdsWithData !== lastSavedFilesKeysRef.current;
+
+    if (!elementsChanged && !filesChanged) return;
     if (!elements || elements.length === 0) return;
 
     lastSavedRef.current = currentStr;
+    lastSavedFilesKeysRef.current = fileIdsWithData;
     debouncedSaveRef.current(activeNoteIdRef.current, [...elements], appState, files);
   }, []);
 
