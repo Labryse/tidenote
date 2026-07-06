@@ -1907,6 +1907,47 @@ export default function Canvas() {
     latestAppStateRef.current = appState;
     latestFilesRef.current = files;
 
+    // 0. Active typing contrast correction for shape-bound text
+    if (excalidrawAPI && appState.editingTextElement && appState.editingTextElement.containerId) {
+      const container = elements.find((c: any) => c.id === appState.editingTextElement.containerId && !c.isDeleted);
+      if (container) {
+        const bg = container.backgroundColor;
+        const isBgDark = (bg === "transparent" || !bg) 
+          ? theme === "dark" 
+          : getLuminance(bg) < 0.5;
+
+        const targetColor = isBgDark ? "#ffffff" : "#1e293b";
+        
+        const textCol = appState.editingTextElement.strokeColor;
+        const textLuminance = textCol ? getLuminance(textCol) : null;
+        const bgLuminance = (bg === "transparent" || !bg) ? (theme === "dark" ? 0 : 1) : getLuminance(bg);
+        const isSameLuminanceCategory = textLuminance !== null && (
+          (bgLuminance < 0.5 && textLuminance < 0.5) ||
+          (bgLuminance >= 0.5 && textLuminance >= 0.5)
+        );
+        const needsCorrection = !textCol || textCol === "transparent" || textCol === bg || isSameLuminanceCategory;
+
+        if (needsCorrection && (textCol !== targetColor || appState.currentItemStrokeColor !== targetColor)) {
+          excalidrawAPI.updateScene({
+            elements: elements.map((el: any) => {
+              if (el.id === appState.editingTextElement.id) {
+                return { 
+                  ...el, 
+                  strokeColor: targetColor, 
+                  version: el.version + 1, 
+                  versionNonce: Math.floor(Math.random() * 999999) 
+                };
+              }
+              return el;
+            }),
+            appState: {
+              currentItemStrokeColor: targetColor
+            }
+          });
+        }
+      }
+    }
+
     // Selection redirect: if a bound text element is selected, select its container instead (when not editing)
     if (excalidrawAPI && !appState.editingElement) {
       const selectedIds = Object.keys(appState.selectedElementIds || {}).filter(
@@ -1980,13 +2021,22 @@ export default function Canvas() {
             const customData = nextEl.customData || {};
             if (typeof customData.initialWidth !== "number" || typeof customData.initialHeight !== "number") {
               elementsChanged = true;
+              
+              // Calculate a proportional default font size based on container size
+              const refWidth = 300;
+              const refHeight = 100;
+              const refFontSize = 16;
+              const scaleRatio = Math.min(container.width / refWidth, container.height / refHeight);
+              const defaultProportionalFontSize = Math.max(12, Math.round(refFontSize * scaleRatio));
+
               nextEl = {
                 ...nextEl,
+                fontSize: defaultProportionalFontSize,
                 customData: {
                   ...customData,
                   initialWidth: container.width,
                   initialHeight: container.height,
-                  initialFontSize: nextEl.fontSize
+                  initialFontSize: defaultProportionalFontSize
                 },
                 version: nextEl.version + 1,
                 versionNonce: Math.floor(Math.random() * 999999)
