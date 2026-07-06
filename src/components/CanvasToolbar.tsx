@@ -691,7 +691,7 @@ export default function CanvasToolbar({
 
   const handleToolSelect = (toolType: string) => {
     if (toolType === "text") {
-      setCustomBlockType(customBlockType === "text" ? null : "text");
+      setCustomBlockType(null);
       if (excalidrawAPI) {
         excalidrawAPI.setActiveTool({ type: "text" });
         excalidrawAPI.updateScene({
@@ -1186,7 +1186,7 @@ export default function CanvasToolbar({
     { type: "image", icon: ImageIcon, label: t("canvas.tool.image", "Görsel") },
     { type: "frame", icon: Frame, label: t("canvas.tool.frame", "Çerçeve") },
     { type: "eraser", icon: Eraser, label: t("canvas.tool.eraser", "Silgi") },
-    { type: "text", icon: Type, label: t("canvas.tool.text", "Metin Kutusu") },
+    { type: "text", icon: Type, label: t("canvas.tool.text", "Metin") },
     { type: "font", icon: Type, label: "Aa" },
     { type: "schema", icon: Network, label: isTr ? "Şablon Şemalar" : "Schemas" }
   ];
