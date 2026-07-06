@@ -36,6 +36,7 @@ const TR_STRINGS: Record<string, string> = {
   "Dimensions": "Boyutlar",
   "X position": "X konumu",
   "Y position": "Y konumu",
+  "İnekler için istatistikler": "Sahne istatistikleri",
 };
 
 function translateTextNodes(root: Node) {
