@@ -89,6 +89,99 @@ const getHitTransformHandle = (
   return null;
 };
 
+interface RotatedBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+const getSelectionBoundingBox = (elements: any[]): RotatedBounds => {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  elements.forEach((el) => {
+    const cx = el.x + el.width / 2;
+    const cy = el.y + el.height / 2;
+    const halfW = el.width / 2;
+    const halfH = el.height / 2;
+    const cos = Math.cos(el.angle || 0);
+    const sin = Math.sin(el.angle || 0);
+
+    const corners = [
+      { x: cx - halfW * cos + halfH * sin, y: cy - halfW * sin - halfH * cos },
+      { x: cx + halfW * cos + halfH * sin, y: cy + halfW * sin - halfH * cos },
+      { x: cx - halfW * cos - halfH * sin, y: cy - halfW * sin + halfH * cos },
+      { x: cx + halfW * cos - halfH * sin, y: cy + halfW * sin + halfH * cos }
+    ];
+
+    corners.forEach((pt) => {
+      if (pt.x < minX) minX = pt.x;
+      if (pt.x > maxX) maxX = pt.x;
+      if (pt.y < minY) minY = pt.y;
+      if (pt.y > maxY) maxY = pt.y;
+    });
+  });
+
+  return {
+    x: minX,
+    y: minY,
+    width: maxX - minX,
+    height: maxY - minY
+  };
+};
+
+const getRotatedCornerDistances = (
+  bounds: RotatedBounds,
+  angle: number,
+  canvasX: number,
+  canvasY: number,
+  zoom: number
+): { isNearCorner: boolean; cornerIndex: number } => {
+  const cx = bounds.x + bounds.width / 2;
+  const cy = bounds.y + bounds.height / 2;
+  const halfW = bounds.width / 2;
+  const halfH = bounds.height / 2;
+  
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  
+  const corners = [
+    { x: cx - halfW * cos + halfH * sin, y: cy - halfW * sin - halfH * cos }, // top-left
+    { x: cx + halfW * cos + halfH * sin, y: cy + halfW * sin - halfH * cos }, // top-right
+    { x: cx - halfW * cos - halfH * sin, y: cy - halfW * sin + halfH * cos }, // bottom-left
+    { x: cx + halfW * cos - halfH * sin, y: cy + halfW * sin + halfH * cos }  // bottom-right
+  ];
+  
+  // Also check if pointer is inside the bounding box
+  const px = canvasX - cx;
+  const py = canvasY - cy;
+  const cosNeg = Math.cos(-angle);
+  const sinNeg = Math.sin(-angle);
+  const unrotatedX = px * cosNeg - py * sinNeg;
+  const unrotatedY = px * sinNeg + py * cosNeg;
+  
+  const isInside = Math.abs(unrotatedX) <= halfW && Math.abs(unrotatedY) <= halfH;
+  if (isInside) {
+    return { isNearCorner: false, cornerIndex: -1 };
+  }
+  
+  const minThreshold = 12 / zoom;
+  const maxThreshold = 28 / zoom;
+  
+  for (let i = 0; i < corners.length; i++) {
+    const pt = corners[i];
+    const dist = Math.hypot(pt.x - canvasX, pt.y - canvasY);
+    if (dist >= minThreshold && dist <= maxThreshold) {
+      return { isNearCorner: true, cornerIndex: i };
+    }
+  }
+  
+  return { isNearCorner: false, cornerIndex: -1 };
+};
+
 const getLuminance = (hex: string): number => {
   const clean = hex.replace("#", "");
   if (clean.length === 3) {
@@ -128,6 +221,13 @@ export default function Canvas() {
   useEffect(() => { activeNoteIdRef.current = activeNoteId; }, [activeNoteId]);
   const [initialData, setInitialData] = useState<any>(null);
   const isInitializedRef = useRef(false);
+
+  const rotationStateRef = useRef<{
+    isRotating: boolean;
+    startPointerAngle: number;
+    groupCenter: { x: number; y: number };
+    initialElements: { id: string; x: number; y: number; angle: number }[];
+  } | null>(null);
 
   const [selectedContainer, setSelectedContainer] = useState<{ rect: any; text: any } | null>(null);
   const [floatingPos, setFloatingPos] = useState<{ top: number; left: number } | null>(null);
@@ -325,6 +425,46 @@ export default function Canvas() {
         (el: any) => appState.selectedElementIds?.[el.id] && !el.isDeleted
       );
 
+      if (selectedElements.length > 0 && appState.activeTool?.type === "selection") {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const z = appState.zoom?.value ?? 1;
+        const scrollX = appState.scrollX ?? 0;
+        const scrollY = appState.scrollY ?? 0;
+        const canvasX = (e.clientX - rect.left - scrollX * z) / z;
+        const canvasY = (e.clientY - rect.top - scrollY * z) / z;
+
+        // Calculate combined bounding box of selected elements
+        const bounds = getSelectionBoundingBox(selectedElements);
+        const groupAngle = selectedElements.length === 1 ? (selectedElements[0].angle || 0) : 0;
+        const { isNearCorner } = getRotatedCornerDistances(bounds, groupAngle, canvasX, canvasY, z);
+
+        if (isNearCorner) {
+          e.stopPropagation();
+          e.preventDefault();
+
+          const cx = bounds.x + bounds.width / 2;
+          const cy = bounds.y + bounds.height / 2;
+          const startPointerAngle = Math.atan2(canvasY - cy, canvasX - cx);
+
+          rotationStateRef.current = {
+            isRotating: true,
+            startPointerAngle,
+            groupCenter: { x: cx, y: cy },
+            initialElements: selectedElements.map((el: any) => ({
+              id: el.id,
+              x: el.x,
+              y: el.y,
+              angle: el.angle || 0
+            }))
+          };
+
+          e.currentTarget.setPointerCapture(e.pointerId);
+          e.currentTarget.classList.add("custom-rotating-active");
+          e.currentTarget.classList.remove("custom-rotate-hover");
+          return;
+        }
+      }
+
       if (selectedElements.length === 1 && selectedElements[0].type === "image") {
         const image = selectedElements[0];
         const rect = e.currentTarget.getBoundingClientRect();
@@ -389,6 +529,95 @@ export default function Canvas() {
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (rotationStateRef.current?.isRotating && excalidrawAPI) {
+      e.stopPropagation();
+      e.preventDefault();
+
+      const rect = e.currentTarget.getBoundingClientRect();
+      const appState = excalidrawAPI.getAppState();
+      const z = appState.zoom?.value ?? 1;
+      const scrollX = appState.scrollX ?? 0;
+      const scrollY = appState.scrollY ?? 0;
+      const canvasX = (e.clientX - rect.left - scrollX * z) / z;
+      const canvasY = (e.clientY - rect.top - scrollY * z) / z;
+
+      const { startPointerAngle, groupCenter, initialElements } = rotationStateRef.current;
+      const currentPointerAngle = Math.atan2(canvasY - groupCenter.y, canvasX - groupCenter.x);
+      
+      let angleDelta = currentPointerAngle - startPointerAngle;
+
+      if (e.shiftKey) {
+        const snapStep = Math.PI / 12; // 15 degrees in radians
+        angleDelta = Math.round(angleDelta / snapStep) * snapStep;
+      }
+
+      const elements = excalidrawAPI.getSceneElements();
+      const updatedElements = elements.map((el: any) => {
+        const initEl = initialElements.find((item) => item.id === el.id);
+        if (initEl) {
+          if (initialElements.length === 1) {
+            return {
+              ...el,
+              angle: initEl.angle + angleDelta
+            };
+          } else {
+            const elCx = initEl.x + el.width / 2;
+            const elCy = initEl.y + el.height / 2;
+            const cos = Math.cos(angleDelta);
+            const sin = Math.sin(angleDelta);
+            const dx = elCx - groupCenter.x;
+            const dy = elCy - groupCenter.y;
+            const newElCx = groupCenter.x + dx * cos - dy * sin;
+            const newElCy = groupCenter.y + dx * sin + dy * cos;
+
+            return {
+              ...el,
+              x: newElCx - el.width / 2,
+              y: newElCy - el.height / 2,
+              angle: initEl.angle + angleDelta
+            };
+          }
+        }
+        return el;
+      });
+
+      excalidrawAPI.updateScene({ elements: updatedElements });
+      return;
+    }
+
+    if (excalidrawAPI && !isDraggingRef.current && (!rotationStateRef.current || !rotationStateRef.current.isRotating)) {
+      const appState = excalidrawAPI.getAppState();
+      if (appState.activeTool?.type === "selection") {
+        const elements = excalidrawAPI.getSceneElements();
+        const selectedElements = elements.filter(
+          (el: any) => appState.selectedElementIds?.[el.id] && !el.isDeleted
+        );
+
+        if (selectedElements.length > 0) {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const z = appState.zoom?.value ?? 1;
+          const scrollX = appState.scrollX ?? 0;
+          const scrollY = appState.scrollY ?? 0;
+          const canvasX = (e.clientX - rect.left - scrollX * z) / z;
+          const canvasY = (e.clientY - rect.top - scrollY * z) / z;
+
+          const bounds = getSelectionBoundingBox(selectedElements);
+          const groupAngle = selectedElements.length === 1 ? (selectedElements[0].angle || 0) : 0;
+          const { isNearCorner } = getRotatedCornerDistances(bounds, groupAngle, canvasX, canvasY, z);
+
+          if (isNearCorner) {
+            e.currentTarget.classList.add("custom-rotate-hover");
+          } else {
+            e.currentTarget.classList.remove("custom-rotate-hover");
+          }
+        } else {
+          e.currentTarget.classList.remove("custom-rotate-hover");
+        }
+      } else {
+        e.currentTarget.classList.remove("custom-rotate-hover");
+      }
+    }
+
     if (!isDraggingRef.current || !dragStartRef.current) return;
 
     e.stopPropagation();
@@ -412,6 +641,17 @@ export default function Canvas() {
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (rotationStateRef.current?.isRotating) {
+      e.stopPropagation();
+      e.preventDefault();
+
+      rotationStateRef.current = null;
+      e.currentTarget.releasePointerCapture(e.pointerId);
+      e.currentTarget.classList.remove("custom-rotating-active");
+      e.currentTarget.classList.remove("custom-rotate-hover");
+      return;
+    }
+
     if (!isDraggingRef.current || !dragStartRef.current || !excalidrawAPI) return;
 
     e.stopPropagation();
