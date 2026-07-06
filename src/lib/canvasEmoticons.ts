@@ -47,10 +47,23 @@ export function installCanvasEmoticons(container: HTMLElement): () => void {
       if (prev !== undefined && prev !== " " && prev !== "\n") return;
 
       const emoji = EMOTICONS[token];
+      
+      // Ensure focus is on the element to guarantee replacement success
+      el.focus();
       // Select the token and the typed separator (e.g. ":D ")
       el.setSelectionRange(caret - token.length - 1, caret);
-      // Perform undoable replacement via browser execCommand to preserve undo history
-      document.execCommand("insertText", false, emoji + sep);
+      
+      // Perform undoable replacement via browser execCommand
+      const success = document.execCommand("insertText", false, emoji + sep);
+      if (!success) {
+        // Fallback to manual assignment if execCommand fails/is blocked
+        const replaced = body.slice(0, -token.length) + emoji + sep;
+        const afterPart = el.value.slice(caret);
+        el.value = replaced + afterPart;
+        el.selectionStart = replaced.length;
+        el.selectionEnd = replaced.length;
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      }
       return;
     }
   };
