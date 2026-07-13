@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { User } from "firebase/auth";
 import { db, auth } from "../lib/firebase";
+import i18n from "../i18n";
 import { collection, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
 
 let titleSaveTimeout: any = null;
@@ -64,6 +65,7 @@ interface NoteState {
   user: User | null;
   firestoreUser: any | null;
   toast: ToastState | null;
+  saveStatus: "saved" | "saving" | "error";
   theme: "light" | "dark";
   isMobileSidebarOpen: boolean;
   userTier: "free" | "premium";
@@ -76,6 +78,7 @@ interface NoteState {
   setFirestoreUser: (firestoreUser: any | null) => void;
   showToast: (message: string, type?: "success" | "error" | "warning", actionLabel?: string, onActionClick?: () => void) => void;
   hideToast: () => void;
+  setSaveStatus: (status: "saved" | "saving" | "error") => void;
   setTheme: (theme: "light" | "dark") => void;
   setIsMobileSidebarOpen: (isOpen: boolean) => void;
   setUserTier: (tier: "free" | "premium") => void;
@@ -120,6 +123,7 @@ export const useNoteStore = create<NoteState>((set) => ({
   user: null,
   firestoreUser: null,
   toast: null,
+  saveStatus: "saved",
   theme: (localStorage.getItem("theme") as "light" | "dark") || "dark",
   isMobileSidebarOpen: false,
   userTier: "free",
@@ -136,6 +140,7 @@ export const useNoteStore = create<NoteState>((set) => ({
   setFirestoreUser: (firestoreUser) => set({ firestoreUser }),
   showToast: (message: string, type: "success" | "error" | "warning" = "error", actionLabel?: string, onActionClick?: () => void) => set({ toast: { message, type, actionLabel, onActionClick } }),
   hideToast: () => set({ toast: null }),
+  setSaveStatus: (saveStatus) => set({ saveStatus }),
   setTheme: (theme) => {
     localStorage.setItem("theme", theme);
     document.documentElement.setAttribute("data-theme", theme);
@@ -163,7 +168,10 @@ export const useNoteStore = create<NoteState>((set) => ({
   setIsQuickCaptureOpen: (isQuickCaptureOpen) => set({ isQuickCaptureOpen }),
   isUpgradeModalOpen: false,
   setIsUpgradeModalOpen: (isUpgradeModalOpen) => set({ isUpgradeModalOpen }),
-  isSidebarCollapsed: localStorage.getItem("sidebar-mode") === "mini",
+  isSidebarCollapsed: typeof window !== "undefined" && (
+    localStorage.getItem("sidebar-mode") === "mini" ||
+    (localStorage.getItem("sidebar-mode") === null && window.innerWidth <= 1366)
+  ),
   setIsSidebarCollapsed: (isSidebarCollapsed) => {
     localStorage.setItem("sidebar-mode", isSidebarCollapsed ? "mini" : "full");
     set({ isSidebarCollapsed });
@@ -179,7 +187,7 @@ export const useNoteStore = create<NoteState>((set) => ({
   createNote: async (type, title) => {
     const currentUser = auth.currentUser;
     if (!currentUser) {
-      set({ toast: { message: "Giriş hatası", type: "error" } });
+      set({ toast: { message: i18n.t("toast.loginError", "Giriş hatası"), type: "error" } });
       return null;
     }
     try {
@@ -197,7 +205,7 @@ export const useNoteStore = create<NoteState>((set) => ({
       return docRef.id;
     } catch (error: any) {
       console.error("Error creating note:", error);
-      set({ toast: { message: error.message || "Not oluşturulamadı", type: "error" } });
+      set({ toast: { message: error.message || i18n.t("toast.createError", "Not oluşturulamadı"), type: "error" } });
       return null;
     }
   },

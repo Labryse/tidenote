@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ArrowUp, ArrowDown, Check } from 'lucide-react'
 
 type Status = 'idle' | 'available' | 'downloading' | 'downloaded'
 
 export default function UpdateNotification() {
+  const { t } = useTranslation()
   const [status, setStatus] = useState<Status>('idle')
   const [version, setVersion] = useState('')
   const [percent, setPercent] = useState(0)
   const [dismissed, setDismissed] = useState(false)
+  const [restarting, setRestarting] = useState(false)
 
   useEffect(() => {
     const api = (window as any).electronAPI
@@ -28,6 +31,72 @@ export default function UpdateNotification() {
   }, [])
 
   const api = (window as any).electronAPI
+
+  const handleRestart = () => {
+    // Show the full-screen splash first so the user understands what's about to
+    // happen; main.cjs delays quitAndInstall slightly so this can paint.
+    setRestarting(true)
+    api?.installUpdate?.()
+  }
+
+  // Full-screen splash shown while the app closes and the installer takes over
+  if (restarting) {
+    return (
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 100000,
+        background: 'var(--color-bg-app, var(--color-bg-card))',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px'
+      }}>
+        <div style={{
+          maxWidth: '360px',
+          textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '20px'
+        }}>
+          <div style={{
+            width: '44px',
+            height: '44px',
+            borderRadius: '50%',
+            border: '3px solid var(--color-border)',
+            borderTopColor: 'var(--color-accent)',
+            animation: 'tidenoteSpin 0.8s linear infinite'
+          }} />
+          <div>
+            <p style={{
+              margin: '0 0 8px',
+              fontSize: '16px',
+              fontWeight: 600,
+              color: 'var(--color-text-primary)'
+            }}>
+              {t('update.restartingTitle')}
+            </p>
+            <p style={{
+              margin: 0,
+              fontSize: '13px',
+              lineHeight: 1.5,
+              color: 'var(--color-text-muted)'
+            }}>
+              {t('update.restartingDesc')}
+            </p>
+          </div>
+        </div>
+
+        <style>{`
+          @keyframes tidenoteSpin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    )
+  }
+
   if (!api || dismissed || status === 'idle') return null
 
   return (
@@ -79,17 +148,17 @@ export default function UpdateNotification() {
             margin: 0, fontSize: '13px', fontWeight: 600,
             color: 'var(--color-text-primary)'
           }}>
-            {status === 'available' && `Güncelleme Mevcut — v${version}`}
-            {status === 'downloading' && `İndiriliyor... %${percent}`}
-            {status === 'downloaded' && 'Güncelleme Hazır'}
+            {status === 'available' && t('update.availableTitle', { version })}
+            {status === 'downloading' && t('update.downloadingTitle', { percent })}
+            {status === 'downloaded' && t('update.readyTitle')}
           </p>
           <p style={{
             margin: 0, fontSize: '11px',
             color: 'var(--color-text-muted)'
           }}>
-            {status === 'available' && 'Yeni sürüm indirilebilir'}
-            {status === 'downloading' && 'Lütfen bekleyin...'}
-            {status === 'downloaded' && 'Yeniden başlatarak yükleyin'}
+            {status === 'available' && t('update.availableDesc')}
+            {status === 'downloading' && t('update.downloadingDesc')}
+            {status === 'downloaded' && t('update.readyDesc')}
           </p>
         </div>
       </div>
@@ -124,7 +193,7 @@ export default function UpdateNotification() {
               fontSize: '12px', fontWeight: 600,
               cursor: 'pointer', fontFamily: 'inherit'
             }}>
-            İndir
+            {t('update.download')}
           </button>
         )}
         {status === 'downloaded' && (
@@ -139,10 +208,10 @@ export default function UpdateNotification() {
                 color: 'var(--color-text-muted)',
                 fontFamily: 'inherit'
               }}>
-              Sonra
+              {t('update.later')}
             </button>
             <button
-              onClick={() => api.installUpdate()}
+              onClick={handleRestart}
               style={{
                 flex: 2, background: 'var(--color-accent)',
                 color: 'white', border: 'none',
@@ -150,7 +219,7 @@ export default function UpdateNotification() {
                 fontSize: '12px', fontWeight: 600,
                 cursor: 'pointer', fontFamily: 'inherit'
               }}>
-              Yeniden Başlat
+              {t('update.restart')}
             </button>
           </>
         )}

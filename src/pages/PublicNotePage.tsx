@@ -2,9 +2,12 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { loadCanvasFiles } from "../lib/canvasFiles";
+import "../lib/canvasFonts"; // register canvas font variants for public view
 import { Excalidraw } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { useTranslation } from "react-i18next";
 
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
@@ -35,6 +38,7 @@ function BlockNoteReader({ content }: { content: any[] }) {
 
 // ── Document public view ──────────────────────────────────────
 function DocumentPublicView({ note }: { note: any }) {
+  const { t } = useTranslation();
   let blocks: any[] = [];
   if (typeof note.content === "string") {
     try { blocks = JSON.parse(note.content); } catch { /* ignore */ }
@@ -49,23 +53,23 @@ function DocumentPublicView({ note }: { note: any }) {
           <span className="public-note-logo-text">TideNote</span>
         </Link>
         <Link to="/login" className="public-note-open-btn">
-          Uygulamada Aç
+          {t("public.openInApp", "Uygulamada Aç")}
         </Link>
       </header>
       <main className="public-note-document">
-        <h1 className="public-note-title">{note.title || "Başlıksız Not"}</h1>
+        <h1 className="public-note-title">{note.title || t("public.untitledNote", "Başlıksız Not")}</h1>
         <div className="public-note-content">
           {blocks.length > 0 ? (
             <MantineProvider>
               <BlockNoteReader content={blocks} />
             </MantineProvider>
           ) : (
-            <p className="public-note-empty">Bu not henüz içerik içermiyor.</p>
+            <p className="public-note-empty">{t("public.emptyNote", "Bu not henüz içerik içermiyor.")}</p>
           )}
         </div>
       </main>
       <footer className="public-note-footer">
-        <span>TideNote ile oluşturuldu</span>
+        <span>{t("public.createdWith", "TideNote ile oluşturuldu")}</span>
         <Link to="/">tidenote.app</Link>
       </footer>
     </div>
@@ -74,6 +78,7 @@ function DocumentPublicView({ note }: { note: any }) {
 
 // ── Canvas public view ────────────────────────────────────────
 function CanvasPublicView({ note }: { note: any }) {
+  const { t } = useTranslation();
   let elements: any[] = [];
   let appState: any = {};
   let files: any = {};
@@ -82,23 +87,59 @@ function CanvasPublicView({ note }: { note: any }) {
   try { appState = note.appState ? JSON.parse(note.appState) : {}; } catch { /* ignore */ }
   try { files = note.files ? JSON.parse(note.files) : {}; } catch { /* ignore */ }
 
+  const [api, setApi] = useState<any>(null);
+
+  // Inline (legacy base64) images render immediately; Storage-backed images are
+  // fetched into the viewer once the API is ready.
+  const renderFiles: any = {};
+  for (const [fileId, entry] of Object.entries<any>(files)) {
+    if (entry?.dataURL) renderFiles[fileId] = entry;
+  }
+
+  useEffect(() => {
+    if (!api) return;
+    let cancelled = false;
+    (async () => {
+      const toAdd: any[] = [];
+      // Persisted images live in the files subcollection.
+      try {
+        const stored = await loadCanvasFiles(note.id);
+        for (const [fileId, v] of Object.entries(stored)) {
+          toAdd.push({ id: fileId, dataURL: v.dataURL, mimeType: v.mimeType, created: Date.now() });
+        }
+      } catch (e) { console.error("Public canvas files load failed:", e); }
+      // Legacy inline base64 still in the note doc.
+      for (const [fileId, entry] of Object.entries<any>(files)) {
+        if (entry?.dataURL) {
+          toAdd.push({ id: fileId, dataURL: entry.dataURL, mimeType: entry.mimeType || "image/png", created: Date.now() });
+        }
+      }
+      if (!cancelled && toAdd.length) {
+        try { api.addFiles(toAdd); } catch (e) { console.error(e); }
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api]);
+
   return (
     <div className="public-note-canvas-page">
       <header className="public-note-header">
         <Link to="/" className="public-note-logo-link">
           <span className="public-note-logo-text">TideNote</span>
         </Link>
-        <span className="public-note-canvas-title">{note.title || "Başlıksız Canvas"}</span>
+        <span className="public-note-canvas-title">{note.title || t("public.untitledCanvas", "Başlıksız Canvas")}</span>
         <Link to="/login" className="public-note-open-btn">
-          Uygulamada Aç
+          {t("public.openInApp", "Uygulamada Aç")}
         </Link>
       </header>
       <div className="public-note-canvas-wrapper">
         <Excalidraw
+          excalidrawAPI={(a) => setApi(a)}
           initialData={{
             elements,
             appState: { ...appState, viewBackgroundColor: "#ffffff" },
-            files,
+            files: renderFiles,
           }}
           viewModeEnabled={true}
           zenModeEnabled={false}
@@ -110,6 +151,7 @@ function CanvasPublicView({ note }: { note: any }) {
 
 // ── Main public page ──────────────────────────────────────────
 export default function PublicNotePage() {
+  const { t } = useTranslation();
   const { noteId } = useParams<{ noteId: string }>();
   const [note, setNote] = useState<any>(null);
   const [status, setStatus] = useState<"loading" | "found" | "private" | "notfound" | "error">("loading");
@@ -141,7 +183,7 @@ export default function PublicNotePage() {
   if (status === "loading") {
     return (
       <div className="public-note-loading">
-        <LoadingSpinner label="Yükleniyor..." />
+        <LoadingSpinner label={t("public.loading", "Yükleniyor...")} />
       </div>
     );
   }
@@ -149,15 +191,15 @@ export default function PublicNotePage() {
   if (status !== "found") {
     const icon = status === "private" ? "🔒" : status === "notfound" ? "🔍" : "⚠️";
     const heading = status === "private"
-      ? "Bu not herkese açık değil"
+      ? t("public.privateTitle", "Bu not herkese açık değil")
       : status === "notfound"
-      ? "Not bulunamadı"
-      : "Bir hata oluştu";
+      ? t("public.notFoundTitle", "Not bulunamadı")
+      : t("public.errorTitle", "Bir hata oluştu");
     const sub = status === "private"
-      ? "Bu notun sahibi içeriği herkese açık hale getirmemiş olabilir."
+      ? t("public.privateDesc", "Bu notun sahibi içeriği herkese açık hale getirmemiş olabilir.")
       : status === "notfound"
-      ? "Aradığınız not mevcut değil veya silinmiş olabilir."
-      : "Not yüklenirken bir sorun oluştu. Lütfen daha sonra tekrar deneyin.";
+      ? t("public.notFoundDesc", "Aradığınız not mevcut değil veya silinmiş olabilir.")
+      : t("public.errorDesc", "Not yüklenirken bir sorun oluştu. Lütfen daha sonra tekrar deneyin.");
 
     return (
       <div className="public-note-error-page">
@@ -165,7 +207,7 @@ export default function PublicNotePage() {
           <div className="public-note-error-icon">{icon}</div>
           <h2>{heading}</h2>
           <p>{sub}</p>
-          <Link to="/" className="public-note-home-btn">TideNote'a Dön</Link>
+          <Link to="/" className="public-note-home-btn">{t("public.backToHome", "TideNote'a Dön")}</Link>
         </div>
       </div>
     );

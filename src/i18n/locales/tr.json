@@ -1,4 +1,22 @@
 {
+  "save": {
+    "saving": "Kaydediliyor…",
+    "notSaved": "Değişiklikler kaydedilmedi",
+    "notSavedHint": "Buluta kaydedilemedi (çevrimdışı olabilirsiniz ya da bir görsel yüklenemedi). Otomatik olarak yeniden deneniyor — lütfen uygulamayı açık tutun."
+  },
+  "update": {
+    "availableTitle": "Güncelleme Mevcut — v{{version}}",
+    "availableDesc": "Yeni sürüm indirilebilir",
+    "downloadingTitle": "İndiriliyor… %{{percent}}",
+    "downloadingDesc": "Lütfen bekleyin…",
+    "readyTitle": "Güncelleme Hazır",
+    "readyDesc": "Yüklemek için yeniden başlatın",
+    "download": "İndir",
+    "later": "Sonra",
+    "restart": "Yeniden Başlat",
+    "restartingTitle": "Güncellemek için yeniden başlatılıyor…",
+    "restartingDesc": "TideNote kapanacak, güncellemeyi yükleyecek ve otomatik olarak yeniden açılacak. Lütfen bilgisayarınızı kapatmayın."
+  },
   "sidebar": {
     "newNote": "Yeni Not",
     "newDocument": "Yeni Belge",
@@ -21,7 +39,12 @@
     "allTags": "Tümü",
     "addTag": "+ Etiket",
     "tagPlaceholder": "Yeni etiket...",
-    "createFromTemplate": "Şablondan Oluştur"
+    "createFromTemplate": "Şablondan Oluştur",
+    "removeFromFavorites": "Favorilerden Çıkar",
+    "addToFavorites": "Favorilere Ekle",
+    "unpin": "Sabitlemeyi Kaldır",
+    "pin": "Sabitle",
+    "organization": "KLASÖRLER & KOLEKSİYONLAR"
   },
   "journal": {
     "today": "Bugün",
@@ -70,7 +93,9 @@
     "saveSuccess": "Kaydedildi.",
     "createSuccess": "Not başarıyla oluşturuldu.",
     "deleteSuccess": "Not başarıyla silindi.",
-    "loadError": "Notlar yüklenirken hata oluştu."
+    "loadError": "Notlar yüklenirken hata oluştu.",
+    "imageTooLarge": "Görsel çok büyük (en fazla 5 MB) ve kaydedilmedi. Lütfen daha küçük bir görsel kullanın.",
+    "imageLoadError": "Bazı görseller yüklenemedi."
   },
   "editor": {
     "placeholder": "Yazmaya başla veya '/' ile komut gir...",
@@ -241,7 +266,23 @@
       "bottom": "Alt",
       "left": "Sol",
       "right": "Sağ"
-    }
+    },
+    "textColor": "Metin Rengi",
+    "customColor": "Özel Renk",
+    "shapeStyle": "Renk ve Stil",
+    "fill": "Dolgu",
+    "transparent": "Şeffaf",
+    "border": "Kenarlık",
+    "lineStyle": "Çizgi Stili",
+    "solid": "Düz",
+    "dashed": "Kesikli",
+    "none": "Yok",
+    "thin": "İnce",
+    "medium": "Orta",
+    "thick": "Kalın",
+    "cornerRadius": "Köşe Yumuşaklığı",
+    "sharp": "Sivri",
+    "rounded": "Yumuşak"
   },
   "topbar": {
     "share_button": "Paylaş",
@@ -465,5 +506,63 @@
         "web": "Web: https://tidenote.app"
       }
     }
+  },
+  "noteMenu": {
+    "colorLabel": "Renk Etiketi",
+    "customColor": "Özel Renk",
+    "clearColor": "Rengi Kaldır",
+    "openInNewTab": "Yeni Sekmede Aç",
+    "openInDesktop": "Masaüstü Uygulamasında Aç"
+  },
+  "collections": {
+    "section": "KOLEKSİYONLAR",
+    "newCollection": "Yeni Koleksiyon",
+    "edit": "Düzenle",
+    "delete": "Sil",
+    "deleteTitle": "Koleksiyonu Sil",
+    "deleteConfirm": "Bu koleksiyonu silmek istediğinize emin misiniz? Notlarınız silinmeyecektir.",
+    "deleteSuccess": "Koleksiyon silindi",
+    "deleteError": "Koleksiyon silinemedi",
+    "noteAdded": "Not koleksiyona eklendi",
+    "alreadyExists": "Not zaten bu koleksiyonda",
+    "addError": "Not koleksiyona eklenemedi"
+  },
+  "share": {
+    "title": "Paylaş",
+    "exportTab": "Dışa Aktar",
+    "copy": "Kopyala",
+    "copied": "Kopyalandı ✓",
+    "generalAccess": "GENEL ERİŞİM",
+    "accessDesc": "Bağlantıya sahip herkes görüntüleyebilir",
+    "makePublic": "Herkese açık yap",
+    "makePrivate": "Herkese açık — kapat",
+    "publicInfo": "Bu bağlantıya sahip herkes notu görüntüleyebilir.",
+    "inviteMembers": "Üyeleri Davet Et",
+    "sendInvite": "Davet Gönder",
+    "emailPlaceholder": "E-posta adresi gir...",
+    "exportPng": "PNG İndir (beyaz arka plan)",
+    "exportJpg": "JPG İndir",
+    "exportTransparentPng": "Şeffaf PNG",
+    "exportSvg": "SVG İndir",
+    "download": "İndir"
+  },
+  "public": {
+    "openInApp": "Uygulamada Aç",
+    "untitledNote": "Başlıksız Not",
+    "untitledCanvas": "Başlıksız Canvas",
+    "emptyNote": "Bu not henüz içerik içermiyor.",
+    "createdWith": "TideNote ile oluşturuldu",
+    "loading": "Yükleniyor...",
+    "privateTitle": "Bu not herkese açık değil",
+    "notFoundTitle": "Not bulunamadı",
+    "errorTitle": "Bir hata oluştu",
+    "privateDesc": "Bu notun sahibi içeriği herkese açık hale getirmemiş olabilir.",
+    "notFoundDesc": "Aradığınız not mevcut değil veya silinmiş olabilir.",
+    "errorDesc": "Not yüklenirken bir sorun oluştu. Lütfen daha sonra tekrar deneyin.",
+    "backToHome": "TideNote'a Dön"
+  },
+  "toast": {
+    "comingSoon": "Bu özellik yakında aktif olacak",
+    "loginError": "Giriş hatası"
   }
 }

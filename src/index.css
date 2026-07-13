@@ -7756,7 +7756,7 @@ body {
    5. NEW CANVAS TWO-TIER TOOLBAR DESIGN
    ========================================== */
 .canvas-main-toolbar {
-  position: fixed;
+  position: absolute;
   bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
@@ -8014,6 +8014,17 @@ body {
   height: 16px;
   background: var(--color-border, #e5e7eb);
 }
+
+.mini-bar-select option {
+  color: var(--color-text-primary, #111827);
+  background: var(--color-bg-card, #ffffff);
+}
+
+:root[data-theme="dark"] .mini-bar-select option {
+  color: var(--color-text-primary, #f3f4f6);
+  background: #1c1c1e;
+}
+
 
 /* Aa Font Dropdown Position for fixed toolbar */
 .toolbar-font-dropdown.above {
@@ -8573,55 +8584,213 @@ body {
   font-style: italic;
 }
 
-@font-face {
-  font-family: 'Comic Shanns Bold';
-  src: local('Comic Shanns'), local('Cascadia Code'), local('Courier New');
-  font-weight: bold;
-}
-@font-face {
-  font-family: 'Comic Shanns Italic';
-  src: local('Comic Shanns'), local('Cascadia Code'), local('Courier New');
-  font-style: italic;
-}
-@font-face {
-  font-family: 'Comic Shanns Bold Italic';
-  src: local('Comic Shanns'), local('Cascadia Code'), local('Courier New');
-  font-weight: bold;
-  font-style: italic;
+/* Nunito/Cascadia/Inter/Poppins/Bebas variant faces are injected with real
+   woff2 files by src/lib/canvasFonts.ts (registerCanvasFonts). */
+
+/* ── Excalidraw internal UI fixes (paired with lib/excalidrawDomPatches.ts) ── */
+
+/* Context menu: keep above app toolbars; never taller than the viewport */
+.excalidraw .context-menu {
+  z-index: 10000 !important;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
 }
 
-@font-face {
-  font-family: 'Cascadia Bold';
-  src: local('Cascadia Code'), local('Courier New');
-  font-weight: bold;
-}
-@font-face {
-  font-family: 'Cascadia Italic';
-  src: local('Cascadia Code'), local('Courier New');
-  font-style: italic;
-}
-@font-face {
-  font-family: 'Cascadia Bold Italic';
-  src: local('Cascadia Code'), local('Courier New');
-  font-weight: bold;
-  font-style: italic;
+/* "Copied styles." toast: behave like a normal app toast (bottom-center,
+   above all canvas UI) instead of floating mid-canvas */
+.excalidraw .Toast {
+  position: fixed !important;
+  left: 50% !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: 28px !important;
+  transform: translateX(-50%) !important;
+  z-index: 10001 !important;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
-@font-face {
-  font-family: 'Virgil Bold';
-  src: local('Virgil');
-  font-weight: bold;
+/* Stats panel ("Canvas & Shape properties"): tidy spacing + stacking */
+.excalidraw .exc-stats {
+  z-index: 9999;
+  background-color: var(--color-bg-card) !important;
+  color: var(--color-text-primary) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3) !important;
+  padding: 16px !important;
+  font-family: inherit !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  min-width: 260px !important;
 }
-@font-face {
-  font-family: 'Virgil Italic';
-  src: local('Virgil');
-  font-style: italic;
+
+.excalidraw .exc-stats__row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 16px !important;
+  padding: 6px 0 !important;
+  border-bottom: 1px dashed var(--color-border) !important;
 }
-@font-face {
-  font-family: 'Virgil Bold Italic';
-  src: local('Virgil');
-  font-weight: bold;
-  font-style: italic;
+
+.excalidraw .exc-stats__row:last-child {
+  border-bottom: none !important;
+}
+
+.excalidraw .exc-stats__row--heading {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--color-text-primary) !important;
+  border-bottom: 2px solid var(--color-border) !important;
+  padding-bottom: 6px !important;
+  margin-top: 8px !important;
+  margin-bottom: 4px !important;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.excalidraw .exc-stats__row--heading:first-child {
+  margin-top: 0 !important;
+}
+
+.excalidraw .exc-stats__row span,
+.excalidraw .exc-stats__row label,
+.excalidraw .exc-stats__row p {
+  color: var(--color-text-secondary) !important;
+  font-size: 13px !important;
+}
+
+.excalidraw .exc-stats__row span:last-child,
+.excalidraw .exc-stats__row p:last-child {
+  color: var(--color-text-primary) !important;
+  font-weight: 600 !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+.excalidraw .exc-stats input {
+  background-color: var(--color-bg-body) !important;
+  color: var(--color-text-primary) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 6px !important;
+  padding: 3px 6px !important;
+  font-size: 12px !important;
+  width: 75px !important;
+  text-align: right !important;
+  outline: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.excalidraw .exc-stats input:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15) !important;
+}
+
+/* ── Canvas color pickers (Word-style text color + consolidated shape panel) ── */
+
+.tn-textcolor-btn {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 3px 8px !important;
+}
+.tn-textcolor-a {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-text-primary);
+}
+.tn-textcolor-underline {
+  width: 16px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.tn-color-popover {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  padding: 10px;
+  z-index: 10002;
+  min-width: 200px;
+}
+
+.tn-color-popover-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  margin: 2px 0 6px;
+}
+.tn-color-popover-title + .tn-color-popover-title,
+.tn-color-grid + .tn-color-popover-title,
+.tn-panel-row + .tn-color-popover-title {
+  margin-top: 10px;
+}
+
+.tn-color-grid {
+  display: grid;
+  grid-template-columns: repeat(9, 18px);
+  gap: 5px;
+}
+.tn-color-grid-compact {
+  grid-template-columns: repeat(7, 18px);
+}
+
+.tn-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+  transition: transform 0.1s ease;
+}
+.tn-swatch:hover {
+  transform: scale(1.15);
+}
+.tn-swatch.active {
+  box-shadow: 0 0 0 2px var(--color-bg-card), 0 0 0 4px var(--color-accent);
+}
+.tn-swatch-transparent {
+  background: repeating-conic-gradient(#d1d5db 0% 25%, transparent 0% 50%) 50% / 8px 8px;
+}
+.tn-swatch-rainbow {
+  background: conic-gradient(#ef4444, #f59e0b, #eab308, #22c55e, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #ef4444);
+  display: inline-flex;
+  overflow: hidden;
+}
+.tn-swatch-rainbow input[type="color"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.tn-panel-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.tn-fill-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 
 /* TideNote Table Custom Styling */
@@ -8977,6 +9146,15 @@ body {
 .hd-badge.gray  { background:var(--color-bg-card); color:var(--color-text-muted); border:1px solid var(--color-border); }
 
 @keyframes hd-fade-in { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+
+/* Figma-style canvas corner-based rotation cursor overrides */
+.custom-rotate-hover canvas {
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M21.5 2v6h-6'/><path d='M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67'/></svg>") 12 12, auto !important;
+}
+
+.custom-rotating-active canvas {
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%230891b2' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M21.5 2v6h-6'/><path d='M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67'/></svg>") 12 12, auto !important;
+}
 
 
 

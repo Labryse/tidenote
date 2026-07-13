@@ -4,6 +4,16 @@ import LoadingSpinner from "./LoadingSpinner";
 import "@excalidraw/excalidraw/index.css";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import {
+  type CanvasFileRef,
+  isCanvasFileRef,
+  compressImageDataURL,
+  dataURLByteSize,
+  saveCanvasFile,
+  deleteCanvasFile,
+  loadCanvasFiles,
+  MAX_ORIGINAL_BYTES,
+} from "../lib/canvasFiles";
 import { useNoteStore } from "../store/useNoteStore";
 import { useTranslation } from "react-i18next";
 import CanvasToolbar from "./CanvasToolbar";
@@ -30,95 +40,164 @@ import {
   ChevronRight
 } from "lucide-react";
 
-const FLOATING_FONTS = [
-  { id: FONT_FAMILY.Excalifont as number, label: "Excalifont" },
-  { id: FONT_FAMILY.Helvetica as number, label: "Helvetica" },
-  { id: FONT_FAMILY["Liberation Sans"] as number, label: "Liberation Sans" },
-  { id: FONT_FAMILY.Nunito as number, label: "Nunito" },
-  { id: FONT_FAMILY["Comic Shanns"] as number, label: "Comic Shanns" },
-  { id: FONT_FAMILY.Cascadia as number, label: "Cascadia" },
-  { id: (FONT_FAMILY as any).Virgil ?? 1, label: "Virgil" },
-];
+import {
+  resolveFontVariant,
+  fontSupports,
+  sanitizeTextElementFont,
+  measureCanvasText,
+} from "../lib/canvasFonts";
+import { installExcalidrawDomPatches } from "../lib/excalidrawDomPatches";
+import { installCanvasEmoticons } from "../lib/canvasEmoticons";
 
-// Register custom font families in Excalidraw FONT_FAMILY constant at runtime
-(FONT_FAMILY as any)["Helvetica Bold"] = 10;
-(FONT_FAMILY as any)["Helvetica Italic"] = 11;
-(FONT_FAMILY as any)["Helvetica Bold Italic"] = 12;
-
-(FONT_FAMILY as any)["Virgil Bold"] = 13;
-(FONT_FAMILY as any)["Virgil Italic"] = 14;
-(FONT_FAMILY as any)["Virgil Bold Italic"] = 15;
-
-(FONT_FAMILY as any)["Comic Shanns Bold"] = 16;
-(FONT_FAMILY as any)["Comic Shanns Italic"] = 17;
-(FONT_FAMILY as any)["Comic Shanns Bold Italic"] = 18;
-(FONT_FAMILY as any)["Cascadia Bold"] = 16;
-(FONT_FAMILY as any)["Cascadia Italic"] = 17;
-(FONT_FAMILY as any)["Cascadia Bold Italic"] = 18;
-
-const getBaseFontFamily = (family: number): number => {
-  if ([1, 13, 14, 15].includes(family)) return 1;
-  if ([2, 10, 11, 12].includes(family)) return 2;
-  if ([3, 16, 17, 18].includes(family)) return 3;
-  return 2;
+const getHitTransformHandle = (
+  image: any,
+  canvasX: number,
+  canvasY: number,
+  zoom: number
+): "edge" | "corner" | null => {
+  const cx = image.x + image.width / 2;
+  const cy = image.y + image.height / 2;
+  
+  const cos = Math.cos(-image.angle);
+  const sin = Math.sin(-image.angle);
+  const rx = cx + (canvasX - cx) * cos - (canvasY - cy) * sin;
+  const ry = cy + (canvasX - cx) * sin + (canvasY - cy) * cos;
+  
+  const localX = rx - image.x;
+  const localY = ry - image.y;
+  
+  const handles = [
+    { type: "corner" as const, x: 0, y: 0 },
+    { type: "edge" as const, x: image.width / 2, y: 0 },
+    { type: "corner" as const, x: image.width, y: 0 },
+    { type: "edge" as const, x: image.width, y: image.height / 2 },
+    { type: "corner" as const, x: image.width, y: image.height },
+    { type: "edge" as const, x: image.width / 2, y: image.height },
+    { type: "corner" as const, x: 0, y: image.height },
+    { type: "edge" as const, x: 0, y: image.height / 2 },
+  ];
+  
+  const threshold = 16 / zoom;
+  
+  for (const h of handles) {
+    const dx = localX - h.x;
+    const dy = localY - h.y;
+    if (Math.sqrt(dx * dx + dy * dy) <= threshold) {
+      return h.type;
+    }
+  }
+  return null;
 };
 
-const resolveFontFamilyId = (baseFamily: number, weight?: string, style?: string): number => {
-  let base = baseFamily;
-  if ([1, 13, 14, 15].includes(baseFamily)) base = 1;
-  else if ([2, 10, 11, 12].includes(baseFamily)) base = 2;
-  else if ([3, 16, 17, 18].includes(baseFamily)) base = 3;
-  else base = 2;
-
-  const isBold = weight === "bold";
-  const isItalic = style === "italic";
-
-  if (base === 1) {
-    if (isBold && isItalic) return 15;
-    if (isBold) return 13;
-    if (isItalic) return 14;
-    return 1;
-  } else if (base === 2) {
-    if (isBold && isItalic) return 12;
-    if (isBold) return 10;
-    if (isItalic) return 11;
-    return 2;
-  } else if (base === 3) {
-    if (isBold && isItalic) return 18;
-    if (isBold) return 16;
-    if (isItalic) return 17;
-    return 3;
-  }
-  return base;
-};
-
-class StyledFontSize {
-  public size: number;
-  public weight: string | undefined;
-  public style: string | undefined;
-
-  constructor(size: number, weight?: string, style?: string) {
-    this.size = Number(size) || 16;
-    this.weight = weight;
-    this.style = style;
-  }
-
-  toString() {
-    const parts: string[] = [];
-    if (this.style === "italic") parts.push("italic");
-    if (this.weight === "bold") parts.push("bold");
-    parts.push(`${this.size}`);
-    return parts.join(" ");
-  }
-
-  valueOf() {
-    return this.size;
-  }
-
-  toJSON() {
-    return this.size;
-  }
+interface RotatedBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
+
+const getSelectionBoundingBox = (elements: any[]): RotatedBounds => {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  elements.forEach((el) => {
+    const cx = el.x + el.width / 2;
+    const cy = el.y + el.height / 2;
+    const halfW = el.width / 2;
+    const halfH = el.height / 2;
+    const cos = Math.cos(el.angle || 0);
+    const sin = Math.sin(el.angle || 0);
+
+    const corners = [
+      { x: cx - halfW * cos + halfH * sin, y: cy - halfW * sin - halfH * cos },
+      { x: cx + halfW * cos + halfH * sin, y: cy + halfW * sin - halfH * cos },
+      { x: cx - halfW * cos - halfH * sin, y: cy - halfW * sin + halfH * cos },
+      { x: cx + halfW * cos - halfH * sin, y: cy + halfW * sin + halfH * cos }
+    ];
+
+    corners.forEach((pt) => {
+      if (pt.x < minX) minX = pt.x;
+      if (pt.x > maxX) maxX = pt.x;
+      if (pt.y < minY) minY = pt.y;
+      if (pt.y > maxY) maxY = pt.y;
+    });
+  });
+
+  return {
+    x: minX,
+    y: minY,
+    width: maxX - minX,
+    height: maxY - minY
+  };
+};
+
+const getRotatedCornerDistances = (
+  bounds: RotatedBounds,
+  angle: number,
+  canvasX: number,
+  canvasY: number,
+  zoom: number
+): { isNearCorner: boolean; cornerIndex: number } => {
+  const cx = bounds.x + bounds.width / 2;
+  const cy = bounds.y + bounds.height / 2;
+  const halfW = bounds.width / 2;
+  const halfH = bounds.height / 2;
+  
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  
+  const corners = [
+    { x: cx - halfW * cos + halfH * sin, y: cy - halfW * sin - halfH * cos }, // top-left
+    { x: cx + halfW * cos + halfH * sin, y: cy + halfW * sin - halfH * cos }, // top-right
+    { x: cx - halfW * cos - halfH * sin, y: cy - halfW * sin + halfH * cos }, // bottom-left
+    { x: cx + halfW * cos - halfH * sin, y: cy + halfW * sin + halfH * cos }  // bottom-right
+  ];
+  
+  // Also check if pointer is inside the bounding box
+  const px = canvasX - cx;
+  const py = canvasY - cy;
+  const cosNeg = Math.cos(-angle);
+  const sinNeg = Math.sin(-angle);
+  const unrotatedX = px * cosNeg - py * sinNeg;
+  const unrotatedY = px * sinNeg + py * cosNeg;
+  
+  const isInside = Math.abs(unrotatedX) <= halfW && Math.abs(unrotatedY) <= halfH;
+  if (isInside) {
+    return { isNearCorner: false, cornerIndex: -1 };
+  }
+  
+  const minThreshold = 12 / zoom;
+  const maxThreshold = 28 / zoom;
+  
+  for (let i = 0; i < corners.length; i++) {
+    const pt = corners[i];
+    const dist = Math.hypot(pt.x - canvasX, pt.y - canvasY);
+    if (dist >= minThreshold && dist <= maxThreshold) {
+      return { isNearCorner: true, cornerIndex: i };
+    }
+  }
+  
+  return { isNearCorner: false, cornerIndex: -1 };
+};
+
+const getLuminance = (hex: string): number => {
+  const clean = hex.replace("#", "");
+  if (clean.length === 3) {
+    const r = parseInt(clean[0] + clean[0], 16) / 255;
+    const g = parseInt(clean[1] + clean[1], 16) / 255;
+    const b = parseInt(clean[2] + clean[2], 16) / 255;
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+  if (clean.length === 6) {
+    const r = parseInt(clean.slice(0, 2), 16) / 255;
+    const g = parseInt(clean.slice(2, 4), 16) / 255;
+    const b = parseInt(clean.slice(4, 6), 16) / 255;
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+  return 1;
+};
 
 export default function Canvas() {
   const { t, i18n } = useTranslation();
@@ -142,6 +221,13 @@ export default function Canvas() {
   useEffect(() => { activeNoteIdRef.current = activeNoteId; }, [activeNoteId]);
   const [initialData, setInitialData] = useState<any>(null);
   const isInitializedRef = useRef(false);
+
+  const rotationStateRef = useRef<{
+    isRotating: boolean;
+    startPointerAngle: number;
+    groupCenter: { x: number; y: number };
+    initialElements: { id: string; x: number; y: number; angle: number }[];
+  } | null>(null);
 
   const [selectedContainer, setSelectedContainer] = useState<{ rect: any; text: any } | null>(null);
   const [floatingPos, setFloatingPos] = useState<{ top: number; left: number } | null>(null);
@@ -232,9 +318,181 @@ export default function Canvas() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [excalidrawAPI]);
 
+  // Bold (Ctrl/Cmd+B) and italic (Ctrl/Cmd+I) shortcuts for the selected canvas text.
+  // Excalidraw has no native bold/italic shortcut, so these do nothing by default;
+  // here we mirror CanvasToolbar's updateTextCustomData (toggle customData + re-measure)
+  // and resolve the target text element from the current selection/editing state.
+  // Registered in the capture phase so we intercept the combo before it falls through.
+  useEffect(() => {
+    if (!excalidrawAPI) return;
 
+    const handleStyleShortcut = (e: KeyboardEvent) => {
+      const isModifierPressed = e.metaKey || e.ctrlKey;
+      // Ignore Alt so we never clash with Excalidraw's Ctrl+Alt+C (copy styles) etc.
+      if (!isModifierPressed || e.altKey) return;
+      const key = e.key.toLowerCase();
+      if (key !== "b" && key !== "i") return;
+
+      // Don't hijack the combo while the user types in a non-Excalidraw input.
+      const active = document.activeElement as HTMLElement | null;
+      const inExcalidrawEditor = !!active && active.classList.contains("excalidraw-texteditor");
+      const inOtherInput =
+        !!active &&
+        (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable) &&
+        !inExcalidrawEditor;
+      if (inOtherInput) return;
+
+      const appState = excalidrawAPI.getAppState();
+      const elements = excalidrawAPI.getSceneElements() || [];
+
+      // Resolve the active text element: editing, directly selected, or bound to a selected container
+      let textEl: any = null;
+      const editing = appState.editingElement;
+      if (editing && editing.type === "text") {
+        textEl = elements.find((el: any) => el.id === editing.id) || editing;
+      } else {
+        const selIds = Object.keys(appState.selectedElementIds || {}).filter(
+          (id) => appState.selectedElementIds[id]
+        );
+        const selEls = elements.filter((el: any) => selIds.includes(el.id) && !el.isDeleted);
+        textEl = selEls.find((el: any) => el.type === "text") || null;
+        if (!textEl) {
+          const container = selEls.find(
+            (el: any) =>
+              Array.isArray(el.boundElements) &&
+              el.boundElements.some((b: any) => b && b.type === "text")
+          );
+          if (container) {
+            const boundId = container.boundElements.find((b: any) => b.type === "text").id;
+            textEl = elements.find((el: any) => el.id === boundId) || null;
+          }
+        }
+      }
+      if (!textEl) return;
+
+      // Skip fonts that don't support the requested style (e.g. Bebas Neue).
+      const caps = fontSupports(textEl.fontFamily);
+      if ((key === "b" && !caps.bold) || (key === "i" && !caps.italic)) return;
+
+      // We're handling it — keep the browser/Excalidraw from also acting on the combo.
+      e.preventDefault();
+      e.stopPropagation();
+
+      const prop = key === "b" ? "fontWeight" : "fontStyle";
+      const onValue = key === "b" ? "bold" : "italic";
+      const nextValue = textEl.customData?.[prop] === onValue ? "normal" : onValue;
+
+      const updated = elements.map((el: any) => {
+        if (el.id !== textEl.id) return el;
+
+        const nextCustomData = { ...(el.customData || {}), [prop]: nextValue };
+
+        // Bold/italic = swap to the real variant font family; fontSize stays a
+        // plain number (Excalidraw's move/resize math requires it).
+        const targetFamilyId = resolveFontVariant(el.fontFamily, nextCustomData.fontWeight, nextCustomData.fontStyle);
+        const rawSize = typeof el.fontSize === "object" ? Number(el.fontSize.size) || 16 : el.fontSize;
+
+        const { width, height } = measureCanvasText(el.text, rawSize, targetFamilyId);
+        const dx = (width - el.width) / 2;
+        const dy = (height - el.height) / 2;
+
+        return {
+          ...el,
+          customData: nextCustomData,
+          fontFamily: targetFamilyId,
+          fontSize: rawSize,
+          width,
+          height,
+          x: el.x - dx,
+          y: el.y - dy,
+          updated: Date.now(),
+          version: el.version + 1,
+          versionNonce: Math.floor(Math.random() * 999999)
+        };
+      });
+      excalidrawAPI.updateScene({ elements: updated });
+    };
+
+    window.addEventListener("keydown", handleStyleShortcut, true);
+    return () => window.removeEventListener("keydown", handleStyleShortcut, true);
+  }, [excalidrawAPI]);
 
   const handlePointerDownCapture = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (excalidrawAPI) {
+      const appState = excalidrawAPI.getAppState();
+      const elements = excalidrawAPI.getSceneElements();
+      const selectedElements = elements.filter(
+        (el: any) => appState.selectedElementIds?.[el.id] && !el.isDeleted
+      );
+
+      if (selectedElements.length > 0 && appState.activeTool?.type === "selection") {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const z = appState.zoom?.value ?? 1;
+        const scrollX = appState.scrollX ?? 0;
+        const scrollY = appState.scrollY ?? 0;
+        const canvasX = (e.clientX - rect.left - scrollX * z) / z;
+        const canvasY = (e.clientY - rect.top - scrollY * z) / z;
+
+        // Calculate combined bounding box of selected elements
+        const bounds = getSelectionBoundingBox(selectedElements);
+        const groupAngle = selectedElements.length === 1 ? (selectedElements[0].angle || 0) : 0;
+        const { isNearCorner } = getRotatedCornerDistances(bounds, groupAngle, canvasX, canvasY, z);
+
+        if (isNearCorner) {
+          e.stopPropagation();
+          e.preventDefault();
+
+          const cx = bounds.x + bounds.width / 2;
+          const cy = bounds.y + bounds.height / 2;
+          const startPointerAngle = Math.atan2(canvasY - cy, canvasX - cx);
+
+          rotationStateRef.current = {
+            isRotating: true,
+            startPointerAngle,
+            groupCenter: { x: cx, y: cy },
+            initialElements: selectedElements.map((el: any) => ({
+              id: el.id,
+              x: el.x,
+              y: el.y,
+              angle: el.angle || 0
+            }))
+          };
+
+          e.currentTarget.setPointerCapture(e.pointerId);
+          e.currentTarget.classList.add("custom-rotating-active");
+          e.currentTarget.classList.remove("custom-rotate-hover");
+          return;
+        }
+      }
+
+      if (selectedElements.length === 1 && selectedElements[0].type === "image") {
+        const image = selectedElements[0];
+        const rect = e.currentTarget.getBoundingClientRect();
+        const z = appState.zoom?.value ?? 1;
+        const scrollX = appState.scrollX ?? 0;
+        const scrollY = appState.scrollY ?? 0;
+        const canvasX = (e.clientX - rect.left - scrollX * z) / z;
+        const canvasY = (e.clientY - rect.top - scrollY * z) / z;
+
+        const handleType = getHitTransformHandle(image, canvasX, canvasY, z);
+        if (handleType === "edge") {
+          // Edge handles => Crop (trim frame)
+          if (!appState.croppingElementId) {
+            excalidrawAPI.updateScene({
+              appState: { croppingElementId: image.id }
+            });
+          }
+        } else if (handleType === "corner") {
+          // Corner handles => Proportional Resize (lock aspect ratio)
+          if (appState.croppingElementId) {
+            excalidrawAPI.updateScene({
+              appState: { croppingElementId: null }
+            });
+          }
+        }
+      }
+    }
+
     if (!customBlockTypeRef.current || customBlockTypeRef.current === "schema" || !excalidrawAPI) return;
 
     e.stopPropagation();
@@ -271,6 +529,95 @@ export default function Canvas() {
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (rotationStateRef.current?.isRotating && excalidrawAPI) {
+      e.stopPropagation();
+      e.preventDefault();
+
+      const rect = e.currentTarget.getBoundingClientRect();
+      const appState = excalidrawAPI.getAppState();
+      const z = appState.zoom?.value ?? 1;
+      const scrollX = appState.scrollX ?? 0;
+      const scrollY = appState.scrollY ?? 0;
+      const canvasX = (e.clientX - rect.left - scrollX * z) / z;
+      const canvasY = (e.clientY - rect.top - scrollY * z) / z;
+
+      const { startPointerAngle, groupCenter, initialElements } = rotationStateRef.current;
+      const currentPointerAngle = Math.atan2(canvasY - groupCenter.y, canvasX - groupCenter.x);
+      
+      let angleDelta = currentPointerAngle - startPointerAngle;
+
+      if (e.shiftKey) {
+        const snapStep = Math.PI / 12; // 15 degrees in radians
+        angleDelta = Math.round(angleDelta / snapStep) * snapStep;
+      }
+
+      const elements = excalidrawAPI.getSceneElements();
+      const updatedElements = elements.map((el: any) => {
+        const initEl = initialElements.find((item) => item.id === el.id);
+        if (initEl) {
+          if (initialElements.length === 1) {
+            return {
+              ...el,
+              angle: initEl.angle + angleDelta
+            };
+          } else {
+            const elCx = initEl.x + el.width / 2;
+            const elCy = initEl.y + el.height / 2;
+            const cos = Math.cos(angleDelta);
+            const sin = Math.sin(angleDelta);
+            const dx = elCx - groupCenter.x;
+            const dy = elCy - groupCenter.y;
+            const newElCx = groupCenter.x + dx * cos - dy * sin;
+            const newElCy = groupCenter.y + dx * sin + dy * cos;
+
+            return {
+              ...el,
+              x: newElCx - el.width / 2,
+              y: newElCy - el.height / 2,
+              angle: initEl.angle + angleDelta
+            };
+          }
+        }
+        return el;
+      });
+
+      excalidrawAPI.updateScene({ elements: updatedElements });
+      return;
+    }
+
+    if (excalidrawAPI && !isDraggingRef.current && (!rotationStateRef.current || !rotationStateRef.current.isRotating)) {
+      const appState = excalidrawAPI.getAppState();
+      if (appState.activeTool?.type === "selection") {
+        const elements = excalidrawAPI.getSceneElements();
+        const selectedElements = elements.filter(
+          (el: any) => appState.selectedElementIds?.[el.id] && !el.isDeleted
+        );
+
+        if (selectedElements.length > 0) {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const z = appState.zoom?.value ?? 1;
+          const scrollX = appState.scrollX ?? 0;
+          const scrollY = appState.scrollY ?? 0;
+          const canvasX = (e.clientX - rect.left - scrollX * z) / z;
+          const canvasY = (e.clientY - rect.top - scrollY * z) / z;
+
+          const bounds = getSelectionBoundingBox(selectedElements);
+          const groupAngle = selectedElements.length === 1 ? (selectedElements[0].angle || 0) : 0;
+          const { isNearCorner } = getRotatedCornerDistances(bounds, groupAngle, canvasX, canvasY, z);
+
+          if (isNearCorner) {
+            e.currentTarget.classList.add("custom-rotate-hover");
+          } else {
+            e.currentTarget.classList.remove("custom-rotate-hover");
+          }
+        } else {
+          e.currentTarget.classList.remove("custom-rotate-hover");
+        }
+      } else {
+        e.currentTarget.classList.remove("custom-rotate-hover");
+      }
+    }
+
     if (!isDraggingRef.current || !dragStartRef.current) return;
 
     e.stopPropagation();
@@ -294,6 +641,17 @@ export default function Canvas() {
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (rotationStateRef.current?.isRotating) {
+      e.stopPropagation();
+      e.preventDefault();
+
+      rotationStateRef.current = null;
+      e.currentTarget.releasePointerCapture(e.pointerId);
+      e.currentTarget.classList.remove("custom-rotating-active");
+      e.currentTarget.classList.remove("custom-rotate-hover");
+      return;
+    }
+
     if (!isDraggingRef.current || !dragStartRef.current || !excalidrawAPI) return;
 
     e.stopPropagation();
@@ -460,78 +818,7 @@ export default function Canvas() {
 
 
 
-    if (type === "text") {
-      const isTr = i18n.language.startsWith("tr");
-      const placeholderText = isTr ? "Yazmaya Başla..." : "Type '/' for commands...";
-
-      const containerRect = {
-        id: rectId,
-        type: "rectangle",
-        x,
-        y,
-        width: finalW,
-        height: finalH,
-        angle: 0,
-        strokeColor: "#CCCCCC",
-        backgroundColor: theme === "dark" ? "#2A2A2A" : "#F5F5F5",
-        fillStyle: "solid",
-        strokeWidth: 1,
-        strokeStyle: "solid",
-        roughness: 0,
-        opacity: 100,
-        groupIds: [],
-        frameId: null,
-        roundness: { type: 3, value: 8 },
-        seed: Math.floor(Math.random() * 999999),
-        version: 1,
-        versionNonce: Math.floor(Math.random() * 999999),
-        isDeleted: false,
-        boundElements: [{ id: textId, type: "text" }],
-        updated: Date.now(),
-        link: null,
-        locked: false,
-        customType: "text"
-      };
-
-      const boundText = {
-        id: textId,
-        type: "text",
-        x: x + 16,
-        y: y + 16,
-        width: finalW - 32,
-        height: finalH - 32,
-        angle: 0,
-        strokeColor: "#1a1a1a",
-        backgroundColor: "transparent",
-        fillStyle: "solid",
-        strokeWidth: 1,
-        strokeStyle: "solid",
-        roughness: 0,
-        opacity: 100,
-        groupIds: [],
-        frameId: null,
-        roundness: null,
-        seed: Math.floor(Math.random() * 999999),
-        version: 1,
-        versionNonce: Math.floor(Math.random() * 999999),
-        isDeleted: false,
-        boundElements: null,
-        updated: Date.now(),
-        link: null,
-        locked: false,
-        text: "",
-        fontSize: 16,
-        fontFamily: FONT_FAMILY.Helvetica as number,
-        textAlign: "center",
-        verticalAlign: "middle",
-        containerId: rectId,
-        originalText: "",
-        lineHeight: 1.3,
-        autoResize: true
-      };
-
-      elementsToAppend.push(containerRect, boundText);
-    } else if (type === "postit") {
+    if (type === "postit") {
       const isTr = i18n.language.startsWith("tr");
       const placeholderText = isTr ? "Not yaz..." : "Write a note...";
 
@@ -642,7 +929,12 @@ export default function Canvas() {
         updated: Date.now(),
         link: customLink,
         locked: false,
-        customType: type
+        customType: type,
+        customData: {
+          initialWidth: finalW,
+          initialHeight: finalH,
+          initialFontSize: fontSize
+        }
       };
 
       const boundText = {
@@ -679,7 +971,12 @@ export default function Canvas() {
         containerId: rectId,
         originalText: text,
         lineHeight: 1.3,
-        autoResize: true
+        autoResize: true,
+        customData: {
+          initialWidth: finalW,
+          initialHeight: finalH,
+          initialFontSize: fontSize
+        }
       };
 
       elementsToAppend.push(containerRect, boundText);
@@ -768,7 +1065,7 @@ export default function Canvas() {
     });
 
     if (["text", "postit", "h1", "h2", "h3", "h4", "h5", "h6"].includes(type)) {
-      const textElement = (type === "text" || type === "postit") 
+      const textElement = type === "postit"
         ? elementsToAppend[0] 
         : elementsToAppend[1]; // boundText for shape groups
         
@@ -1057,13 +1354,27 @@ export default function Canvas() {
     const elements = excalidrawAPI.getSceneElements();
     const updated = elements.map((el: any) => {
       if (el.id === targetId) {
-        return { ...el, fontSize, updated: Date.now(), version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) };
+        const customData = el.customData || {};
+        const nextCustomData = {
+          ...customData,
+          initialFontSize: fontSize,
+          initialWidth: rect ? rect.width : (customData.initialWidth || 300),
+          initialHeight: rect ? rect.height : (customData.initialHeight || 100)
+        };
+        return {
+          ...el,
+          fontSize,
+          customData: nextCustomData,
+          updated: Date.now(),
+          version: el.version + 1,
+          versionNonce: Math.floor(Math.random() * 999999)
+        };
       }
       return el;
     });
     excalidrawAPI.updateScene({ elements: updated });
     setSelectedContainer(text
-      ? { rect, text: { ...text, fontSize } }
+      ? { rect, text: { ...text, fontSize, customData: { ...text.customData, initialFontSize: fontSize, initialWidth: rect.width, initialHeight: rect.height } } }
       : { rect: { ...rect, fontSize }, text: null }
     );
   };
@@ -1213,11 +1524,34 @@ export default function Canvas() {
     };
   }, []);
 
+  // Patch Excalidraw-internal UI (context menu clamp + Zen mode removal,
+  // "Copied styles" toast behavior, missing TR strings in the stats panel).
+  useEffect(() => {
+    if (!wrapperRef.current) return;
+    return installExcalidrawDomPatches(wrapperRef.current, () => i18n.language);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [excalidrawAPI]);
+
+  // Emoticon → emoji auto-conversion inside the canvas text editor.
+  useEffect(() => {
+    if (!wrapperRef.current) return;
+    return installCanvasEmoticons(wrapperRef.current);
+  }, [excalidrawAPI]);
+
   const initializedNoteIdRef = useRef<string | null>(null);
   const lastSavedRef = useRef<string>("");
+  const lastSavedFilesKeysRef = useRef<string>("");
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSaveRef = useRef<{ noteId: string; elements: any[]; appState: any; files: any } | null>(null);
   const isWritingRef = useRef<boolean>(false);
+  // fileId -> subcollection ref for images already persisted for the current note.
+  const persistedFilesRef = useRef<Record<string, CanvasFileRef>>({});
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Guard so the "image too large" toast fires once, not on every retry.
+  const oversizedFileIdsRef = useRef<Set<string>>(new Set());
+  // Files parsed from the note doc that still need resolving/migrating once the
+  // Excalidraw API is ready (load persisted docs; migrate legacy inline base64).
+  const pendingFileResolveRef = useRef<{ noteId: string; files: any } | null>(null);
 
   // Direct sync function to save canvas to Firestore
   const saveCanvasToFirestore = async (noteId: string, elements: any[], appState: any, files: any) => {
@@ -1232,33 +1566,123 @@ export default function Canvas() {
     }
 
     isWritingRef.current = true;
+    const store = useNoteStore.getState();
+    store.setSaveStatus("saving");
     try {
       const cleanElements = JSON.parse(JSON.stringify(elements));
       const cleanAppState = JSON.parse(JSON.stringify({
         viewBackgroundColor: appState?.viewBackgroundColor || "#ffffff",
       }));
-      const cleanFiles = files ? JSON.parse(JSON.stringify(files)) : {};
+
+      // Images live in the notes/{id}/files subcollection (compressed, chunked);
+      // the note doc keeps only tiny refs so it can never approach the 1 MB limit.
+      const usedFileIds = new Set<string>(
+        cleanElements
+          .filter((e: any) => e.type === "image" && !e.isDeleted && e.fileId)
+          .map((e: any) => e.fileId)
+      );
+
+      // What the note doc currently holds, so we can PRESERVE an entry we fail to
+      // persist this round (legacy inline base64, or a prior ref) instead of
+      // overwriting it with nothing — otherwise a failed save (rules not yet
+      // deployed, offline) would permanently destroy the only copy of an image.
+      let storedFiles: Record<string, any> = {};
+      try {
+        const storedRaw = useNoteStore.getState().notes.find((n) => n.id === noteId)?.files;
+        if (storedRaw) storedFiles = JSON.parse(storedRaw);
+      } catch { /* ignore */ }
+
+      const refs: Record<string, any> = {};
+      let retryableFileError = false;
+      let hardFileError = false;
+
+      for (const fileId of Array.from(usedFileIds)) {
+        if (persistedFilesRef.current[fileId]) {
+          refs[fileId] = persistedFilesRef.current[fileId];
+          continue;
+        }
+        const entry: any = (files || {})[fileId];
+        const dataURL: string | undefined = entry?.dataURL;
+        if (!dataURL) {
+          // No in-memory data yet — keep whatever the doc already had for it.
+          if (storedFiles[fileId]) refs[fileId] = storedFiles[fileId];
+          continue;
+        }
+
+        if (dataURLByteSize(dataURL) > MAX_ORIGINAL_BYTES) {
+          hardFileError = true;
+          if (storedFiles[fileId]) refs[fileId] = storedFiles[fileId];
+          if (!oversizedFileIdsRef.current.has(fileId)) {
+            oversizedFileIdsRef.current.add(fileId);
+            store.showToast(t("toast.imageTooLarge"), "error");
+          }
+          continue;
+        }
+
+        try {
+          const { dataURL: compressed, mimeType } = await compressImageDataURL(dataURL);
+          const ref = await saveCanvasFile(noteId, fileId, compressed, mimeType);
+          persistedFilesRef.current[fileId] = ref;
+          refs[fileId] = ref;
+        } catch (e) {
+          // Offline / rules not deployed: keep the drawing saving, retry later,
+          // and preserve any existing doc copy so nothing is lost meanwhile.
+          console.error("Canvas image persist failed:", e);
+          retryableFileError = true;
+          if (storedFiles[fileId]) refs[fileId] = storedFiles[fileId];
+        }
+      }
+
+      // Delete subcollection docs for images that are no longer on the canvas.
+      for (const fileId of Object.keys(persistedFilesRef.current)) {
+        if (!usedFileIds.has(fileId)) {
+          const stale = persistedFilesRef.current[fileId];
+          delete persistedFilesRef.current[fileId];
+          deleteCanvasFile(noteId, fileId, stale.chunks).catch((e) =>
+            console.error("Canvas file delete failed:", e)
+          );
+        }
+      }
 
       const noteRef = doc(db, "notes", noteId);
       await updateDoc(noteRef, {
         elements: JSON.stringify(cleanElements),
         appState: JSON.stringify(cleanAppState),
-        files: JSON.stringify(cleanFiles),
+        files: JSON.stringify(refs),
         updatedAt: serverTimestamp(),
       });
+
+      if (retryableFileError) {
+        store.setSaveStatus("error");
+        scheduleSaveRetry(noteId, elements, appState, files);
+      } else if (hardFileError) {
+        // Permanent (oversized) — surfaced via the indicator, but don't retry.
+        store.setSaveStatus("error");
+      } else {
+        store.setSaveStatus("saved");
+      }
     } catch (error: any) {
       console.error("Error saving canvas to Firestore:", error);
+      store.setSaveStatus("error");
       if (error.code === 'failed-precondition' || error.message?.includes('INTERNAL ASSERTION')) {
         console.warn('Firestore connection issue, retrying...');
-        setTimeout(() => {
-          saveCanvasToFirestore(noteId, elements, appState, files);
-        }, 2000);
       } else {
-        useNoteStore.getState().showToast(t("toast.saveError"));
+        store.showToast(t("toast.saveError"));
       }
+      scheduleSaveRetry(noteId, elements, appState, files);
     } finally {
       isWritingRef.current = false;
     }
+  };
+
+  // Retry a failed save (image upload offline, or transient Firestore error)
+  // without stacking timers.
+  const scheduleSaveRetry = (noteId: string, elements: any[], appState: any, files: any) => {
+    if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
+    retryTimeoutRef.current = setTimeout(() => {
+      retryTimeoutRef.current = null;
+      saveCanvasToFirestore(noteId, elements, appState, files);
+    }, 3000);
   };
 
   // Debounced auto-save function
@@ -1302,6 +1726,8 @@ export default function Canvas() {
 
     initializedNoteIdRef.current = activeNoteId;
     isInitializedRef.current = true;
+    persistedFilesRef.current = {};
+    oversizedFileIdsRef.current = new Set();
 
     let elements: any[] = [];
     let appState: any = {};
@@ -1368,7 +1794,25 @@ export default function Canvas() {
       }
     }
 
+    // Heal legacy font data (old variant ids, wrapped fontSize) on load.
+    elements = elements.map((el: any) => sanitizeTextElementFont(el));
+
     lastSavedRef.current = JSON.stringify(elements);
+    const initialFilesWithData = Object.entries(files || {})
+      .filter(([_, entry]: [string, any]) => !!entry?.dataURL)
+      .map(([id]) => id)
+      .sort()
+      .join(",");
+    lastSavedFilesKeysRef.current = initialFilesWithData;
+
+    // Only entries that already carry an inline dataURL can render at mount.
+    // Storage refs (and legacy base64 to migrate) are handled once the API is
+    // ready — see the file-resolution effect below.
+    const renderFiles: any = {};
+    for (const [fileId, entry] of Object.entries<any>(files || {})) {
+      if (entry?.dataURL) renderFiles[fileId] = entry;
+    }
+    pendingFileResolveRef.current = { noteId: activeNoteId, files };
 
     setInitialData({
       elements,
@@ -1385,9 +1829,96 @@ export default function Canvas() {
         currentItemBackgroundColor: "#1e293b",
         currentItemRoughness: 0
       },
-      files
+      files: renderFiles
     });
   }, [activeNoteId, notes]);
+
+  // Load persisted images from the files subcollection, and migrate any legacy
+  // inline base64 into it, once the Excalidraw API is ready for the open note.
+  useEffect(() => {
+    const pending = pendingFileResolveRef.current;
+    if (!excalidrawAPI || !pending || pending.noteId !== activeNoteId) return;
+    pendingFileResolveRef.current = null;
+
+    let cancelled = false;
+    (async () => {
+      const noteId = pending.noteId;
+      const files = pending.files || {};
+      const uid = useNoteStore.getState().user?.uid;
+
+      // Mark refs already recorded in the note doc as persisted.
+      for (const [fileId, entry] of Object.entries<any>(files)) {
+        if (isCanvasFileRef(entry)) persistedFilesRef.current[fileId] = { mimeType: entry.mimeType, chunks: entry.chunks };
+      }
+
+      const toAdd: any[] = [];
+
+      // 1. Load whatever is stored in the subcollection (one query).
+      try {
+        const stored = await loadCanvasFiles(noteId);
+        for (const [fileId, v] of Object.entries(stored)) {
+          toAdd.push({ id: fileId, dataURL: v.dataURL, mimeType: v.mimeType, created: Date.now() });
+        }
+      } catch (e) {
+        console.error("Canvas files load failed:", e);
+      }
+
+      // 2. Legacy inline base64 still living in the note doc: render + migrate.
+      const legacy: { fileId: string; dataURL: string }[] = [];
+      for (const [fileId, entry] of Object.entries<any>(files)) {
+        if (entry?.dataURL) {
+          legacy.push({ fileId, dataURL: entry.dataURL });
+          toAdd.push({ id: fileId, dataURL: entry.dataURL, mimeType: entry.mimeType || "image/png", created: Date.now() });
+        }
+      }
+
+      if (cancelled) return;
+      if (toAdd.length) {
+        try { excalidrawAPI.addFiles(toAdd); } catch (e) { console.error(e); }
+      }
+
+      // Check for broken image references and show a non-blocking toast warning.
+      if (!cancelled) {
+        const sceneElements = excalidrawAPI.getSceneElements() || [];
+        const expectedFileIds = new Set<string>(
+          sceneElements
+            .filter((el: any) => el.type === "image" && !el.isDeleted && el.fileId)
+            .map((el: any) => el.fileId)
+        );
+        const loadedFileIds = new Set<string>(toAdd.map(f => f.id));
+        let hasMissingFiles = false;
+        for (const fid of Array.from(expectedFileIds)) {
+          if (!loadedFileIds.has(fid)) {
+            hasMissingFiles = true;
+            console.warn(`Canvas image file missing: ${fid}`);
+          }
+        }
+        if (hasMissingFiles) {
+          useNoteStore.getState().showToast(t("toast.imageLoadError"), "error");
+        }
+      }
+
+      if (uid && legacy.length) {
+        try {
+          const refs: Record<string, CanvasFileRef> = { ...persistedFilesRef.current };
+          for (const f of legacy) {
+            if (dataURLByteSize(f.dataURL) > MAX_ORIGINAL_BYTES) continue; // leave untouched
+            const { dataURL: compressed, mimeType } = await compressImageDataURL(f.dataURL);
+            const ref = await saveCanvasFile(noteId, f.fileId, compressed, mimeType);
+            persistedFilesRef.current[f.fileId] = ref;
+            refs[f.fileId] = ref;
+          }
+          if (!cancelled) {
+            await updateDoc(doc(db, "notes", noteId), { files: JSON.stringify(refs) });
+          }
+        } catch (e) {
+          console.error("Canvas legacy image migration failed:", e);
+        }
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [excalidrawAPI, activeNoteId, initialData]);
 
   // Flush any pending save immediately when switching active notes
   useEffect(() => {
@@ -1414,6 +1945,9 @@ export default function Canvas() {
       }
       if (scrollZoomTimeoutRef.current) {
         clearTimeout(scrollZoomTimeoutRef.current);
+      }
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
       }
     };
   }, []);
@@ -1613,6 +2147,77 @@ export default function Canvas() {
     latestAppStateRef.current = appState;
     latestFilesRef.current = files;
 
+    // 0. Active typing contrast correction for shape-bound text
+    if (excalidrawAPI && appState.editingTextElement && appState.editingTextElement.containerId) {
+      const container = elements.find((c: any) => c.id === appState.editingTextElement.containerId && !c.isDeleted);
+      if (container) {
+        const bg = container.backgroundColor;
+        const isBgDark = (bg === "transparent" || !bg) 
+          ? theme === "dark" 
+          : getLuminance(bg) < 0.5;
+
+        const targetColor = isBgDark ? "#ffffff" : "#1e293b";
+        
+        const textCol = appState.editingTextElement.strokeColor;
+        const textLuminance = textCol ? getLuminance(textCol) : null;
+        const bgLuminance = (bg === "transparent" || !bg) ? (theme === "dark" ? 0 : 1) : getLuminance(bg);
+        const isSameLuminanceCategory = textLuminance !== null && (
+          (bgLuminance < 0.5 && textLuminance < 0.5) ||
+          (bgLuminance >= 0.5 && textLuminance >= 0.5)
+        );
+        const needsCorrection = !textCol || textCol === "transparent" || textCol === bg || isSameLuminanceCategory;
+
+        if (needsCorrection && (textCol !== targetColor || appState.currentItemStrokeColor !== targetColor)) {
+          excalidrawAPI.updateScene({
+            elements: elements.map((el: any) => {
+              if (el.id === appState.editingTextElement.id) {
+                return { 
+                  ...el, 
+                  strokeColor: targetColor, 
+                  version: el.version + 1, 
+                  versionNonce: Math.floor(Math.random() * 999999) 
+                };
+              }
+              return el;
+            }),
+            appState: {
+              currentItemStrokeColor: targetColor
+            }
+          });
+        }
+      }
+    }
+
+    // Selection redirect: if a bound text element is selected, select its container instead (when not editing)
+    if (excalidrawAPI && !appState.editingElement) {
+      const selectedIds = Object.keys(appState.selectedElementIds || {}).filter(
+        id => appState.selectedElementIds[id]
+      );
+      let selectionChanged = false;
+      const nextSelectedIds = { ...appState.selectedElementIds };
+
+      selectedIds.forEach(id => {
+        const el = elements.find((e: any) => e.id === id && !e.isDeleted);
+        if (el && el.type === "text" && el.containerId) {
+          const container = elements.find((e: any) => e.id === el.containerId && !e.isDeleted);
+          if (container) {
+            delete nextSelectedIds[id];
+            nextSelectedIds[container.id] = true;
+            selectionChanged = true;
+          }
+        }
+      });
+
+      if (selectionChanged) {
+        excalidrawAPI.updateScene({
+          appState: {
+            selectedElementIds: nextSelectedIds
+          }
+        });
+        return;
+      }
+    }
+
     // Auto-correct bound text colors and apply styled fontSize wrapping for Bold/Italic rendering
     if (excalidrawAPI) {
       let elementsChanged = false;
@@ -1623,63 +2228,136 @@ export default function Canvas() {
         if (el.type === "text" && el.containerId && !el.isDeleted) {
           const container = elements.find((c: any) => c.id === el.containerId && !c.isDeleted);
           if (container) {
-            // If container has dark background (#1e293b), bound text must be white (#ffffff)
-            if (container.backgroundColor === "#1e293b" && el.strokeColor !== "#ffffff") {
+            const bg = container.backgroundColor;
+            const textCol = el.strokeColor;
+            
+            const isBgDark = (bg === "transparent" || !bg) 
+              ? theme === "dark" 
+              : getLuminance(bg) < 0.5;
+
+            const targetColor = isBgDark ? "#ffffff" : "#1e293b";
+            
+            const textLuminance = textCol ? getLuminance(textCol) : null;
+            const bgLuminance = (bg === "transparent" || !bg) ? (theme === "dark" ? 0 : 1) : getLuminance(bg);
+            
+            const isSameLuminanceCategory = textLuminance !== null && (
+              (bgLuminance < 0.5 && textLuminance < 0.5) ||
+              (bgLuminance >= 0.5 && textLuminance >= 0.5)
+            );
+
+            const needsCorrection = !textCol || textCol === "transparent" || textCol === bg || isSameLuminanceCategory;
+            
+            if (needsCorrection && el.strokeColor !== targetColor) {
               elementsChanged = true;
-              nextEl = { ...nextEl, strokeColor: "#ffffff", originalText: el.text, version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) };
+              nextEl = { ...nextEl, strokeColor: targetColor, originalText: el.text, version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) };
             }
-            // If container has transparent or light background, and text is white, make it dark slate (#1e293b)
-            else if (container.backgroundColor === "transparent" && el.strokeColor === "#ffffff") {
+          }
+        }
+
+        // 1.3. Auto-initialize customData baseline for shape-bound text
+        if (nextEl.type === "text" && nextEl.containerId && !nextEl.isDeleted) {
+          const container = elements.find((c: any) => c.id === nextEl.containerId && !c.isDeleted);
+          if (container) {
+            const customData = nextEl.customData || {};
+            if (typeof customData.initialWidth !== "number" || typeof customData.initialHeight !== "number") {
               elementsChanged = true;
-              nextEl = { ...nextEl, strokeColor: "#1e293b", originalText: el.text, version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) };
+              
+              // Calculate a proportional default font size based on container size
+              const refWidth = 300;
+              const refHeight = 100;
+              const refFontSize = 16;
+              const scaleRatio = Math.min(container.width / refWidth, container.height / refHeight);
+              const defaultProportionalFontSize = Math.max(12, Math.round(refFontSize * scaleRatio));
+
+              nextEl = {
+                ...nextEl,
+                fontSize: defaultProportionalFontSize,
+                customData: {
+                  ...customData,
+                  initialWidth: container.width,
+                  initialHeight: container.height,
+                  initialFontSize: defaultProportionalFontSize
+                },
+                version: nextEl.version + 1,
+                versionNonce: Math.floor(Math.random() * 999999)
+              };
+            }
+          }
+        }
+
+        // 1.5. Bounded text size proportional scaling
+        if (nextEl.type === "text" && nextEl.containerId && !nextEl.isDeleted) {
+          const container = elements.find((c: any) => c.id === nextEl.containerId && !c.isDeleted);
+          if (container) {
+            const customData = nextEl.customData || {};
+            const initialWidth = customData.initialWidth || 300;
+            const initialHeight = customData.initialHeight || 100;
+            let initialFontSize = customData.initialFontSize;
+            if (typeof initialFontSize !== "number") {
+              if (container.customType === "h1") initialFontSize = 36;
+              else if (container.customType === "h2") initialFontSize = 28;
+              else if (container.customType === "h3") initialFontSize = 22;
+              else if (container.customType === "h4") initialFontSize = 18;
+              else if (container.customType === "h5") initialFontSize = 16;
+              else if (container.customType === "h6") initialFontSize = 14;
+              else initialFontSize = 16;
+            }
+
+            const scale = Math.min(container.width / initialWidth, container.height / initialHeight);
+            const targetFontSize = Math.max(12, Math.round(initialFontSize * scale));
+
+            if (nextEl.fontSize !== targetFontSize) {
+              elementsChanged = true;
+              nextEl = {
+                ...nextEl,
+                fontSize: targetFontSize,
+                version: nextEl.version + 1,
+                versionNonce: Math.floor(Math.random() * 999999)
+              };
             }
           }
         }
         
-        // 2. Bold/Italic fontFamily mapping and fontSize wrapping
+        // 2. Keep fontFamily in sync with customData style + heal legacy data:
+        //    non-numeric fontSize (old StyledFontSize wrapper) is unwrapped and
+        //    old variant ids are remapped. fontSize must stay a plain number —
+        //    the wrapper class crashed Excalidraw's move/resize math.
         if (nextEl.type === "text" && !nextEl.isDeleted) {
-          const hasCustomStyle = nextEl.customData?.fontWeight === "bold" || nextEl.customData?.fontStyle === "italic";
-          const isWrapped = typeof nextEl.fontSize !== "number";
-          
-          const rawSize = isWrapped ? (nextEl.fontSize as any).size : nextEl.fontSize;
-          const targetWeight = nextEl.customData?.fontWeight;
-          const targetStyle = nextEl.customData?.fontStyle;
-          
-          const currentBaseFamily = getBaseFontFamily(nextEl.fontFamily);
-          const targetFamilyId = resolveFontFamilyId(currentBaseFamily, targetWeight, targetStyle);
-          
-          let elUpdated = false;
-          let elUpdates: any = {};
+          const healed = sanitizeTextElementFont(nextEl);
+          const targetFamilyId = resolveFontVariant(
+            healed.fontFamily,
+            healed.customData?.fontWeight,
+            healed.customData?.fontStyle
+          );
 
-          if (nextEl.fontFamily !== targetFamilyId) {
-            elUpdated = true;
-            elUpdates.fontFamily = targetFamilyId;
-          }
-
-          if (hasCustomStyle) {
-            const currentWeight = isWrapped ? (nextEl.fontSize as any).weight : undefined;
-            const currentStyle = isWrapped ? (nextEl.fontSize as any).style : undefined;
-            
-            if (!isWrapped || currentWeight !== targetWeight || currentStyle !== targetStyle) {
-              elUpdated = true;
-              elUpdates.fontSize = new StyledFontSize(rawSize, targetWeight, targetStyle) as any;
-            }
-          } else if (isWrapped) {
-            elUpdated = true;
-            elUpdates.fontSize = rawSize;
-          }
-
-          if (elUpdated) {
+          if (healed !== nextEl || healed.fontFamily !== targetFamilyId) {
             elementsChanged = true;
             nextEl = {
-              ...nextEl,
-              ...elUpdates,
+              ...healed,
+              fontFamily: targetFamilyId,
               version: nextEl.version + 1,
               versionNonce: Math.floor(Math.random() * 999999)
             };
           }
         }
-        
+
+        // 3. Bound text must never outlive its container. Deleting a text box
+        //    could leave its bound text orphaned (invisible to selection, only
+        //    reachable by double-click) — cascade the deletion here, which also
+        //    heals any orphans already saved in existing notes.
+        if (nextEl.type === "text" && nextEl.containerId && !nextEl.isDeleted) {
+          const parent = elements.find((c: any) => c.id === nextEl.containerId);
+          if (!parent || parent.isDeleted) {
+            elementsChanged = true;
+            nextEl = {
+              ...nextEl,
+              isDeleted: true,
+              version: nextEl.version + 1,
+              versionNonce: Math.floor(Math.random() * 999999)
+            };
+          }
+        }
+
         return nextEl;
       });
 
@@ -1861,10 +2539,22 @@ export default function Canvas() {
     }
 
     const currentStr = JSON.stringify(elements);
-    if (currentStr === lastSavedRef.current) return;
+    
+    // Check if the set of files carrying a dataURL has changed.
+    const fileIdsWithData = Object.entries(files || {})
+      .filter(([_, entry]: [string, any]) => !!entry?.dataURL)
+      .map(([id]) => id)
+      .sort()
+      .join(",");
+
+    const elementsChanged = currentStr !== lastSavedRef.current;
+    const filesChanged = fileIdsWithData !== lastSavedFilesKeysRef.current;
+
+    if (!elementsChanged && !filesChanged) return;
     if (!elements || elements.length === 0) return;
 
     lastSavedRef.current = currentStr;
+    lastSavedFilesKeysRef.current = fileIdsWithData;
     debouncedSaveRef.current(activeNoteIdRef.current, [...elements], appState, files);
   }, []);
 

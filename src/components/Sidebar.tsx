@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useRef } from "react";
-import { db, auth, enableNetwork } from "../lib/firebase";
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, deleteDoc, where, updateDoc, getDocs } from "firebase/firestore";
+import { db, auth } from "../lib/firebase";
+import { collection, query, orderBy, addDoc, serverTimestamp, doc, deleteDoc, where, updateDoc, getDocs } from "firebase/firestore";
 import { signOut } from "firebase/auth";
+import { subscribeSnapshot } from "../lib/firestoreSubscriptions";
+import { deleteAllCanvasFiles } from "../lib/canvasFiles";
 import { useNoteStore, type Note, type Folder } from "../store/useNoteStore";
 import { useTranslation } from "react-i18next";
 import ConfirmModal from "./ConfirmModal";
@@ -337,8 +339,6 @@ export default function Sidebar() {
   const [colorPickerFolderId, setColorPickerFolderId] = useState<string | null>(null);
   const nativeColorInputRef = useRef<HTMLInputElement>(null);
   const colorTargetRef = useRef<{ type: "note" | "folder"; id: string } | null>(null);
-  const notesUnsubRef = useRef<(() => void) | null>(null);
-  const foldersUnsubRef = useRef<(() => void) | null>(null);
 
   // Collections state
   const [collections, setCollections] = useState<any[]>([]);
@@ -347,7 +347,6 @@ export default function Sidebar() {
   const [collectionToEdit, setCollectionToEdit] = useState<any | null>(null);
   const [deletingCollectionId, setDeletingCollectionId] = useState<string | null>(null);
   const [openCollectionMenuId, setOpenCollectionMenuId] = useState<string | null>(null);
-  const collectionsUnsubRef = useRef<(() => void) | null>(null);
 
   const touchStartXRef = useRef<number | null>(null);
 
@@ -598,12 +597,10 @@ export default function Sidebar() {
     };
   }, [isSortDropdownOpen]);
 
+  // Notes subscription. Registered through subscribeSnapshot so remounts /
+  // StrictMode / re-auth reuse a single live listener per uid instead of
+  // churning the same query target (which throws "Target ID already exists").
   useEffect(() => {
-    if (notesUnsubRef.current) {
-      notesUnsubRef.current();
-      notesUnsubRef.current = null;
-    }
-
     if (!user) {
       setNotes([])
       setIsLoading(false)
@@ -611,132 +608,72 @@ export default function Sidebar() {
     }
 
     setIsLoading(true)
-    let isMounted = true;
 
-    const timer = setTimeout(() => {
-      if (!isMounted) return;
+    const q = query(
+      collection(db, 'notes'),
+      where('ownerId', '==', user.uid),
+      orderBy('updatedAt', 'desc')
+    )
 
-      const q = query(
-        collection(db, 'notes'),
-        where('ownerId', '==', user.uid),
-        orderBy('updatedAt', 'desc')
-      )
-
-      const unsubscribe = onSnapshot(q, { includeMetadataChanges: true }, (snapshot) => {
-        if (!isMounted) return;
+    const unsubscribe = subscribeSnapshot(
+      `notes:${user.uid}`,
+      q,
+      (snapshot) => {
         // Skip snapshots that only contain our own local (optimistic) writes.
         // hasPendingWrites:true means Firestore echoed back what WE just wrote —
         // processing this causes a setNotes → re-render loop that breaks the
         // BlockNote slash menu while the user is still interacting with it.
-        if (snapshot.docs.every(d => d.metadata.hasPendingWrites)) return;
-
-        const notesList = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Note[]
-        setNotes(notesList)
+        if (snapshot.docs.every((d: any) => d.metadata.hasPendingWrites)) return;
+        setNotes(snapshot.docs.map((d: any) => ({ id: d.id, ...d.data() })) as Note[])
         setIsLoading(false)
-      }, (error) => {
-        console.error('onSnapshot error:', error)
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      })
+      },
+      (error) => {
+        console.error('notes onSnapshot error:', error)
+        setIsLoading(false)
+      },
+      { includeMetadataChanges: true }
+    )
 
-      notesUnsubRef.current = unsubscribe;
-    }, 50);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timer);
-      if (notesUnsubRef.current) {
-        notesUnsubRef.current();
-        notesUnsubRef.current = null;
-      }
-    };
+    return () => unsubscribe()
   }, [user?.uid]) // user.uid değişince yeniden kur, user objesi değil
 
   // Folders subscription
   useEffect(() => {
-    if (foldersUnsubRef.current) {
-      foldersUnsubRef.current();
-      foldersUnsubRef.current = null;
-    }
-
     if (!user) { setFolders([]); return; }
-    let isMounted = true;
 
-    const timer = setTimeout(() => {
-      if (!isMounted) return;
+    const q = query(
+      collection(db, "users", user.uid, "folders"),
+      orderBy("createdAt", "asc")
+    );
 
-      const q = query(
-        collection(db, "users", user.uid, "folders"),
-        orderBy("createdAt", "asc")
-      );
-      const unsubscribe = onSnapshot(q, (snap) => {
-        if (!isMounted) return;
-        setFolders(snap.docs.map(d => ({ id: d.id, ...d.data() } as Folder)));
-      }, (err) => { console.error("folders onSnapshot error:", err); });
+    const unsubscribe = subscribeSnapshot(
+      `folders:${user.uid}`,
+      q,
+      (snap) => setFolders(snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as Folder))),
+      (err) => console.error("folders onSnapshot error:", err)
+    );
 
-      foldersUnsubRef.current = unsubscribe;
-    }, 50);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timer);
-      if (foldersUnsubRef.current) {
-        foldersUnsubRef.current();
-        foldersUnsubRef.current = null;
-      }
-    };
+    return () => unsubscribe();
   }, [user?.uid]);
 
   // Collections subscription
   useEffect(() => {
-    if (collectionsUnsubRef.current) {
-      collectionsUnsubRef.current();
-      collectionsUnsubRef.current = null;
-    }
-
     if (!user) { setCollections([]); return; }
-    let isMounted = true;
 
-    const timer = setTimeout(() => {
-      if (!isMounted) return;
+    const q = query(
+      collection(db, "users", user.uid, "collections"),
+      orderBy("createdAt", "asc")
+    );
 
-      const q = query(
-        collection(db, "users", user.uid, "collections"),
-        orderBy("createdAt", "asc")
-      );
-      const unsubscribe = onSnapshot(q, (snap) => {
-        if (!isMounted) return;
-        setCollections(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)));
-      }, (err) => { console.error("collections onSnapshot error:", err); });
+    const unsubscribe = subscribeSnapshot(
+      `collections:${user.uid}`,
+      q,
+      (snap) => setCollections(snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as any))),
+      (err) => console.error("collections onSnapshot error:", err)
+    );
 
-      collectionsUnsubRef.current = unsubscribe;
-    }, 50);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timer);
-      if (collectionsUnsubRef.current) {
-        collectionsUnsubRef.current();
-        collectionsUnsubRef.current = null;
-      }
-    };
+    return () => unsubscribe();
   }, [user?.uid]);
-
-  useEffect(() => {
-    const handleFocus = () => {
-      if (user) {
-        enableNetwork(db).catch(() => {});
-      }
-    }
-    window.addEventListener('focus', handleFocus)
-    return () => {
-      window.removeEventListener('focus', handleFocus)
-    }
-  }, [user]);
 
   const handleCreateNote = async (type: "document" | "canvas") => {
     const currentUser = auth.currentUser;
@@ -1216,6 +1153,16 @@ export default function Sidebar() {
           setActiveNoteId(null);
         }
       }
+      // Purge the canvas files subcollection first — once the note doc is gone
+      // the security rules can no longer authorize deleting its file docs.
+      const deletingNote = notes.find((n) => n.id === deleteNoteId);
+      if (!deletingNote || deletingNote.type === "canvas") {
+        try {
+          await deleteAllCanvasFiles(deleteNoteId);
+        } catch (e) {
+          console.error("Failed to purge canvas files:", e);
+        }
+      }
       await deleteDoc(doc(db, "notes", deleteNoteId));
       showToast(t("toast.deleteSuccess"), "success");
     } catch (error: any) {
@@ -1637,7 +1584,7 @@ export default function Sidebar() {
         type="button"
         className="sidebar-collapse-btn"
         onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        title={isSidebarCollapsed ? (i18n.language.startsWith("tr") ? "Genişlet" : "Expand") : (i18n.language.startsWith("tr") ? "Daralt" : "Collapse")}
+        title={isSidebarCollapsed ? t("sidebar.expand", "Genişlet") : t("sidebar.collapse", "Daralt")}
       >
         {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>
@@ -1950,7 +1897,7 @@ export default function Sidebar() {
             </div>
           ) : filteredAndSortedNotes.length === 0 ? (
             <div style={{ textAlign: "center", padding: "2rem 0", color: "var(--color-text-muted)", fontSize: "0.82rem" }}>
-              {i18n.language.startsWith("tr") ? "Eşleşen not bulunamadı." : "No matching notes found."}
+              {t("sidebar.noMatchingNotes", "Eşleşen not bulunamadı.")}
             </div>
           ) : showArchived ? (
             <div className="notes-section-group">

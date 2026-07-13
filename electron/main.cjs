@@ -1,8 +1,11 @@
 const { app, BrowserWindow, shell, Menu, ipcMain } = require("electron");
 const path = require("path");
 const { autoUpdater } = require("electron-updater");
+const log = require("electron-log/main");
 
-let isQuittingForUpdate = false;
+// Updater loglarını dosyaya yaz (%LOCALAPPDATA%\tidenote-updater\logs\ ...)
+log.transports.file.level = "info";
+autoUpdater.logger = log;
 
 // Auto updater ayarları
 autoUpdater.autoDownload = false;
@@ -36,19 +39,13 @@ function setupAutoUpdater(win) {
   });
 
   ipcMain.handle("install-update", () => {
-    isQuittingForUpdate = true;
-
-    // Tüm pencereleri kapat (dosya kilitlerini çözmek için)
-    BrowserWindow.getAllWindows().forEach((win) => {
-      if (!win.isDestroyed()) {
-        win.destroy();
-      }
-    });
-
-    autoUpdater.quitAndInstall(
-      false, // isSilent
-      true   // isForceRunAfter
-    );
+    // Renderer "yeniden başlatılıyor" ekranını göstersin diye kısa gecikme,
+    // sonra ASISTANLI (isSilent=false) kurulumu başlat: NSIS çalışan uygulamayı
+    // kendisi kapatıp dosyaları güvenle değiştirir ve kilitli dosyada sessizce
+    // patlamak yerine yeniden dener; isForceRunAfter kurulum sonrası uygulamayı açar.
+    setTimeout(() => {
+      autoUpdater.quitAndInstall(false, true);
+    }, 400);
   });
 
   ipcMain.handle("check-for-updates", () => {
@@ -183,6 +180,5 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
-  if (isQuittingForUpdate) return;
   if (process.platform !== "darwin") app.quit();
 });

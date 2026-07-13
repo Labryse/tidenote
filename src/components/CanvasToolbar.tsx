@@ -28,9 +28,19 @@ import {
   AlignRight,
   AlignHorizontalSpaceAround,
   AlignVerticalSpaceAround,
-  Palette
+  Palette,
+  Crop
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+
+// 26-color palette for the Word-style color pickers (rows of 6, + custom cell)
+const COLOR_PALETTE_26 = [
+  "#000000", "#1e293b", "#475569", "#64748b", "#94a3b8", "#ffffff",
+  "#dc2626", "#ea580c", "#f59e0b", "#eab308", "#84cc16", "#22c55e",
+  "#10b981", "#14b8a6", "#06b6d4", "#0891b2", "#3b82f6", "#6366f1",
+  "#8b5cf6", "#a855f7", "#d946ef", "#ec4899", "#f43f5e", "#92400e",
+  "#166534", "#1e3a8a",
+];
 
 const RoundedSquareIcon = ({ size = 16, ...props }: { size?: number; [key: string]: any }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -53,22 +63,13 @@ interface CanvasToolbarProps {
   isToolbarHidden: boolean;
 }
 
-const getBaseFontFamily = (family: number): number => {
-  if ([1, 13, 14, 15].includes(family)) return 1;
-  if ([2, 10, 11, 12].includes(family)) return 2;
-  if ([3, 16, 17, 18].includes(family)) return 3;
-  return 2;
-};
-
-const CANVAS_FONTS = [
-  { id: FONT_FAMILY.Helvetica as number, label: "Helvetica" },
-  { id: FONT_FAMILY["Liberation Sans"] as number, label: "Liberation Sans" },
-  { id: FONT_FAMILY.Nunito as number, label: "Nunito" },
-  { id: FONT_FAMILY.Excalifont as number, label: "Excalifont" },
-  { id: FONT_FAMILY["Lilita One"] as number, label: "Lilita One" },
-  { id: FONT_FAMILY["Comic Shanns"] as number, label: "Comic Shanns" },
-  { id: FONT_FAMILY.Cascadia as number, label: "Cascadia Code" },
-];
+import {
+  CANVAS_FONTS,
+  getBaseFontFamily,
+  resolveFontVariant,
+  fontSupports,
+  measureCanvasText,
+} from "../lib/canvasFonts";
 
 export default function CanvasToolbar({
   excalidrawAPI,
@@ -95,6 +96,26 @@ export default function CanvasToolbar({
   const [isShapeDropdownOpen, setIsShapeDropdownOpen] = useState(false);
   const [isMainShapeDropdownOpen, setIsMainShapeDropdownOpen] = useState(false);
   const mainShapeDropdownRef = useRef<HTMLDivElement>(null);
+  const [isTextColorOpen, setIsTextColorOpen] = useState(false);
+  const [isShapePanelOpen, setIsShapePanelOpen] = useState(false);
+  const textColorRef = useRef<HTMLDivElement>(null);
+  const shapePanelRef = useRef<HTMLDivElement>(null);
+
+  // Close color popovers on outside click
+  useEffect(() => {
+    if (!isTextColorOpen && !isShapePanelOpen) return;
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (isTextColorOpen && textColorRef.current && !textColorRef.current.contains(target)) {
+        setIsTextColorOpen(false);
+      }
+      if (isShapePanelOpen && shapePanelRef.current && !shapePanelRef.current.contains(target)) {
+        setIsShapePanelOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [isTextColorOpen, isShapePanelOpen]);
 
 
 
@@ -192,57 +213,26 @@ export default function CanvasToolbar({
   const updateTextProp = (prop: string, value: any) => {
     if (!excalidrawAPI || !activeText) return;
 
-    const measureTextDimensions = (text: string, fontSize: number, fontFamilyId: number, isBold: boolean, isItalic: boolean) => {
-      let fontFamily = "Helvetica, Arial";
-      if (fontFamilyId === 1) {
-        fontFamily = "Virgil, Segoe UI Emoji";
-      } else if (fontFamilyId === 3) {
-        fontFamily = "Cascadia, Courier New";
-      }
-      
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return { width: 100, height: 30 };
-      
-      const stylePart = isItalic ? "italic " : "";
-      const weightPart = isBold ? "bold " : "";
-      ctx.font = `${stylePart}${weightPart}${fontSize}px ${fontFamily}`;
-      
-      const lines = text.split("\n");
-      let maxWidth = 0;
-      for (const line of lines) {
-        const metrics = ctx.measureText(line);
-        if (metrics.width > maxWidth) {
-          maxWidth = metrics.width;
-        }
-      }
-      
-      const lineHeight = fontSize * 1.25;
-      const height = lines.length * lineHeight;
-      
-      return {
-        width: Math.max(10, Math.ceil(maxWidth)),
-        height: Math.max(10, Math.ceil(height))
-      };
-    };
-
     const updated = excalidrawAPI.getSceneElements().map((e: any) => {
       if (e.id === activeText.id) {
         let updatedElement = { ...e, [prop]: value, updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) };
-        
+
         if (prop === "fontSize" || prop === "fontFamily") {
           const fontSize = prop === "fontSize" ? value : (typeof updatedElement.fontSize === "object" ? updatedElement.fontSize.size : updatedElement.fontSize);
-          const fontFamilyId = prop === "fontFamily" ? value : (updatedElement.fontFamily || 2);
-          const isBold = updatedElement.customData?.fontWeight === "bold";
-          const isItalic = updatedElement.customData?.fontStyle === "italic";
-          
-          const { width, height } = measureTextDimensions(updatedElement.text, fontSize, fontFamilyId, isBold, isItalic);
-          
+          // Changing the base font keeps the current bold/italic style by
+          // resolving straight to the equivalent variant of the new font.
+          const fontFamilyId = prop === "fontFamily"
+            ? resolveFontVariant(value, updatedElement.customData?.fontWeight, updatedElement.customData?.fontStyle)
+            : (updatedElement.fontFamily || 2);
+
+          const { width, height } = measureCanvasText(updatedElement.text, fontSize, fontFamilyId);
           const dx = (width - e.width) / 2;
           const dy = (height - e.height) / 2;
-          
+
           updatedElement = {
             ...updatedElement,
+            fontFamily: fontFamilyId,
+            fontSize,
             width,
             height,
             x: e.x - dx,
@@ -260,80 +250,65 @@ export default function CanvasToolbar({
   const updateTextCustomData = (prop: string, value: any) => {
     if (!excalidrawAPI || !activeText) return;
 
-    const measureTextDimensions = (text: string, fontSize: number, fontFamilyId: number, isBold: boolean, isItalic: boolean) => {
-      let fontFamily = "Helvetica, Arial";
-      if (fontFamilyId === 1) {
-        fontFamily = "Virgil, Segoe UI Emoji";
-      } else if (fontFamilyId === 3) {
-        fontFamily = "Cascadia, Courier New";
-      }
-      
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return { width: 100, height: 30 };
-      
-      const stylePart = isItalic ? "italic " : "";
-      const weightPart = isBold ? "bold " : "";
-      ctx.font = `${stylePart}${weightPart}${fontSize}px ${fontFamily}`;
-      
-      const lines = text.split("\n");
-      let maxWidth = 0;
-      for (const line of lines) {
-        const metrics = ctx.measureText(line);
-        if (metrics.width > maxWidth) {
-          maxWidth = metrics.width;
-        }
-      }
-      
-      const lineHeight = fontSize * 1.25;
-      const height = lines.length * lineHeight;
-      
-      return {
-        width: Math.max(10, Math.ceil(maxWidth)),
-        height: Math.max(10, Math.ceil(height))
-      };
-    };
-
     const updated = excalidrawAPI.getSceneElements().map((e: any) => {
       if (e.id === activeText.id) {
         const nextCustomData = {
           ...(e.customData || {}),
           [prop]: value
         };
-        
-        let updatedElement = {
+
+        // Bold/italic = swap to the real variant family; fontSize stays a plain
+        // number (the old wrapper-class hack crashed Excalidraw's resize math).
+        const targetFamilyId = resolveFontVariant(e.fontFamily, nextCustomData.fontWeight, nextCustomData.fontStyle);
+        const rawSize = typeof e.fontSize === "object" ? Number(e.fontSize.size) || 16 : e.fontSize;
+
+        const { width, height } = measureCanvasText(e.text, rawSize, targetFamilyId);
+        const dx = (width - e.width) / 2;
+        const dy = (height - e.height) / 2;
+
+        return {
           ...e,
           customData: nextCustomData,
+          fontFamily: targetFamilyId,
+          fontSize: rawSize,
+          width,
+          height,
+          x: e.x - dx,
+          y: e.y - dy,
           updated: Date.now(),
           version: e.version + 1,
           versionNonce: Math.floor(Math.random() * 999999)
         };
-        
-        // Measure with new custom styling
-        const fontSize = typeof e.fontSize === "object" ? e.fontSize.size : e.fontSize;
-        const fontFamilyId = e.fontFamily || 2;
-        const isBold = nextCustomData.fontWeight === "bold";
-        const isItalic = nextCustomData.fontStyle === "italic";
-        
-        const { width, height } = measureTextDimensions(e.text, fontSize, fontFamilyId, isBold, isItalic);
-        
-        const dx = (width - e.width) / 2;
-        const dy = (height - e.height) / 2;
-        
-        updatedElement = {
-          ...updatedElement,
-          width,
-          height,
-          x: e.x - dx,
-          y: e.y - dy
-        };
-        
-        return updatedElement;
       }
       return e;
     });
     excalidrawAPI.updateScene({ elements: updated });
     forceUpdate();
+  };
+
+  // Patch the single selected shape (and optionally the current-item defaults).
+  const updateSelectedShape = (patch: Record<string, any>, appStatePatch?: Record<string, any>) => {
+    if (!excalidrawAPI || selectedElements.length !== 1) return;
+    const id = selectedElements[0].id;
+    const updated = excalidrawAPI.getSceneElements().map((e: any) =>
+      e.id === id
+        ? { ...e, ...patch, updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
+        : e
+    );
+    excalidrawAPI.updateScene({ elements: updated });
+    if (appStatePatch) excalidrawAPI.updateScene({ appState: appStatePatch });
+    forceUpdate();
+  };
+
+  // Enter Excalidraw's native image crop mode (drag handles crop; Escape/Enter
+  // exits). Same appState transition as its internal crop action.
+  const handleCropImage = () => {
+    if (!excalidrawAPI || selectedElements.length !== 1) return;
+    const el = selectedElements[0];
+    if (el.type !== "image") return;
+    excalidrawAPI.updateScene({
+      appState: { croppingElementId: el.id, isCropping: false }
+    });
   };
 
   const changeShapeType = (targetType: "rectangle" | "rounded-rectangle" | "ellipse" | "diamond") => {
@@ -716,7 +691,7 @@ export default function CanvasToolbar({
 
   const handleToolSelect = (toolType: string) => {
     if (toolType === "text") {
-      setCustomBlockType(customBlockType === "text" ? null : "text");
+      setCustomBlockType(null);
       if (excalidrawAPI) {
         excalidrawAPI.setActiveTool({ type: "text" });
         excalidrawAPI.updateScene({
@@ -1211,7 +1186,7 @@ export default function CanvasToolbar({
     { type: "image", icon: ImageIcon, label: t("canvas.tool.image", "Görsel") },
     { type: "frame", icon: Frame, label: t("canvas.tool.frame", "Çerçeve") },
     { type: "eraser", icon: Eraser, label: t("canvas.tool.eraser", "Silgi") },
-    { type: "text", icon: Type, label: t("canvas.tool.text", "Metin Kutusu") },
+    { type: "text", icon: Type, label: t("canvas.tool.text", "Metin") },
     { type: "font", icon: Type, label: "Aa" },
     { type: "schema", icon: Network, label: isTr ? "Şablon Şemalar" : "Schemas" }
   ];
@@ -1456,6 +1431,20 @@ export default function CanvasToolbar({
 
             {miniBarCategory === "selection" && (
               <div className="mini-bar-group">
+                {/* 0. IMAGE SELECTED — crop */}
+                {selectedElements.length === 1 && selectedElements[0].type === "image" && (
+                  <button
+                    type="button"
+                    className="mini-bar-btn"
+                    onClick={handleCropImage}
+                    title={isTr ? "Görseli Kırp" : "Crop Image"}
+                    style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "4px 8px" }}
+                  >
+                    <Crop size={15} />
+                    <span style={{ fontSize: "12px" }}>{isTr ? "Kırp" : "Crop"}</span>
+                  </button>
+                )}
+
                 {/* 1. TEXT ELEMENT SELECTED OR CONTAINER WITH BOUND TEXT */}
                 {activeText && (() => {
                   const rawSize = typeof activeText.fontSize === "object" ? (activeText.fontSize as any).size : (activeText.fontSize || 16);
@@ -1467,6 +1456,7 @@ export default function CanvasToolbar({
                         onChange={e => updateTextProp("fontFamily", Number(e.target.value))}
                         className="mini-bar-select"
                         style={{
+                          color: "var(--color-text-primary, #111827)",
                           background: "var(--color-bg-card, #ffffff)",
                           border: "1px solid var(--color-border, #e5e7eb)",
                           borderRadius: "6px",
@@ -1488,6 +1478,7 @@ export default function CanvasToolbar({
                         onChange={e => updateTextProp("fontSize", Number(e.target.value))}
                         className="mini-bar-select"
                         style={{
+                          color: "var(--color-text-primary, #111827)",
                           background: "var(--color-bg-card, #ffffff)",
                           border: "1px solid var(--color-border, #e5e7eb)",
                           borderRadius: "6px",
@@ -1506,35 +1497,6 @@ export default function CanvasToolbar({
                         <option value={36}>{isTr ? "XL (36px)" : "XL (36px)"}</option>
                       </select>
 
-                      {/* Direct Font Size Incrementor / Decrementor */}
-                      <div className="mini-bar-font-size-adjuster" style={{ display: "inline-flex", alignItems: "center", gap: "2px", marginLeft: "4px" }}>
-                        <button
-                          type="button"
-                          className="mini-bar-btn"
-                          style={{ padding: "0 6px", height: "24px", minWidth: "20px", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid var(--border-color)", borderRadius: "4px" }}
-                          onClick={() => {
-                            updateTextProp("fontSize", Math.max(8, Math.round(rawSize) - 2));
-                          }}
-                          title={isTr ? "Küçült" : "Decrease"}
-                        >
-                          -
-                        </button>
-                        <span style={{ fontSize: "11px", fontWeight: "600", minWidth: "28px", textAlign: "center", color: "var(--color-text-primary)" }}>
-                          {Math.round(rawSize)}px
-                        </span>
-                        <button
-                          type="button"
-                          className="mini-bar-btn"
-                          style={{ padding: "0 6px", height: "24px", minWidth: "20px", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid var(--border-color)", borderRadius: "4px" }}
-                          onClick={() => {
-                            updateTextProp("fontSize", Math.min(120, Math.round(rawSize) + 2));
-                          }}
-                          title={isTr ? "Büyüt" : "Increase"}
-                        >
-                          +
-                        </button>
-                      </div>
-
                       {/* Alignments */}
                       <div className="mini-bar-separator" />
                       {([["left", AlignLeft], ["center", AlignCenter], ["right", AlignRight]] as Array<[string, any]>).map(([align, Icon]) => (
@@ -1548,46 +1510,79 @@ export default function CanvasToolbar({
                         </button>
                       ))}
 
-                      {/* Bold & Italic */}
+                      {/* Bold & Italic — disabled for fonts without a real variant (e.g. Bebas Neue) */}
                       <div className="mini-bar-separator" />
-                      <button
-                        type="button"
-                        className={`mini-bar-btn ${activeText.customData?.fontWeight === "bold" ? "active" : ""}`}
-                        onClick={() => updateTextCustomData("fontWeight", activeText.customData?.fontWeight === "bold" ? "normal" : "bold")}
-                      >
-                        <Bold size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        className={`mini-bar-btn ${activeText.customData?.fontStyle === "italic" ? "active" : ""}`}
-                        onClick={() => updateTextCustomData("fontStyle", activeText.customData?.fontStyle === "italic" ? "normal" : "italic")}
-                      >
-                        <Italic size={16} />
-                      </button>
+                      {(() => {
+                        const caps = fontSupports(activeText.fontFamily);
+                        return (
+                          <>
+                            <button
+                              type="button"
+                              className={`mini-bar-btn ${activeText.customData?.fontWeight === "bold" ? "active" : ""}`}
+                              disabled={!caps.bold}
+                              style={!caps.bold ? { opacity: 0.35, cursor: "not-allowed" } : undefined}
+                              title={!caps.bold ? (isTr ? "Bu yazı tipinde kalın yok" : "No bold for this font") : undefined}
+                              onClick={() => caps.bold && updateTextCustomData("fontWeight", activeText.customData?.fontWeight === "bold" ? "normal" : "bold")}
+                            >
+                              <Bold size={16} />
+                            </button>
+                            <button
+                              type="button"
+                              className={`mini-bar-btn ${activeText.customData?.fontStyle === "italic" ? "active" : ""}`}
+                              disabled={!caps.italic}
+                              style={!caps.italic ? { opacity: 0.35, cursor: "not-allowed" } : undefined}
+                              title={!caps.italic ? (isTr ? "Bu yazı tipinde italik yok" : "No italic for this font") : undefined}
+                              onClick={() => caps.italic && updateTextCustomData("fontStyle", activeText.customData?.fontStyle === "italic" ? "normal" : "italic")}
+                            >
+                              <Italic size={16} />
+                            </button>
+                          </>
+                        );
+                      })()}
                     </>
                   );
                 })()}
 
-                {/* Color Palette */}
+                {/* Text color — Word-style "A" button; menu opens above the bar */}
                 {activeText && (
                   <>
                     <div className="mini-bar-separator" />
-                    <div className="mini-bar-palette">
-                      {strokePresets.map((color, index) => (
-                        <button
-                          key={`textstroke-${index}-${color}`}
-                          type="button"
-                          className={`mini-bar-swatch ${activeText.strokeColor === color ? "active" : ""}`}
-                          style={{ backgroundColor: color }}
-                          onClick={() => updateTextProp("strokeColor", color)}
+                    <div ref={textColorRef} style={{ position: "relative", display: "inline-flex" }}>
+                      <button
+                        type="button"
+                        className={`mini-bar-btn tn-textcolor-btn ${isTextColorOpen ? "active" : ""}`}
+                        onClick={() => setIsTextColorOpen(!isTextColorOpen)}
+                        title={t("canvas.textColor", "Metin Rengi")}
+                      >
+                        <span className="tn-textcolor-a">A</span>
+                        <span
+                          className="tn-textcolor-underline"
+                          style={{ background: activeText.strokeColor?.startsWith("#") ? activeText.strokeColor : "#000000" }}
                         />
-                      ))}
-                      <input
-                        type="color"
-                        className="mini-bar-color-input"
-                        value={activeText.strokeColor?.startsWith("#") ? activeText.strokeColor : "#000000"}
-                        onChange={e => updateTextProp("strokeColor", e.target.value)}
-                      />
+                      </button>
+                      {isTextColorOpen && (
+                        <div className="tn-color-popover" onMouseDown={e => e.stopPropagation()}>
+                          <div className="tn-color-popover-title">{t("canvas.textColor", "Metin Rengi")}</div>
+                          <div className="tn-color-grid">
+                            {COLOR_PALETTE_26.map((color) => (
+                              <button
+                                key={`tc-${color}`}
+                                type="button"
+                                className={`tn-swatch ${activeText.strokeColor === color ? "active" : ""}`}
+                                style={{ backgroundColor: color }}
+                                onClick={() => { updateTextProp("strokeColor", color); setIsTextColorOpen(false); }}
+                              />
+                            ))}
+                            <label className="tn-swatch tn-swatch-rainbow" title={t("canvas.customColor", "Özel Renk")}>
+                              <input
+                                type="color"
+                                value={activeText.strokeColor?.startsWith("#") ? activeText.strokeColor : "#000000"}
+                                onChange={e => updateTextProp("strokeColor", e.target.value)}
+                              />
+                            </label>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </>
                 )}
@@ -1595,197 +1590,156 @@ export default function CanvasToolbar({
                 {/* 2. RECTANGLE / ELLIPSE / DIAMOND SELECTED */}
                 {selectedElements.length === 1 && (selectedElements[0].type === "rectangle" || selectedElements[0].type === "ellipse" || selectedElements[0].type === "diamond") && (
                   <>
-                    {/* Fill Palette */}
-                    <div className="mini-bar-section">
-                      <span className="mini-bar-label">{isTr ? "Dolgu:" : "Fill:"}</span>
-                      <div className="mini-bar-palette">
-                        {/* Transparent fill button */}
-                        <button
-                          type="button"
-                          className={`mini-bar-swatch swatch-transparent ${selectedElements[0].backgroundColor === "transparent" ? "active" : ""}`}
-                          style={{ backgroundColor: "transparent" }}
-                          onClick={() => {
-                            const updated = excalidrawAPI.getSceneElements().map((e: any) =>
-                              e.id === selectedElements[0].id
-                                ? { ...e, backgroundColor: "transparent", fillStyle: "hachure", updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
-                                : e
-                            );
-                            excalidrawAPI.updateScene({ elements: updated });
-                            forceUpdate();
-                          }}
-                          title={isTr ? "Şeffaf" : "Transparent"}
-                        />
-                        {fillPresets.map((color, idx) => (
-                          <button
-                            key={`selfill-${idx}-${color}`}
-                            type="button"
-                            className={`mini-bar-swatch ${selectedElements[0].backgroundColor === color ? "active" : ""}`}
-                            style={{ backgroundColor: color }}
-                            onClick={() => {
-                              const updated = excalidrawAPI.getSceneElements().map((e: any) =>
-                                e.id === selectedElements[0].id
-                                  ? { ...e, backgroundColor: color, fillStyle: "solid", updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
-                                  : e
-                              );
-                              excalidrawAPI.updateScene({ elements: updated });
-                              forceUpdate();
-                            }}
-                          />
-                        ))}
-                        <label
-                          className="mini-bar-swatch"
+                    {/* Consolidated color & style panel */}
+                    <div ref={shapePanelRef} style={{ position: "relative", display: "inline-flex" }}>
+                      <button
+                        type="button"
+                        className={`mini-bar-btn ${isShapePanelOpen ? "active" : ""}`}
+                        onClick={() => setIsShapePanelOpen(!isShapePanelOpen)}
+                        title={t("canvas.shapeStyle", "Renk ve Stil")}
+                        style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "4px 8px" }}
+                      >
+                        <Palette size={15} />
+                        <span
+                          className="tn-fill-indicator"
                           style={{
-                            borderRadius: "50%",
-                            overflow: "hidden",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            cursor: "pointer",
-                            border: "1.5px dashed var(--color-border, #e5e7eb)",
-                            backgroundColor: "transparent",
-                            position: "relative"
+                            background: selectedElements[0].backgroundColor === "transparent"
+                              ? "repeating-conic-gradient(#d1d5db 0% 25%, transparent 0% 50%) 50% / 8px 8px"
+                              : selectedElements[0].backgroundColor
                           }}
-                          title={isTr ? "Özel Renk" : "Custom Color"}
-                        >
-                          <Palette size={12} />
-                          <input
-                            type="color"
-                            style={{ position: "absolute", opacity: 0, width: "100%", height: "100%", cursor: "pointer" }}
-                            value={(() => {
-                              const bg = selectedElements[0].backgroundColor;
-                              if (!bg || bg === "transparent" || !bg.startsWith("#")) return "#ffffff";
-                              return bg;
-                            })()}
-                            onChange={e => {
-                              const val = e.target.value;
-                              const updated = excalidrawAPI.getSceneElements().map((el: any) =>
-                                el.id === selectedElements[0].id
-                                  ? { ...el, backgroundColor: val, fillStyle: "solid", updated: Date.now(), version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
-                                  : el
-                              );
-                              excalidrawAPI.updateScene({ elements: updated });
-                              forceUpdate();
-                            }}
-                          />
-                        </label>
-                      </div>
-                    </div>
+                        />
+                      </button>
 
-                    {/* Stroke Width */}
-                    <div className="mini-bar-separator" />
-                    <div className="mini-bar-section">
-                      <span className="mini-bar-label">{isTr ? "Kenar:" : "Stroke:"}</span>
-                      <div className="mini-bar-options">
-                        {[{ label: isTr ? "Yok" : "None", w: 0 }, { label: isTr ? "İnce" : "Thin", w: 1 }, { label: isTr ? "Orta" : "Med", w: 2 }, { label: isTr ? "Kalın" : "Thick", w: 4 }].map(opt => (
-                          <button
-                            key={opt.w}
-                            type="button"
-                            className={`mini-bar-option-btn ${selectedElements[0].strokeWidth === opt.w ? "active" : ""}`}
-                            style={{ fontSize: "10px", minWidth: "28px" }}
-                            onClick={() => {
-                              const newColor = opt.w === 0 ? "transparent" : (selectedElements[0].strokeColor === "transparent" ? "#1e293b" : selectedElements[0].strokeColor);
-                              const updated = excalidrawAPI.getSceneElements().map((e: any) =>
-                                e.id === selectedElements[0].id
-                                  ? { ...e, strokeWidth: opt.w, strokeColor: newColor, updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
-                                  : e
-                              );
-                              excalidrawAPI.updateScene({ elements: updated });
-                              lastShapeStrokeWidthRef.current = opt.w;
-                              lastShapeStrokeColorRef.current = newColor;
-                              excalidrawAPI.updateScene({
-                                appState: {
-                                  currentItemStrokeWidth: opt.w,
-                                  currentItemStrokeColor: newColor
-                                }
-                              });
-                              forceUpdate();
-                            }}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                      {isShapePanelOpen && (() => {
+                        const shape = selectedElements[0];
+                        const strokeNone = shape.strokeWidth === 0 || shape.strokeColor === "transparent";
+                        const setStroke = (patch: Record<string, any>) => {
+                          const next = { strokeWidth: shape.strokeWidth, strokeStyle: shape.strokeStyle, strokeColor: shape.strokeColor, ...patch };
+                          lastShapeStrokeWidthRef.current = next.strokeWidth;
+                          lastShapeStrokeColorRef.current = next.strokeColor;
+                          updateSelectedShape(next, {
+                            currentItemStrokeWidth: next.strokeWidth,
+                            currentItemStrokeColor: next.strokeColor
+                          });
+                        };
+                        return (
+                          <div className="tn-color-popover tn-shape-panel" onMouseDown={e => e.stopPropagation()}>
+                            {/* Fill */}
+                            <div className="tn-color-popover-title">{t("canvas.fill", "Dolgu")}</div>
+                            <div className="tn-color-grid">
+                              <button
+                                type="button"
+                                className={`tn-swatch tn-swatch-transparent ${shape.backgroundColor === "transparent" ? "active" : ""}`}
+                                onClick={() => updateSelectedShape({ backgroundColor: "transparent", fillStyle: "hachure" })}
+                                title={t("canvas.transparent", "Şeffaf")}
+                              />
+                              {COLOR_PALETTE_26.map((color) => (
+                                <button
+                                  key={`fill-${color}`}
+                                  type="button"
+                                  className={`tn-swatch ${shape.backgroundColor === color ? "active" : ""}`}
+                                  style={{ backgroundColor: color }}
+                                  onClick={() => updateSelectedShape({ backgroundColor: color, fillStyle: "solid" })}
+                                />
+                              ))}
+                              <label className="tn-swatch tn-swatch-rainbow" title={t("canvas.customColor", "Özel Renk")}>
+                                <input
+                                  type="color"
+                                  value={shape.backgroundColor?.startsWith("#") ? shape.backgroundColor : "#ffffff"}
+                                  onChange={e => updateSelectedShape({ backgroundColor: e.target.value, fillStyle: "solid" })}
+                                />
+                              </label>
+                            </div>
 
-                    {/* Stroke Color Palette (only if strokeWidth > 0) */}
-                    {selectedElements[0].strokeWidth > 0 && (
-                      <>
-                        <div className="mini-bar-separator" />
-                        <div className="mini-bar-palette">
-                          {strokePresets.map((color, idx) => (
-                            <button
-                              key={`selstroke-${idx}-${color}`}
-                              type="button"
-                              className={`mini-bar-swatch ${selectedElements[0].strokeColor === color ? "active" : ""}`}
-                              style={{ backgroundColor: color }}
-                              onClick={() => {
-                                const newWidth = selectedElements[0].strokeWidth === 0 ? 1 : selectedElements[0].strokeWidth;
-                                const updated = excalidrawAPI.getSceneElements().map((e: any) =>
-                                  e.id === selectedElements[0].id
-                                    ? { ...e, strokeColor: color, strokeWidth: newWidth, updated: Date.now(), version: e.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
-                                    : e
-                                );
-                                excalidrawAPI.updateScene({ elements: updated });
-                                lastShapeStrokeColorRef.current = color;
-                                lastShapeStrokeWidthRef.current = newWidth;
-                                excalidrawAPI.updateScene({
-                                  appState: {
-                                    currentItemStrokeColor: color,
-                                    currentItemStrokeWidth: newWidth
-                                  }
-                                });
-                                forceUpdate();
-                              }}
-                            />
-                          ))}
-                          <label
-                            className="mini-bar-swatch"
-                            style={{
-                              borderRadius: "50%",
-                              overflow: "hidden",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              cursor: "pointer",
-                              border: "1.5px dashed var(--color-border, #e5e7eb)",
-                              backgroundColor: "transparent",
-                              position: "relative"
-                            }}
-                            title={isTr ? "Özel Renk" : "Custom Color"}
-                          >
-                            <Palette size={12} />
-                            <input
-                              type="color"
-                              style={{ position: "absolute", opacity: 0, width: "100%", height: "100%", cursor: "pointer" }}
-                              value={(() => {
-                                const sc = selectedElements[0].strokeColor;
-                                if (!sc || sc === "transparent" || !sc.startsWith("#")) return "#1e293b";
-                                return sc;
-                              })()}
-                              onChange={e => {
-                                const val = e.target.value;
-                                const newWidth = selectedElements[0].strokeWidth === 0 ? 1 : selectedElements[0].strokeWidth;
-                                const updated = excalidrawAPI.getSceneElements().map((el: any) =>
-                                  el.id === selectedElements[0].id
-                                    ? { ...el, strokeColor: val, strokeWidth: newWidth, updated: Date.now(), version: el.version + 1, versionNonce: Math.floor(Math.random() * 999999) }
-                                    : el
-                                );
-                                excalidrawAPI.updateScene({ elements: updated });
-                                lastShapeStrokeColorRef.current = val;
-                                lastShapeStrokeWidthRef.current = newWidth;
-                                excalidrawAPI.updateScene({
-                                  appState: {
-                                    currentItemStrokeColor: val,
-                                    currentItemStrokeWidth: newWidth
-                                  }
-                                });
-                                forceUpdate();
-                              }}
-                            />
-                          </label>
-                        </div>
-                      </>
-                    )}
+                            {/* Border color */}
+                            <div className="tn-color-popover-title">{t("canvas.border", "Kenarlık")}</div>
+                            <div className="tn-color-grid tn-color-grid-compact">
+                              {strokePresets.map((color: string) => (
+                                <button
+                                  key={`border-${color}`}
+                                  type="button"
+                                  className={`tn-swatch ${shape.strokeColor === color ? "active" : ""}`}
+                                  style={{ backgroundColor: color }}
+                                  onClick={() => setStroke({ strokeColor: color, strokeWidth: shape.strokeWidth === 0 ? 1 : shape.strokeWidth })}
+                                />
+                              ))}
+                              <label className="tn-swatch tn-swatch-rainbow" title={t("canvas.customColor", "Özel Renk")}>
+                                <input
+                                  type="color"
+                                  value={shape.strokeColor?.startsWith("#") ? shape.strokeColor : "#1e293b"}
+                                  onChange={e => setStroke({ strokeColor: e.target.value, strokeWidth: shape.strokeWidth === 0 ? 1 : shape.strokeWidth })}
+                                />
+                              </label>
+                            </div>
+
+                            {/* Line style */}
+                            <div className="tn-color-popover-title">{t("canvas.lineStyle", "Çizgi Stili")}</div>
+                            <div className="tn-panel-row">
+                              <button
+                                type="button"
+                                className={`mini-bar-option-btn ${!strokeNone && shape.strokeStyle !== "dashed" ? "active" : ""}`}
+                                onClick={() => setStroke({ strokeStyle: "solid", strokeWidth: shape.strokeWidth === 0 ? 1 : shape.strokeWidth, strokeColor: shape.strokeColor === "transparent" ? "#1e293b" : shape.strokeColor })}
+                              >
+                                {t("canvas.solid", "Düz")}
+                              </button>
+                              <button
+                                type="button"
+                                className={`mini-bar-option-btn ${!strokeNone && shape.strokeStyle === "dashed" ? "active" : ""}`}
+                                onClick={() => setStroke({ strokeStyle: "dashed", strokeWidth: shape.strokeWidth === 0 ? 1 : shape.strokeWidth, strokeColor: shape.strokeColor === "transparent" ? "#1e293b" : shape.strokeColor })}
+                              >
+                                {t("canvas.dashed", "Kesikli")}
+                              </button>
+                              <button
+                                type="button"
+                                className={`mini-bar-option-btn ${strokeNone ? "active" : ""}`}
+                                onClick={() => setStroke({ strokeWidth: 0, strokeColor: "transparent" })}
+                              >
+                                {t("canvas.none", "Yok")}
+                              </button>
+                            </div>
+
+                            {/* Border width (hidden when line style = none) */}
+                            {!strokeNone && (
+                              <div className="tn-panel-row">
+                                {[{ label: t("canvas.thin", "İnce"), w: 1 }, { label: t("canvas.medium", "Orta"), w: 2 }, { label: t("canvas.thick", "Kalın"), w: 4 }].map(opt => (
+                                  <button
+                                    key={opt.w}
+                                    type="button"
+                                    className={`mini-bar-option-btn ${shape.strokeWidth === opt.w ? "active" : ""}`}
+                                    onClick={() => setStroke({ strokeWidth: opt.w })}
+                                  >
+                                    {opt.label}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Corner radius — rectangles only */}
+                            {shape.type === "rectangle" && (
+                              <>
+                                <div className="tn-color-popover-title">{t("canvas.cornerRadius", "Köşe Yumuşaklığı")}</div>
+                                <div className="tn-panel-row">
+                                  <button
+                                    type="button"
+                                    className={`mini-bar-option-btn ${shape.roundness === null ? "active" : ""}`}
+                                    onClick={() => updateSelectedShape({ roundness: null })}
+                                  >
+                                    {t("canvas.sharp", "Sivri")}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={`mini-bar-option-btn ${shape.roundness !== null ? "active" : ""}`}
+                                    onClick={() => updateSelectedShape({ roundness: { type: 3, value: 10 } })}
+                                  >
+                                    {t("canvas.rounded", "Yumuşak")}
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
 
                     {/* Add Text */}
                     {!activeText && (
