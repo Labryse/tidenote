@@ -1,5 +1,6 @@
 {
-  "name": "noteapp",
+  "name": "tidenote",
+  "productName": "TideNote",
   "private": true,
   "version": "0.1.1",
   "type": "module",
@@ -120,7 +121,8 @@
       "oneClick": true,
       "perMachine": false,
       "allowToChangeInstallationDirectory": false,
-      "deleteAppDataOnUninstall": false
+      "deleteAppDataOnUninstall": false,
+      "include": "build/installer.nsh"
     },
     "publish": {
       "provider": "github",
