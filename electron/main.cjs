@@ -7,6 +7,8 @@ const log = require("electron-log/main");
 log.transports.file.level = "info";
 autoUpdater.logger = log;
 
+let isQuittingForUpdate = false;
+
 // Auto updater ayarları
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;
@@ -39,6 +41,15 @@ function setupAutoUpdater(win) {
   });
 
   ipcMain.handle("install-update", () => {
+    isQuittingForUpdate = true;
+
+    // Tüm pencereleri kapat (dosya kilitlerini çözmek için)
+    BrowserWindow.getAllWindows().forEach((win) => {
+      if (!win.isDestroyed()) {
+        win.destroy();
+      }
+    });
+
     // Renderer "yeniden başlatılıyor" ekranını göstersin diye kısa gecikme,
     // sonra ASISTANLI (isSilent=false) kurulumu başlat: NSIS çalışan uygulamayı
     // kendisi kapatıp dosyaları güvenle değiştirir ve kilitli dosyada sessizce
@@ -180,5 +191,6 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
+  if (isQuittingForUpdate) return;
   if (process.platform !== "darwin") app.quit();
 });

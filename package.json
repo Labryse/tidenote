@@ -1,5 +1,6 @@
 {
   "name": "tidenote",
+  "productName": "TideNote",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -127,7 +128,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "deleteAppDataOnUninstall": false
+      "deleteAppDataOnUninstall": false,
+      "include": "build/installer.nsh"
     },
     "publish": {
       "provider": "github",
