@@ -1,0 +1,101 @@
+{
+  "sidebar": {
+    "newNote": "+ New Note",
+    "newDocument": "New Document",
+    "newCanvas": "New Canvas",
+    "untitledNote": "Untitled Note",
+    "untitledCanvas": "Untitled Canvas",
+    "noNotes": "No notes yet.\nCreate one with +"
+  },
+  "auth": {
+    "login": "Sign In",
+    "register": "Sign Up",
+    "loginSuccess": "Successfully signed in.",
+    "registerSuccess": "Account successfully created.",
+    "email": "Email",
+    "password": "Password",
+    "passwordRepeat": "Repeat Password",
+    "passwordMismatch": "Passwords do not match.",
+    "weakPassword": "Password must be at least 6 characters.",
+    "emailInUse": "This email is already registered.",
+    "invalidCredentials": "Invalid email or password.",
+    "unknownError": "An error occurred. Please try again.",
+    "logout": "Sign Out"
+  },
+  "modal": {
+    "deleteTitle": "Delete Note",
+    "deleteMessage": "This note will be permanently deleted. Are you sure?",
+    "cancel": "Cancel",
+    "delete": "Delete"
+  },
+  "toast": {
+    "saveError": "Could not save note.",
+    "deleteError": "Could not delete note.",
+    "createError": "Could not create note.",
+    "saveSuccess": "Saved.",
+    "createSuccess": "Note successfully created.",
+    "deleteSuccess": "Note successfully deleted.",
+    "loadError": "Could not load notes."
+  },
+  "editor": {
+    "placeholder": "Start writing or type '/' for commands..."
+  },
+  "sidebar-extra": {
+    "saving": "Saving..."
+  },
+  "language": {
+    "select": "Language",
+    "tr": "TR",
+    "en": "EN"
+  },
+  "landing": {
+    "badge": "✦ Note-taking reimagined",
+    "title": "An infinite space\nfor your thoughts.",
+    "subtitle": "Block editor and infinite canvas together. Your notes, drawings, and ideas — all in one place.",
+    "startFree": "Start for Free",
+    "startFreeArrow": "Start for Free →",
+    "howItWorks": "How It Works",
+    "login": "Sign In",
+    "goApp": "Go to App",
+    "previewTitle": "App preview coming soon",
+    "featuresTitle": "Everything is easier than you think.",
+    "features": {
+      "editorTitle": "Block Editor",
+      "editorDesc": "Add headers, lists, and task boxes with slash commands. Drag and rearrange blocks.",
+      "canvasTitle": "Infinite Canvas",
+      "canvasDesc": "Draw, add shapes, create diagrams. No boundaries, no zoom limits, no restrictions.",
+      "syncTitle": "Cloud Sync",
+      "syncDesc": "Instant access on phone, tablet, computer — any device. Saved automatically.",
+      "themeTitle": "Light & Dark Theme",
+      "themeDesc": "A modern interface that adapts to your preferences, easy on the eyes."
+    },
+    "pricingTitle": "Get started for free.",
+    "pricing": {
+      "free": "Free",
+      "freeDesc": "$0 / mo",
+      "premium": "Premium",
+      "premiumDesc": "$2.99 / mo",
+      "popular": "Most Popular",
+      "freeBtn": "Get Started",
+      "premiumBtn": "Upgrade to Premium",
+      "fUnlimited": "Unlimited notes and canvas",
+      "fStorage1": "1 GB cloud storage",
+      "fStorage10": "10 GB cloud storage",
+      "fCore": "All core features",
+      "fThemes": "Light & dark theme",
+      "fApps": "Mobile & desktop app",
+      "fEverything": "Everything in Free",
+      "fPdf": "PDF & batch export",
+      "fHistory": "Version history (coming soon)",
+      "fSupport": "Priority support"
+    },
+    "footer": {
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service"
+    }
+  },
+  "common": {
+    "comingSoon": "Coming Soon",
+    "backToHome": "Back to Home"
+  }
+}

@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /notes/{noteId} {
+      // Public notes can be read by anyone; private notes only by their owner
+      allow read: if resource.data.isPublic == true
+                  || (request.auth != null && resource.data.ownerId == request.auth.uid);
+
+      allow update, delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+
+      // Allow create only if user is logged in and sets themselves as the owner
+      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+    }
+
+    match /users/{userId}/folders/{folderId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
