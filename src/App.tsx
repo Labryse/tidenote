@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
+import { StatusBar, Style } from "@capacitor/status-bar";
+import { Capacitor } from "@capacitor/core";
 import { Routes, Route, Navigate, useParams, useNavigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Editor from "./components/Editor";
@@ -333,9 +335,16 @@ function App() {
     return () => { handler.then(h => h.remove()); };
   }, []);
 
-  // Sync theme attribute on document element
+  // Sync theme attribute on document element and Native StatusBar
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
+    
+    if (Capacitor.isNativePlatform()) {
+      StatusBar.setOverlaysWebView({ overlay: false }).catch(console.error);
+      const bgColor = theme === 'dark' ? '#0F172A' : '#F8FAFC';
+      StatusBar.setBackgroundColor({ color: bgColor }).catch(console.error);
+      StatusBar.setStyle({ style: theme === 'dark' ? Style.Dark : Style.Light }).catch(console.error);
+    }
   }, [theme]);
 
   // When a fatal Firestore assertion wedges the client, flag "not saved" before
