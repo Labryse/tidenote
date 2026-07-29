@@ -17,12 +17,7 @@ const config: CapacitorConfig = {
       showSpinner: false
     },
     Keyboard: {
-      resize: 'body',
-      resizeOnFullScreen: true
-    },
-    StatusBar: {
-      overlaysWebView: false,
-      style: 'DEFAULT'
+      resize: 'body'
     }
   }
 };

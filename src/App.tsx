@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
-import { StatusBar, Style } from "@capacitor/status-bar";
+import { SafeArea, SystemBarsStyle } from "@capacitor-community/safe-area";
 import { Capacitor } from "@capacitor/core";
 import { Routes, Route, Navigate, useParams, useNavigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
@@ -340,10 +340,9 @@ function App() {
     document.documentElement.setAttribute("data-theme", theme);
     
     if (Capacitor.isNativePlatform()) {
-      StatusBar.setOverlaysWebView({ overlay: false }).catch(console.error);
-      const bgColor = theme === 'dark' ? '#0F172A' : '#F8FAFC';
-      StatusBar.setBackgroundColor({ color: bgColor }).catch(console.error);
-      StatusBar.setStyle({ style: theme === 'dark' ? Style.Dark : Style.Light }).catch(console.error);
+      SafeArea.setSystemBarsStyle({ 
+        style: theme === 'dark' ? SystemBarsStyle.Dark : SystemBarsStyle.Light 
+      }).catch(console.error);
     }
   }, [theme]);
 
