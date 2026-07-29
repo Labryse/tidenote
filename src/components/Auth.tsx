@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { auth, googleProvider } from "../lib/firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, sendEmailVerification } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, sendEmailVerification, signInWithCredential, GoogleAuthProvider } from "firebase/auth";
 import { useNoteStore } from "../store/useNoteStore";
 import { useTranslation } from "react-i18next";
 import { isElectron, getLogoSrc } from "../lib/utils";
 import { getAuthRedirectUrl } from "../lib/platform";
-
+import { Capacitor } from "@capacitor/core";
+import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 const logoSrc = getLogoSrc();
 
 export default function Auth() {
@@ -33,13 +34,24 @@ export default function Auth() {
     setError("");
     setLoading(true);
     try {
-      await signInWithPopup(auth, googleProvider);
-      showToast(t("auth.loginSuccess"), "success");
+      if (Capacitor.isNativePlatform()) {
+        const result = await FirebaseAuthentication.signInWithGoogle();
+        if (result.credential?.idToken) {
+          const credential = GoogleAuthProvider.credential(result.credential.idToken);
+          await signInWithCredential(auth, credential);
+          showToast(t("auth.loginSuccess"), "success");
+        } else {
+          throw new Error("Google Sign In failed: No ID token returned");
+        }
+      } else {
+        await signInWithPopup(auth, googleProvider);
+        showToast(t("auth.loginSuccess"), "success");
+      }
     } catch (err: any) {
       console.error("Google sign in error:", err);
-      if (err.code !== "auth/popup-closed-by-user") {
+      // popup-closed-by-user is for web, 12501 is for native cancellation
+      if (err.code !== "auth/popup-closed-by-user" && !err.message?.includes("12501")) {
         setError(t("auth.unknownError"));
-        showToast(t("auth.unknownError"), "error");
       }
     } finally {
       setLoading(false);

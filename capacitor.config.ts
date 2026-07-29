@@ -18,6 +18,10 @@ const config: CapacitorConfig = {
     },
     Keyboard: {
       resize: 'body'
+    },
+    FirebaseAuthentication: {
+      skipNativeAuth: false,
+      providers: ["google.com"]
     }
   }
 };
