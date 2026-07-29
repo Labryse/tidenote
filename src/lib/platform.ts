@@ -11,9 +11,9 @@ export const isCapacitor = (): boolean => {
 };
 
 export const getNoteRoute = (noteId: string): string => {
-  if (isElectron() || isCapacitor()) {
-    return `/#/note/${noteId}`;
-  }
+  // tidenote.app web sitesi her zaman BrowserRouter (/#/ olmadan) kullanır.
+  // Native uygulamada bile olsak, paylaşılan link web sitemize gideceği için
+  // url'de her zaman /note/.. olmalıdır.
   return `/note/${noteId}`;
 };
 

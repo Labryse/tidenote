@@ -35,8 +35,18 @@ export default function Auth() {
     setLoading(true);
     try {
       if (Capacitor.isNativePlatform()) {
-        const result = await FirebaseAuthentication.signInWithGoogle();
-        if (result.credential?.idToken) {
+        let result;
+        try {
+          result = await FirebaseAuthentication.signInWithGoogle();
+        } catch (innerErr: any) {
+          // Credential Manager API "No credentials available" (Cihazda hesap yoksa)
+          if (innerErr.message?.includes("No credentials available")) {
+             throw new Error("Cihazda hiçbir Google hesabı bulunamadı. Lütfen cihaz ayarlarından bir Google hesabı ekleyin.");
+          }
+          throw innerErr;
+        }
+        
+        if (result?.credential?.idToken) {
           const credential = GoogleAuthProvider.credential(result.credential.idToken);
           await signInWithCredential(auth, credential);
           showToast(t("auth.loginSuccess"), "success");
@@ -49,9 +59,19 @@ export default function Auth() {
       }
     } catch (err: any) {
       console.error("Google sign in error:", err);
-      // popup-closed-by-user is for web, 12501 is for native cancellation
-      if (err.code !== "auth/popup-closed-by-user" && !err.message?.includes("12501")) {
-        setError(t("auth.unknownError"));
+      // popup-closed-by-user is for web, 12501/7 is for native cancellation
+      const isCancelled = err.code === "auth/popup-closed-by-user" || 
+                          err.message?.includes("12501") || 
+                          err.message?.includes("Canceled") ||
+                          err.message?.includes("7: "); // Developer error or canceled
+      if (!isCancelled) {
+        // Eğer bizim fırlattığımız özel bir hataysa onu göster, değilse genel hata
+        const errorMsg = err.message || "";
+        if (errorMsg.includes("Cihazda hiçbir Google hesabı bulunamadı")) {
+          setError(errorMsg);
+        } else {
+          setError(t("auth.unknownError") + " (" + errorMsg + ")");
+        }
       }
     } finally {
       setLoading(false);
