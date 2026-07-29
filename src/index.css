@@ -7464,6 +7464,14 @@ body {
     z-index: 99 !important;
   }
 
+  .mobile-dropdown {
+    position: fixed !important;
+    bottom: max(72px, calc(62px + var(--safe-area-bottom))) !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    z-index: 1000 !important;
+  }
+
 
 }
 

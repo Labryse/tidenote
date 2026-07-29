@@ -103,6 +103,31 @@ export default function CanvasToolbar({
   const textColorRef = useRef<HTMLDivElement>(null);
   const shapePanelRef = useRef<HTMLDivElement>(null);
 
+  // Toggle state for mini toolbar (pen/shapes options)
+  const [isMiniBarVisible, setIsMiniBarVisible] = useState(true);
+  const mainToolbarRef = useRef<HTMLDivElement>(null);
+  const miniBarContainerRef = useRef<HTMLDivElement>(null);
+
+  // Close mini bar on outside click (e.g. clicking canvas)
+  useEffect(() => {
+    if (!isMiniBarVisible) return;
+    const handleOutside = (e: MouseEvent) => {
+      // Don't close if clicking inside the main toolbar or the minibar itself
+      if (
+        miniBarContainerRef.current && !miniBarContainerRef.current.contains(e.target as Node) &&
+        mainToolbarRef.current && !mainToolbarRef.current.contains(e.target as Node)
+      ) {
+        // We don't want to close selection minibar on click outside since it's driven by selectedElements.
+        // But the pen/shape ones should close if they clicked canvas.
+        // Actually, if they clicked canvas, activeTool might change or they might start drawing.
+        // If they click on another tool, handleToolSelect will open it anyway.
+        setIsMiniBarVisible(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [isMiniBarVisible]);
+
   // Close color popovers on outside click
   useEffect(() => {
     if (!isTextColorOpen && !isShapePanelOpen) return;
@@ -692,6 +717,14 @@ export default function CanvasToolbar({
   };
 
   const handleToolSelect = (toolType: string) => {
+    const targetTool = toolType === "rounded-rectangle" ? "rectangle" : toolType;
+    if (activeTool === targetTool && !customBlockType) {
+      setIsMiniBarVisible(prev => !prev);
+      // We don't return here so it can still reset colors if needed, but it toggles the bar.
+    } else {
+      setIsMiniBarVisible(true);
+    }
+
     if (toolType === "text") {
       setCustomBlockType(null);
       if (excalidrawAPI) {
@@ -1196,13 +1229,13 @@ export default function CanvasToolbar({
   // Determine category of options to show in the animated mini bar
   let miniBarCategory: "pen" | "shape" | "text" | "selection" | "schema" | null = null;
 
-  if (["freedraw", "line", "arrow"].includes(activeTool)) {
+  if (["freedraw", "line", "arrow"].includes(activeTool) && isMiniBarVisible) {
     miniBarCategory = "pen";
-  } else if (["rectangle", "diamond", "ellipse"].includes(activeTool)) {
+  } else if (["rectangle", "diamond", "ellipse"].includes(activeTool) && isMiniBarVisible) {
     miniBarCategory = "shape";
-  } else if (customBlockType && ["text", "h1", "h2", "h3", "h4", "h5", "h6"].includes(customBlockType)) {
+  } else if (customBlockType && ["text", "h1", "h2", "h3", "h4", "h5", "h6"].includes(customBlockType) && isMiniBarVisible) {
     miniBarCategory = "text";
-  } else if (customBlockType === "schema") {
+  } else if (customBlockType === "schema" && isMiniBarVisible) {
     miniBarCategory = "schema";
   } else if (activeTool === "selection" && selectedElements.length > 0) {
     miniBarCategory = "selection";
@@ -1215,7 +1248,7 @@ export default function CanvasToolbar({
     <>
       {/* 2. ÜST MİNİ BAR (Araç seçilince veya element seçilince animasyonlu gelir) */}
       {miniBarCategory && (
-        <div className={`canvas-mini-bar-container ${isToolbarHidden ? "dragging" : ""}`}
+        <div ref={miniBarContainerRef} className={`canvas-mini-bar-container ${isToolbarHidden ? "dragging" : ""}`}
              style={(miniBarCategory === "selection" && floatingPos && !isMobile) ? {
                position: "fixed",
                left: `${floatingPos.left}px`,
@@ -2009,7 +2042,7 @@ export default function CanvasToolbar({
       )}
 
       {/* 1. ANA TOOLBAR (Alt, sabit ortalanmış) */}
-      <div className="canvas-main-toolbar">
+      <div ref={mainToolbarRef} className="canvas-main-toolbar">
         {mainTools.map((tool, idx) => {
           if (tool.isShapeGroup) {
             const isActive = ["rectangle", "ellipse", "diamond"].includes(activeTool) && !customBlockType;
@@ -2033,7 +2066,7 @@ export default function CanvasToolbar({
                   </div>
                   <ChevronDown size={8} style={{ marginLeft: 2, transform: isMainShapeDropdownOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
                 </button>
-                {isMainShapeDropdownOpen && (
+                {(!isMobile && isMainShapeDropdownOpen) && (
                   <div className="toolbar-shapes-dropdown above" onMouseDown={e => e.stopPropagation()}>
                     <div className="toolbar-shapes-dropdown-title">
                       {isTr ? "Şekiller" : "Shapes"}
@@ -2104,7 +2137,7 @@ export default function CanvasToolbar({
                   <span style={{ fontSize: 13, fontWeight: "bold" }}>Aa</span>
                   <ChevronDown size={8} style={{ marginLeft: 2 }} />
                 </button>
-                {isFontPickerOpen && (
+                {(!isMobile && isFontPickerOpen) && (
                   <div className="toolbar-font-dropdown above" onMouseDown={e => e.stopPropagation()}>
                     <div className="toolbar-font-dropdown-title">
                       {t("canvas.font.label", "Canvas Fontu")}
@@ -2167,6 +2200,80 @@ export default function CanvasToolbar({
           </>
         )}
       </div>
+
+      {/* Mobile-only dropdowns rendered outside to avoid overflow clipping */}
+      {(isMobile && isMainShapeDropdownOpen) && (
+        <div className="toolbar-shapes-dropdown above mobile-dropdown" onMouseDown={e => e.stopPropagation()}>
+          <div className="toolbar-shapes-dropdown-title">
+            {isTr ? "Şekiller" : "Shapes"}
+          </div>
+          <button
+            type="button"
+            className={`toolbar-shapes-option ${activeTool === "rectangle" && currentRoundness === null ? "active" : ""}`}
+            onClick={() => {
+              handleToolSelect("rectangle");
+              setIsMainShapeDropdownOpen(false);
+            }}
+          >
+            <Square size={14} />
+            <span>{isTr ? "Sivri Dikdörtgen" : "Sharp Rectangle"}</span>
+          </button>
+          <button
+            type="button"
+            className={`toolbar-shapes-option ${activeTool === "rectangle" && currentRoundness !== null ? "active" : ""}`}
+            onClick={() => {
+              handleToolSelect("rounded-rectangle");
+              setIsMainShapeDropdownOpen(false);
+            }}
+          >
+            <RoundedSquareIcon size={14} />
+            <span>{isTr ? "Yumuşak Dikdörtgen" : "Soft Rectangle"}</span>
+          </button>
+          <button
+            type="button"
+            className={`toolbar-shapes-option ${activeTool === "ellipse" ? "active" : ""}`}
+            onClick={() => {
+              handleToolSelect("ellipse");
+              setIsMainShapeDropdownOpen(false);
+            }}
+          >
+            <Circle size={14} />
+            <span>{isTr ? "Daire" : "Circle"}</span>
+          </button>
+          <button
+            type="button"
+            className={`toolbar-shapes-option ${activeTool === "diamond" ? "active" : ""}`}
+            onClick={() => {
+              handleToolSelect("diamond");
+              setIsMainShapeDropdownOpen(false);
+            }}
+          >
+            <Diamond size={14} />
+            <span>{isTr ? "Elmas" : "Diamond"}</span>
+          </button>
+        </div>
+      )}
+
+      {(isMobile && isFontPickerOpen) && (
+        <div className="toolbar-font-dropdown above mobile-dropdown" onMouseDown={e => e.stopPropagation()}>
+          <div className="toolbar-font-dropdown-title">
+            {t("canvas.font.label", "Canvas Fontu")}
+          </div>
+          {CANVAS_FONTS.map(f => (
+            <button
+              key={f.id}
+              type="button"
+              className={`toolbar-font-option ${selectedFont === f.id ? "active" : ""}`}
+              onClick={() => handleSelectFont(f.id)}
+            >
+              {f.label}
+            </button>
+          ))}
+          <div className="toolbar-font-note">
+            {t("canvas.font.note", "Yeni elementlere uygulanır")}
+          </div>
+        </div>
+      )}
     </>
   );
 }
