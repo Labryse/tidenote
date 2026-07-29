@@ -503,7 +503,7 @@ function App() {
       <InfoModal />
       <UpdateNotification />
       <Routes>
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={Capacitor.isNativePlatform() ? <Navigate to="/login" replace /> : <LandingPage />} />
         <Route path="/login" element={user ? <Navigate to="/app" replace /> : <Auth />} />
         <Route path="/auth-redirect" element={<AuthRedirectPage />} />
         <Route path="/app/:noteId?" element={user ? <WorkspaceApp /> : <Navigate to="/login" replace />} />

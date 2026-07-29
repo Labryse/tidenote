@@ -1516,6 +1516,7 @@ body {
 
   /* TopBar Mobile Layout Adjustments */
   .top-bar {
+    padding-top: var(--safe-area-top) !important;
     padding-left: 50px !important;
     padding-right: 10px !important;
     gap: 6px !important;

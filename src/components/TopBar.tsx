@@ -90,7 +90,7 @@ export default function TopBar({ note }: TopBarProps) {
 
   const isPremium = PREMIUM_ENABLED ? (userTier === "premium") : true;
   const tags = note.tags || [];
-  const shareUrl = `${window.location.origin}${getNoteRoute(note.id)}`;
+  const shareUrl = `https://tidenote.app${getNoteRoute(note.id)}`;
 
   const handleCopyLink = async () => {
     try {
