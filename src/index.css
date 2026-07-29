@@ -7457,6 +7457,13 @@ body {
     padding-top: 60px;
   }
 
+  /* Move minimap to top-right on mobile so it doesn't clash with bottom toolbar */
+  .minimap-container {
+    bottom: auto !important;
+    top: calc(64px + var(--safe-area-top)) !important;
+    z-index: 99 !important;
+  }
+
 
 }
 
