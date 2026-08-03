@@ -51,11 +51,11 @@ function setupAutoUpdater(win) {
     });
 
     // Renderer "yeniden başlatılıyor" ekranını göstersin diye kısa gecikme,
-    // sonra ASISTANLI (isSilent=false) kurulumu başlat: NSIS çalışan uygulamayı
-    // kendisi kapatıp dosyaları güvenle değiştirir ve kilitli dosyada sessizce
-    // patlamak yerine yeniden dener; isForceRunAfter kurulum sonrası uygulamayı açar.
+    // sonra SESSİZ (isSilent=true) kurulumu başlat: NSIS çalışan uygulamayı
+    // kendisi kapatıp dosyaları sessizce günceller ve arayüz göstermez; 
+    // isForceRunAfter kurulum sonrası uygulamayı otomatik açar.
     setTimeout(() => {
-      autoUpdater.quitAndInstall(false, true);
+      autoUpdater.quitAndInstall(true, true);
     }, 400);
   });
 
