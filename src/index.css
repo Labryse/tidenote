@@ -7211,9 +7211,29 @@ body {
   display: none !important;
 }
 
-/* Push Excalidraw help button above minimap (minimap ~165px tall + 12px gap) */
+/* Move Excalidraw help button to the left side to avoid minimap overlap completely */
 .canvas-container .excalidraw .layer-ui__wrapper__footer-right {
-  margin-bottom: 175px;
+  position: absolute;
+  left: 16px;
+  bottom: 76px;
+  right: auto !important;
+  margin-bottom: 0 !important;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+/* Hide Excalidraw Help Modal external links (Documentation, Blog, GitHub, etc.) */
+.excalidraw .HelpDialog a {
+  display: none !important;
+}
+
+/* Ensure shortcut keys in Help Modal use our teal accent instead of default purple */
+.excalidraw .HelpDialog kbd,
+.excalidraw kbd,
+.excalidraw .HelpDialog__key {
+  color: var(--color-accent, #0891B2) !important;
+  background-color: transparent !important;
+  border-color: var(--color-accent, #0891B2) !important;
 }
 
 /* Floating color dot (label wrapper pattern) */
