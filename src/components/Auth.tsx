@@ -37,9 +37,11 @@ export default function Auth() {
       if (Capacitor.isNativePlatform()) {
         let result;
         try {
-          result = await FirebaseAuthentication.signInWithGoogle();
+          // Samsung telefonlarda yeni nesil Credential Manager kilitlenebiliyor.
+          // Geleneksel Intent metodunu (useCredentialManager: false) zorlayalım.
+          result = await FirebaseAuthentication.signInWithGoogle({ useCredentialManager: false });
         } catch (innerErr: any) {
-          // Credential Manager API "No credentials available" (Cihazda hesap yoksa)
+          // Eğer cihazda hesap yoksa veya iptal edilirse
           if (innerErr.message?.includes("No credentials available")) {
              throw new Error("Cihazda hiçbir Google hesabı bulunamadı. Lütfen cihaz ayarlarından bir Google hesabı ekleyin.");
           }

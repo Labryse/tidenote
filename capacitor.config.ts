@@ -17,11 +17,14 @@ const config: CapacitorConfig = {
       showSpinner: false
     },
     Keyboard: {
-      resize: 'body'
+      resize: 'native'
     },
     FirebaseAuthentication: {
       skipNativeAuth: false,
       providers: ["google.com"]
+    },
+    SystemBars: {
+      insetsHandling: 'disable'
     }
   }
 };

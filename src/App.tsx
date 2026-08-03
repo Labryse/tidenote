@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
 import { SafeArea, SystemBarsStyle } from "@capacitor-community/safe-area";
 import { Capacitor } from "@capacitor/core";
+import { Keyboard } from "@capacitor/keyboard";
 import { Routes, Route, Navigate, useParams, useNavigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Editor from "./components/Editor";
@@ -333,6 +334,25 @@ function App() {
       }
     });
     return () => { handler.then(h => h.remove()); };
+  }, []);
+
+  // SystemBars/SafeArea already resize the WebView natively when the keyboard
+  // opens (see capacitor.config.ts SystemBars.insetsHandling: 'disable'), but
+  // the caret in a contenteditable block (BlockNote editor) or a focused
+  // input isn't always scrolled back into view after that resize. Nudge it.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const scrollActiveElementIntoView = () => {
+      requestAnimationFrame(() => {
+        const active = document.activeElement as HTMLElement | null;
+        active?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      });
+    };
+
+    const showListener = Keyboard.addListener("keyboardDidShow", scrollActiveElementIntoView);
+
+    return () => { showListener.then(l => l.remove()); };
   }, []);
 
   // Sync theme attribute on document element and Native StatusBar

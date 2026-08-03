@@ -124,7 +124,7 @@ export const useNoteStore = create<NoteState>((set) => ({
   firestoreUser: null,
   toast: null,
   saveStatus: "saved",
-  theme: (localStorage.getItem("theme") as "light" | "dark") || "dark",
+  theme: (localStorage.getItem("theme") as "light" | "dark") || "light",
   isMobileSidebarOpen: false,
   userTier: "free",
   editorInstance: null,

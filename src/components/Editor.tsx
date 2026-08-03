@@ -492,15 +492,16 @@ export default function Editor() {
 
   return (
     <MantineProvider>
-      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", wordWrap: "break-word", wordBreak: "break-word" }} className={`editor-workspace font-${editorFontSize}`}>
+      <div style={{ width: "100%", overflowX: "hidden", wordWrap: "break-word", wordBreak: "break-word", display: "flex", flexDirection: "column", flex: 1, minHeight: "100%" }} className={`font-${editorFontSize}`}>
         <input
           className="editor-title-input"
+          style={{ flexShrink: 0 }}
           value={activeNoteTitle}
           onChange={(e) => updateNoteTitle(activeNoteId!, e.target.value)}
           placeholder={t("sidebar.untitledNote")}
         />
-        <hr className="editor-title-divider" />
-        <div onKeyDownCapture={handleKeyDown} style={{ position: "relative", width: "100%" }}>
+        <hr className="editor-title-divider" style={{ flexShrink: 0 }} />
+        <div onKeyDownCapture={handleKeyDown} style={{ position: "relative", width: "100%", display: "flex", flexDirection: "column", flex: 1 }}>
           <BlockNoteView
             editor={editor}
             onChange={handleEditorChange}

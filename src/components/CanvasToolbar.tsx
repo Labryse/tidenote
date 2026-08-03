@@ -1257,7 +1257,7 @@ export default function CanvasToolbar({
                bottom: "auto"
              } : undefined}
         >
-          <div className="canvas-mini-bar" onMouseDown={e => e.stopPropagation()}>
+          <div className="canvas-mini-bar" onMouseDown={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}>
             {miniBarCategory === "pen" && (
               <div className="mini-bar-group">
                 {/* Stroke Color */}
@@ -1596,7 +1596,7 @@ export default function CanvasToolbar({
                         />
                       </button>
                       {isTextColorOpen && (
-                        <div className="tn-color-popover" onMouseDown={e => e.stopPropagation()}>
+                        <div className="tn-color-popover" onMouseDown={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}>
                           <div className="tn-color-popover-title">{t("canvas.textColor", "Metin Rengi")}</div>
                           <div className="tn-color-grid">
                             {COLOR_PALETTE_26.map((color) => (
@@ -1658,7 +1658,7 @@ export default function CanvasToolbar({
                           });
                         };
                         return (
-                          <div className="tn-color-popover tn-shape-panel" onMouseDown={e => e.stopPropagation()}>
+                          <div className="tn-color-popover tn-shape-panel" onMouseDown={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}>
                             {/* Fill */}
                             <div className="tn-color-popover-title">{t("canvas.fill", "Dolgu")}</div>
                             <div className="tn-color-grid">
@@ -2067,7 +2067,7 @@ export default function CanvasToolbar({
                   <ChevronDown size={8} style={{ marginLeft: 2, transform: isMainShapeDropdownOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
                 </button>
                 {(!isMobile && isMainShapeDropdownOpen) && (
-                  <div className="toolbar-shapes-dropdown above" onMouseDown={e => e.stopPropagation()}>
+                  <div className="toolbar-shapes-dropdown above" onMouseDown={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}>
                     <div className="toolbar-shapes-dropdown-title">
                       {isTr ? "Şekiller" : "Shapes"}
                     </div>
@@ -2138,7 +2138,7 @@ export default function CanvasToolbar({
                   <ChevronDown size={8} style={{ marginLeft: 2 }} />
                 </button>
                 {(!isMobile && isFontPickerOpen) && (
-                  <div className="toolbar-font-dropdown above" onMouseDown={e => e.stopPropagation()}>
+                  <div className="toolbar-font-dropdown above" onMouseDown={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}>
                     <div className="toolbar-font-dropdown-title">
                       {t("canvas.font.label", "Canvas Fontu")}
                     </div>
@@ -2203,7 +2203,7 @@ export default function CanvasToolbar({
 
       {/* Mobile-only dropdowns rendered outside to avoid overflow clipping */}
       {(isMobile && isMainShapeDropdownOpen) && (
-        <div className="toolbar-shapes-dropdown above mobile-dropdown" onMouseDown={e => e.stopPropagation()}>
+        <div className="toolbar-shapes-dropdown above mobile-dropdown" onMouseDown={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}>
           <div className="toolbar-shapes-dropdown-title">
             {isTr ? "Şekiller" : "Shapes"}
           </div>
@@ -2255,7 +2255,7 @@ export default function CanvasToolbar({
       )}
 
       {(isMobile && isFontPickerOpen) && (
-        <div className="toolbar-font-dropdown above mobile-dropdown" onMouseDown={e => e.stopPropagation()}>
+        <div className="toolbar-font-dropdown above mobile-dropdown" onMouseDown={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}>
           <div className="toolbar-font-dropdown-title">
             {t("canvas.font.label", "Canvas Fontu")}
           </div>

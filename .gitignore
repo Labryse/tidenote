@@ -35,3 +35,8 @@ ios/
 dist-electron/
 
 CLAUDE.md
+
+# Claude Code
+.claude/
+.claude.json
+.claude.json.backup
