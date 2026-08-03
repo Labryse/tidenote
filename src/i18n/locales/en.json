@@ -87,15 +87,8 @@
     "delete": "Delete"
   },
   "toast": {
-    "saveError": "Could not save note.",
-    "deleteError": "Could not delete note.",
-    "createError": "Could not create note.",
-    "saveSuccess": "Saved.",
-    "createSuccess": "Note successfully created.",
-    "deleteSuccess": "Note successfully deleted.",
-    "loadError": "Could not load notes.",
-    "imageTooLarge": "Image is too large (max 5 MB) and was not saved. Please use a smaller image.",
-    "imageLoadError": "Some images could not be loaded."
+    "comingSoon": "This feature will be available soon",
+    "loginError": "Sign in error"
   },
   "editor": {
     "placeholder": "Start writing or type '/' for commands...",
@@ -242,7 +235,21 @@
     "keyboardShortcuts": "Keyboard Shortcuts",
     "totalDocuments": "Total Documents",
     "totalCanvas": "Total Canvas",
-    "year": "yr"
+    "year": "yr",
+    "themeLight": "Light Theme",
+    "themeDark": "Dark Theme",
+    "langTR": "TR (Turkish)",
+    "langEN": "EN (English)",
+    "aboutDesc": "TideNote is your modern and fast notebook that brings your ideas, drawings, and documents together in one place.",
+    "desktopApp": "Desktop App",
+    "storageWarningTextFree": "To continue creating new notes, please free up space by deleting unnecessary notes or files.",
+    "shortcuts": {
+      "newNote": "New Note",
+      "search": "Search",
+      "settings": "Settings",
+      "export": "Export",
+      "close": "Close"
+    }
   },
   "canvas": {
     "tool": {
@@ -560,9 +567,5 @@
     "notFoundDesc": "The note you are looking for does not exist or may have been deleted.",
     "errorDesc": "A problem occurred while loading the note. Please try again later.",
     "backToHome": "Return to TideNote"
-  },
-  "toast": {
-    "comingSoon": "This feature will be available soon",
-    "loginError": "Sign in error"
   }
 }

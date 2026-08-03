@@ -2075,7 +2075,7 @@ export default function Sidebar() {
               type="button"
               className="sidebar-theme-toggle-btn"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              title={theme === "dark" ? "Açık Tema" : "Koyu Tema"}
+              title={theme === "dark" ? t("settings.themeLight", "Açık Tema") : t("settings.themeDark", "Koyu Tema")}
               aria-label="Toggle theme"
             >
               {theme === "dark" ? (

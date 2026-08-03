@@ -87,15 +87,8 @@
     "delete": "Sil"
   },
   "toast": {
-    "saveError": "Not kaydedilemedi.",
-    "deleteError": "Not silinemedi.",
-    "createError": "Not oluşturulamadı.",
-    "saveSuccess": "Kaydedildi.",
-    "createSuccess": "Not başarıyla oluşturuldu.",
-    "deleteSuccess": "Not başarıyla silindi.",
-    "loadError": "Notlar yüklenirken hata oluştu.",
-    "imageTooLarge": "Görsel çok büyük (en fazla 5 MB) ve kaydedilmedi. Lütfen daha küçük bir görsel kullanın.",
-    "imageLoadError": "Bazı görseller yüklenemedi."
+    "comingSoon": "Bu özellik yakında aktif olacak",
+    "loginError": "Giriş hatası"
   },
   "editor": {
     "placeholder": "Yazmaya başla veya '/' ile komut gir...",
@@ -242,7 +235,21 @@
     "keyboardShortcuts": "Klavye Kısayolları",
     "totalDocuments": "Toplam Belge",
     "totalCanvas": "Toplam Canvas",
-    "year": "yıl"
+    "year": "yıl",
+    "themeLight": "Açık Tema",
+    "themeDark": "Koyu Tema",
+    "langTR": "TR (Türkçe)",
+    "langEN": "EN (English)",
+    "aboutDesc": "TideNote, fikirlerinizi, çizimlerinizi ve belgelerinizi tek bir yerde toplayan modern ve hızlı not defterinizdir.",
+    "desktopApp": "Masaüstü Uygulaması",
+    "storageWarningTextFree": "Yeni notlar oluşturmaya devam etmek için lütfen gereksiz not veya dosyaları silerek alan açın.",
+    "shortcuts": {
+      "newNote": "Yeni Not",
+      "search": "Ara",
+      "settings": "Ayarlar",
+      "export": "Dışa Aktar",
+      "close": "Kapat"
+    }
   },
   "canvas": {
     "tool": {
@@ -560,9 +567,5 @@
     "notFoundDesc": "Aradığınız not mevcut değil veya silinmiş olabilir.",
     "errorDesc": "Not yüklenirken bir sorun oluştu. Lütfen daha sonra tekrar deneyin.",
     "backToHome": "TideNote'a Dön"
-  },
-  "toast": {
-    "comingSoon": "Bu özellik yakında aktif olacak",
-    "loginError": "Giriş hatası"
   }
 }

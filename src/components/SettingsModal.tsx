@@ -600,13 +600,13 @@ export default function SettingsModal() {
                     className={`settings-tab-btn ${i18n.language.startsWith("tr") ? "active" : ""}`}
                     onClick={() => i18n.changeLanguage("tr")}
                   >
-                    TR (Türkçe)
+                    {t("settings.langTR", "TR (Türkçe)")}
                   </button>
                   <button
                     className={`settings-tab-btn ${i18n.language.startsWith("en") ? "active" : ""}`}
                     onClick={() => i18n.changeLanguage("en")}
                   >
-                    EN (English)
+                    {t("settings.langEN", "EN (English)")}
                   </button>
                 </div>
               </div>
@@ -664,7 +664,7 @@ export default function SettingsModal() {
                 <h3 className="settings-section-subtitle">{t("settings.keyboardShortcuts", "Klavye Kısayolları")}</h3>
                 <div className="shortcuts-ref-container">
                   <div className="shortcut-row">
-                    <span className="shortcut-label">Yeni Not</span>
+                    <span className="shortcut-label">{t("settings.shortcuts.newNote", "Yeni Not")}</span>
                     <span className="shortcut-keys">
                       <kbd>⌘</kbd> / <kbd>Ctrl</kbd> + <kbd>N</kbd>
                     </span>
@@ -676,25 +676,25 @@ export default function SettingsModal() {
                     </span>
                   </div>
                   <div className="shortcut-row">
-                    <span className="shortcut-label">Ara</span>
+                    <span className="shortcut-label">{t("settings.shortcuts.search", "Ara")}</span>
                     <span className="shortcut-keys">
                       <kbd>⌘</kbd> / <kbd>Ctrl</kbd> + <kbd>K</kbd>
                     </span>
                   </div>
                   <div className="shortcut-row">
-                    <span className="shortcut-label">Ayarlar</span>
+                    <span className="shortcut-label">{t("settings.shortcuts.settings", "Ayarlar")}</span>
                     <span className="shortcut-keys">
                       <kbd>⌘</kbd> / <kbd>Ctrl</kbd> + <kbd>,</kbd>
                     </span>
                   </div>
                   <div className="shortcut-row">
-                    <span className="shortcut-label">Dışa Aktar</span>
+                    <span className="shortcut-label">{t("settings.shortcuts.export", "Dışa Aktar")}</span>
                     <span className="shortcut-keys">
                       <kbd>⌘</kbd> / <kbd>Ctrl</kbd> + <kbd>E</kbd>
                     </span>
                   </div>
                   <div className="shortcut-row">
-                    <span className="shortcut-label">Kapat</span>
+                    <span className="shortcut-label">{t("settings.shortcuts.close", "Kapat")}</span>
                     <span className="shortcut-keys">
                       <kbd>Esc</kbd>
                     </span>
