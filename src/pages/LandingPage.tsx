@@ -152,9 +152,54 @@ export default function LandingPage() {
 
           {/* Right — Animated visual / Screenshot */}
           <div className="lp-hero-visual" aria-hidden="true">
-            {/* HERO IMAGE PLACEHOLDER - replace with actual product screenshot */}
-            <div className="hero-placeholder-box">
-              <span>{t("landing.previewTitle", "Uygulama önizlemesi yakında")}</span>
+            {/* TEMPORARY HERO MOCKUP - replace with real product screenshot when ready */}
+            <div className="static-mockup-window">
+              <div className="static-mockup-header">
+                <div className="static-mockup-dots">
+                  <div className="static-mockup-dot red"></div>
+                  <div className="static-mockup-dot yellow"></div>
+                  <div className="static-mockup-dot green"></div>
+                </div>
+              </div>
+              <div className="static-mockup-body">
+                {/* Left Pane: Editor */}
+                <div className="static-mockup-pane editor-pane">
+                  <div className="mockup-skeleton-title"></div>
+                  <div className="mockup-skeleton-line" style={{ width: "85%" }}></div>
+                  <div className="mockup-skeleton-line" style={{ width: "70%" }}></div>
+                  
+                  <div className="mockup-skeleton-list">
+                    <div className="mockup-skeleton-check-item">
+                      <div className="mockup-skeleton-checkbox checked"></div>
+                      <div className="mockup-skeleton-line" style={{ width: "60%" }}></div>
+                    </div>
+                    <div className="mockup-skeleton-check-item">
+                      <div className="mockup-skeleton-checkbox"></div>
+                      <div className="mockup-skeleton-line" style={{ width: "50%" }}></div>
+                    </div>
+                    <div className="mockup-skeleton-check-item">
+                      <div className="mockup-skeleton-checkbox"></div>
+                      <div className="mockup-skeleton-line" style={{ width: "75%" }}></div>
+                    </div>
+                  </div>
+                  
+                  <div className="mockup-skeleton-line" style={{ width: "90%", marginTop: "16px" }}></div>
+                  <div className="mockup-skeleton-line" style={{ width: "40%" }}></div>
+                </div>
+                
+                {/* Divider */}
+                <div className="static-mockup-divider"></div>
+                
+                {/* Right Pane: Canvas */}
+                <div className="static-mockup-pane canvas-pane">
+                  <svg className="mockup-canvas-svg" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="50" y="80" width="90" height="50" rx="8" className="mockup-canvas-shape" />
+                    <rect x="230" y="140" width="100" height="60" rx="8" className="mockup-canvas-shape" />
+                    <path d="M 140 105 C 190 105, 180 170, 225 170" fill="none" stroke="#0891b2" strokeWidth="2" strokeDasharray="4 4" />
+                    <polygon points="230,170 222,165 222,175" fill="#0891b2" />
+                  </svg>
+                </div>
+              </div>
             </div>
           </div>
         </div>

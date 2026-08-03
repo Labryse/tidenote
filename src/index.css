@@ -6750,19 +6750,137 @@ body {
 /* ── Hero Visual ──────────────────────────────────────────────── */
 .lp-hero-visual { width: 100%; max-width: 900px; margin-top: 64px; position: static; display: block; }
 
-.hero-placeholder-box {
+.static-mockup-window {
   width: 100%;
-  aspect-ratio: 16 / 9;
+  max-width: 800px;
+  margin: 0 auto;
+  background: var(--color-bg-app);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  border: 1px dashed var(--color-border);
-  background-color: var(--color-bg-secondary);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.static-mockup-header {
+  height: 38px;
+  background: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.static-mockup-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.static-mockup-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+.static-mockup-dot.red { background: #ff5f56; }
+.static-mockup-dot.yellow { background: #ffbd2e; }
+.static-mockup-dot.green { background: #27c93f; }
+
+.static-mockup-body {
+  display: flex;
+  height: 340px;
+}
+
+.static-mockup-pane {
+  flex: 1;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.static-mockup-pane.editor-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.static-mockup-pane.canvas-pane {
+  background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
+  background-size: 16px 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-muted);
-  font-size: 1rem;
-  font-weight: 500;
-  opacity: 0.7;
+}
+
+.static-mockup-divider {
+  width: 1px;
+  background: var(--color-border);
+}
+
+.mockup-skeleton-title {
+  height: 24px;
+  width: 60%;
+  background: var(--color-text-primary);
+  opacity: 0.15;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.mockup-skeleton-line {
+  height: 12px;
+  background: var(--color-text-muted);
+  opacity: 0.15;
+  border-radius: 4px;
+}
+
+.mockup-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.mockup-skeleton-check-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mockup-skeleton-checkbox {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--color-text-muted);
+  opacity: 0.3;
+  border-radius: 3px;
+}
+.mockup-skeleton-checkbox.checked {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  opacity: 0.8;
+}
+
+.mockup-canvas-svg {
+  width: 100%;
+  height: 100%;
+}
+.mockup-canvas-shape {
+  fill: var(--color-bg-card);
+  stroke: var(--color-accent);
+  stroke-width: 2px;
+}
+
+@media (max-width: 768px) {
+  .static-mockup-body {
+    flex-direction: column;
+    height: auto;
+  }
+  .static-mockup-pane {
+    height: 220px;
+  }
+  .static-mockup-divider {
+    width: 100%;
+    height: 1px;
+  }
 }
 /* (legacy vis-card styles kept for any references) */
 .lp-vis-card { position: absolute; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: 12px; padding: 16px 18px; box-shadow: 0 8px 24px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04); }
