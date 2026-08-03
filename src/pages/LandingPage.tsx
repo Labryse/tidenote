@@ -7,6 +7,7 @@ import {
   Check, Sun, ArrowRight, Sparkles
 } from "lucide-react";
 import DownloadButton from "../components/DownloadButton";
+import HeroDemo from "../components/landing/HeroDemo";
 
 
 const logoSrc = (() => {
@@ -150,81 +151,10 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Right — Animated visual / Screenshot */}
+          {/* Right — Static app-screen mockup (see HeroDemo.tsx for why this
+              isn't a real product screenshot yet) */}
           <div className="lp-hero-visual" aria-hidden="true">
-            {/* TEMPORARY HERO MOCKUP - replace with real product screenshot when ready */}
-            <div className="static-mockup-window">
-              <div className="static-mockup-header">
-                <div className="static-mockup-dots">
-                  <div className="static-mockup-dot red"></div>
-                  <div className="static-mockup-dot yellow"></div>
-                  <div className="static-mockup-dot green"></div>
-                </div>
-                <div className="static-mockup-title">TideNote</div>
-              </div>
-              <div className="static-mockup-body">
-                {/* Left Pane: Editor */}
-                <div className="static-mockup-pane editor-pane">
-                  <div className="mockup-skeleton-title" style={{ width: "65%" }}></div>
-                  <div className="mockup-skeleton-line" style={{ width: "90%" }}></div>
-                  <div className="mockup-skeleton-line" style={{ width: "75%" }}></div>
-                  
-                  <div className="mockup-skeleton-list" style={{ marginTop: "16px" }}>
-                    <div className="mockup-skeleton-check-item">
-                      <div className="mockup-skeleton-checkbox checked">
-                        <Check size={10} color="#fff" strokeWidth={3} />
-                      </div>
-                      <div className="mockup-skeleton-line" style={{ width: "55%" }}></div>
-                    </div>
-                    <div className="mockup-skeleton-check-item">
-                      <div className="mockup-skeleton-checkbox checked">
-                        <Check size={10} color="#fff" strokeWidth={3} />
-                      </div>
-                      <div className="mockup-skeleton-line" style={{ width: "45%" }}></div>
-                    </div>
-                    <div className="mockup-skeleton-check-item">
-                      <div className="mockup-skeleton-checkbox"></div>
-                      <div className="mockup-skeleton-line" style={{ width: "80%" }}></div>
-                    </div>
-                  </div>
-                  
-                  <div className="mockup-skeleton-line" style={{ width: "85%", marginTop: "24px" }}></div>
-                  <div className="mockup-skeleton-line" style={{ width: "60%" }}></div>
-                  
-                  {/* Subtle code block or quote block */}
-                  <div className="mockup-skeleton-block">
-                    <div className="mockup-skeleton-line" style={{ width: "40%" }}></div>
-                    <div className="mockup-skeleton-line" style={{ width: "50%" }}></div>
-                  </div>
-                </div>
-                
-                {/* Divider */}
-                <div className="static-mockup-divider"></div>
-                
-                {/* Right Pane: Canvas */}
-                <div className="static-mockup-pane canvas-pane">
-                  <svg className="mockup-canvas-svg" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
-                    {/* Connection lines */}
-                    <path d="M 150 110 C 200 110, 190 190, 240 190" fill="none" className="mockup-canvas-path" />
-                    <polygon points="245,190 235,185 237,190 235,195" className="mockup-canvas-arrow" />
-                    
-                    {/* Node 1 */}
-                    <rect x="50" y="80" width="100" height="60" rx="10" className="mockup-canvas-shape" />
-                    <rect x="70" y="100" width="60" height="8" rx="4" fill="var(--color-text-primary)" opacity="0.15" />
-                    <rect x="70" y="116" width="40" height="6" rx="3" fill="var(--color-text-muted)" opacity="0.15" />
-
-                    {/* Node 2 */}
-                    <rect x="240" y="160" width="110" height="60" rx="10" className="mockup-canvas-shape active" />
-                    <rect x="260" y="180" width="70" height="8" rx="4" fill="var(--color-accent)" opacity="0.3" />
-                    <rect x="260" y="196" width="50" height="6" rx="3" fill="var(--color-text-muted)" opacity="0.15" />
-                    
-                    {/* Floating small node */}
-                    <rect x="260" y="60" width="80" height="40" rx="8" className="mockup-canvas-shape secondary" />
-                    <rect x="275" y="76" width="50" height="6" rx="3" fill="var(--color-text-primary)" opacity="0.1" />
-                  </svg>
-                </div>
-              </div>
-            </div>
+            <HeroDemo />
           </div>
         </div>
       </section>
