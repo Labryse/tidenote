@@ -7,7 +7,7 @@ import {
   Check, Sun, ArrowRight, Sparkles
 } from "lucide-react";
 import DownloadButton from "../components/DownloadButton";
-import HeroDemo from "../components/landing/HeroDemo";
+
 
 const logoSrc = (() => {
   try { return new URL("/icon.png", import.meta.url).href; }
@@ -150,9 +150,12 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Right — Animated visual */}
+          {/* Right — Animated visual / Screenshot */}
           <div className="lp-hero-visual" aria-hidden="true">
-            <HeroDemo />
+            {/* HERO IMAGE PLACEHOLDER - replace with actual product screenshot */}
+            <div className="hero-placeholder-box">
+              <span>{t("landing.previewTitle", "Uygulama önizlemesi yakında")}</span>
+            </div>
           </div>
         </div>
       </section>
