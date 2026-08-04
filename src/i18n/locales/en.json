@@ -130,7 +130,27 @@
     "login": "Sign In",
     "goApp": "Go to App",
     "previewTitle": "App preview coming soon",
+    "values": {
+      "eyebrow": "WHY TIDENOTE",
+      "writeTitle": "Writing and drawing, together",
+      "writeDesc": "Write with a block editor, draw on an infinite canvas. No switching, all in one place.",
+      "everywhereTitle": "With you everywhere",
+      "everywhereDesc": "Web, desktop, and mobile. Synced in the cloud, available offline.",
+      "freeTitle": "Free and open",
+      "freeDesc": "Everything free. Your notes are yours — export anytime."
+    },
     "featuresTitle": "Everything is easier than you think.",
+    "showcase": {
+      "eyebrow": "HOW IT WORKS",
+      "editorTitle": "Block Editor",
+      "editorDesc": "Headers, lists, tables, code blocks. Your notes, structured and organized.",
+      "canvasTitle": "Infinite Canvas",
+      "canvasDesc": "Draw your ideas freely. Mind maps, flowcharts, kanban — a boundless canvas.",
+      "organizeTitle": "Organize and Find",
+      "organizeDesc": "Folders, tags, collections, and instant search. Every note in its place.",
+      "shareTitle": "Share and Export",
+      "shareDesc": "Share notes with a public link. Export as Word, PDF, PNG, or SVG."
+    },
     "features": {
       "editorTitle": "Block Editor",
       "editorDesc": "Add headers, lists, and task boxes with slash commands. Drag and rearrange blocks.",
@@ -140,6 +160,20 @@
       "syncDesc": "Instant access on phone, tablet, computer — any device. Saved automatically.",
       "themeTitle": "Light & Dark Theme",
       "themeDesc": "A modern interface that adapts to your preferences, easy on the eyes."
+    },
+    "platforms": {
+      "eyebrow": "PLATFORMS",
+      "title": "On every device, everywhere.",
+      "web": "Web",
+      "windows": "Windows",
+      "android": "Android",
+      "androidSoon": "Android (coming soon)",
+      "ios": "iOS (coming soon)"
+    },
+    "closing": {
+      "title": "Your ideas deserve a home.",
+      "cta": "Get Started Free",
+      "note": "Free to start, no credit card."
     },
     "pricingTitle": "Get started for free.",
     "pricing": {
@@ -167,7 +201,10 @@
     },
     "footer": {
       "privacy": "Privacy Policy",
-      "terms": "Terms of Service"
+      "terms": "Terms of Service",
+      "contact": "Contact",
+      "github": "GitHub",
+      "tagline": "An infinite space for your ideas."
     }
   },
   "common": {

@@ -130,7 +130,27 @@
     "login": "Giriş Yap",
     "goApp": "Uygulamaya Git",
     "previewTitle": "Uygulama önizlemesi yakında",
+    "values": {
+      "eyebrow": "NEDEN TIDENOTE",
+      "writeTitle": "Yazı ve çizim, bir arada",
+      "writeDesc": "Blok editörle yaz, sonsuz canvas'a çiz. İkisi arasında geçiş yapmadan, aynı yerde.",
+      "everywhereTitle": "Her yerde seninle",
+      "everywhereDesc": "Web, masaüstü ve mobil. Bulutta senkronize, çevrimdışı erişilebilir.",
+      "freeTitle": "Ücretsiz ve açık",
+      "freeDesc": "Tüm özellikler ücretsiz. Notların senin, dilediğin gibi dışa aktar."
+    },
     "featuresTitle": "Her şey düşündüğünüzden daha kolay.",
+    "showcase": {
+      "eyebrow": "NASIL ÇALIŞIR",
+      "editorTitle": "Blok Editör",
+      "editorDesc": "Başlıklar, listeler, tablolar, kod blokları. Notların yapılandırılmış ve düzenli.",
+      "canvasTitle": "Sonsuz Canvas",
+      "canvasDesc": "Fikirlerini serbestçe çiz. Mind map, akış şeması, kanban — sınırsız bir tuval.",
+      "organizeTitle": "Düzenle ve Bul",
+      "organizeDesc": "Klasörler, etiketler, koleksiyonlar ve anında arama. Her not yerli yerinde.",
+      "shareTitle": "Paylaş ve Dışa Aktar",
+      "shareDesc": "Notlarını herkese açık bağlantıyla paylaş. Word, PDF, PNG, SVG olarak dışa aktar."
+    },
     "features": {
       "editorTitle": "Blok Editör",
       "editorDesc": "Slash komutuyla başlıklar, listeler, görev kutuları ekle. Blokları sürükleyip düzenle.",
@@ -140,6 +160,20 @@
       "syncDesc": "Telefon, tablet, bilgisayar — her cihazda anında erişim. Otomatik kaydedilir.",
       "themeTitle": "Açık & Koyu Tema",
       "themeDesc": "Gözünüzü yormayan, tercihlerinize göre değişen modern bir arayüz."
+    },
+    "platforms": {
+      "eyebrow": "PLATFORMLAR",
+      "title": "Her cihazında, her yerde.",
+      "web": "Web",
+      "windows": "Windows",
+      "android": "Android",
+      "androidSoon": "Android (yakında)",
+      "ios": "iOS (yakında)"
+    },
+    "closing": {
+      "title": "Fikirlerin bir yere ait olmalı.",
+      "cta": "Ücretsiz Başla",
+      "note": "Kayıt ücretsiz, kredi kartı gerekmez."
     },
     "pricingTitle": "Başlamak ücretsiz.",
     "pricing": {
@@ -167,7 +201,10 @@
     },
     "footer": {
       "privacy": "Gizlilik Politikası",
-      "terms": "Kullanım Şartları"
+      "terms": "Kullanım Şartları",
+      "contact": "İletişim",
+      "github": "GitHub",
+      "tagline": "Fikirleriniz için sonsuz bir alan."
     }
   },
   "common": {
