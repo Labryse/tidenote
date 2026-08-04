@@ -373,12 +373,13 @@ export default function LandingPage() {
         </div>
 
         <div className="lp-footer-bottom">
-          <span>© 2026 TideNote. All rights reserved.</span>
           <div className="lp-footer-lang">
             <button onClick={() => i18n.changeLanguage("tr")} className={`lp-lang-toggle ${isTr ? "lp-lang-active" : ""}`}>TR</button>
             <span className="lp-lang-sep">/</span>
             <button onClick={() => i18n.changeLanguage("en")} className={`lp-lang-toggle ${!isTr ? "lp-lang-active" : ""}`}>EN</button>
           </div>
+          <span className="lp-footer-credit">Made by Studio Critonia with 💗</span>
+          <span className="lp-footer-copyright">© 2026 TideNote. All rights reserved.</span>
         </div>
       </footer>
     </div>

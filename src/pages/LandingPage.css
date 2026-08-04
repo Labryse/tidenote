@@ -132,15 +132,28 @@
   border-color: var(--color-text-muted);
 }
 
-/* HERO */
+/* HERO
+   Shares the same 1200px max-width as every other section (features,
+   platforms, footer) so left/right edges line up as you scroll — the
+   title/subtitle get their own narrower max-width for readability
+   instead of constraining the whole section. */
 .lp-hero {
   padding: 100px 24px 80px;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  /* Own stacking context so the DownloadButton dropdown renders above the
+     mockup window below it — but must stay under the sticky navbar
+     (index.css .landing-navbar-wrapper, z-index: 100). Equal z-index would
+     tie-break on DOM order, and hero comes after the navbar, so it would
+     win and cover it while scrolling. */
+  position: relative;
+  z-index: 1;
 }
 .lp-pill {
   background-color: rgba(8, 145, 178, 0.1);
@@ -157,7 +170,8 @@
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: -0.02em;
-  margin: 0 0 24px;
+  margin: 0 auto 24px;
+  max-width: 900px;
   color: var(--color-text-primary);
 }
 .lp-hero-sub {
@@ -180,31 +194,7 @@
   border-radius: 12px;
 }
 
-/* Secondary CTA — DownloadButton comes pre-styled as a filled teal button
-   (see index.css .lp-download-btn-main); next to the primary "Go to App"
-   button that reads as two competing primaries, so it's re-skinned as an
-   outline button here to match the intended visual hierarchy. */
-.lp-download-wrapper .lp-download-btn-container { box-shadow: none; }
-.lp-download-wrapper .lp-download-btn-main {
-  background: transparent;
-  color: var(--color-text-primary) !important;
-  border: 1px solid var(--color-border);
-  border-right: none;
-  padding: 12px 22px;
-  border-top-left-radius: 12px;
-  border-bottom-left-radius: 12px;
-}
-.lp-download-wrapper .lp-download-btn-main:hover {
-  background: var(--color-bg-card);
-  border-color: var(--color-text-muted);
-}
-.lp-download-wrapper .lp-download-btn-arrow {
-  border: 1px solid var(--color-border);
-  border-left: none;
-  border-top-right-radius: 12px;
-  border-bottom-right-radius: 12px;
-}
-.lp-download-wrapper .lp-download-btn-container:hover { transform: none; box-shadow: none; }
+/* DownloadButton inherently uses .lp-download-btn-main from index.css */
 
 /* APP MOCKUP + BROWSER/WINDOW FRAME */
 .lp-window-wrapper {
@@ -232,11 +222,13 @@
   border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
+  gap: 16px;
   padding: 0 20px;
 }
 .lp-window-dots {
   display: flex;
   gap: 8px;
+  flex-shrink: 0;
 }
 .lp-window-dot {
   width: 12px;
@@ -247,11 +239,55 @@
 .lp-window-dot.yellow { background: #ffbd2e; }
 .lp-window-dot.green { background: #27c93f; }
 
-@media (max-width: 768px) {
-  .lp-window-wrapper { padding: 0 12px; }
-  .lp-app-mock-sidebar { display: none !important; }
-  .lp-app-mock-main { padding: 20px !important; gap: 20px !important; }
-  .lp-app-mock-body { min-height: 450px !important; }
+/* Browser-chrome tab strip in the hero window mockup */
+.lp-browser-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+.lp-browser-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 180px;
+  min-width: 0;
+  padding: 6px 10px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: transparent;
+  flex-shrink: 1;
+}
+.lp-browser-tab.active {
+  background: var(--color-bg-app);
+  color: var(--color-text-primary);
+}
+.lp-browser-tab span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lp-tab-icon { width: 14px; height: 14px; object-fit: contain; flex-shrink: 0; border-radius: 3px; }
+.lp-tab-close {
+  margin-left: 2px;
+  flex-shrink: 0;
+  opacity: 0.5;
+  font-size: 14px;
+  line-height: 1;
+}
+.lp-browser-tab-new {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
 }
 
 .lp-app-mock {
@@ -582,7 +618,7 @@
   margin: 0 auto;
   padding: 48px 24px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
   flex-wrap: wrap;
@@ -627,52 +663,71 @@
   color: var(--color-accent);
 }
 
+/* Grid instead of flex space-between: with 3 items of unequal width,
+   space-between doesn't actually center the middle one — a 1fr/auto/1fr
+   grid does, regardless of how wide the outer two items are. */
 .lp-footer-bottom {
   max-width: 1200px;
   margin: 0 auto;
   padding: 16px 24px;
   border-top: 1px solid var(--color-border);
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   color: var(--color-text-muted);
   font-size: 0.78rem;
-  flex-wrap: wrap;
   gap: 12px;
 }
-.lp-footer-lang { display: flex; align-items: center; gap: 6px; }
+.lp-footer-lang { display: flex; align-items: center; gap: 6px; justify-self: start; }
 .lp-footer-lang .lp-lang-toggle { font-size: 0.78rem; padding: 2px 6px; }
+.lp-footer-credit { justify-self: center; white-space: nowrap; }
+.lp-footer-copyright { justify-self: end; white-space: nowrap; }
 
-@media (max-width: 640px) {
-  .lp-footer-top { flex-direction: column; text-align: center; padding: 40px 20px; }
-  .lp-footer-brand { align-items: center; }
-  .lp-footer-links { justify-content: center; }
-  .lp-footer-bottom { flex-direction: column; text-align: center; }
+/* COMPACT MOCKUP — triggers on narrow width (portrait phones/tablets)
+   OR short height in landscape (landscape phones can be 650-930px wide
+   but only ~300-430px tall, so a width-only breakpoint misses them).
+   One strategy only: the sidebar is hidden and the dashboard content
+   takes the full width — no half-collapsed icon-rail state to fight
+   with the "hide sidebar" rule that used to exist alongside it. */
+@media (max-width: 930px), (max-height: 480px) and (orientation: landscape) {
+  .lp-window-wrapper { padding: 0 16px; }
+  .lp-app-mock-sidebar { display: none; }
+  .lp-app-mock-body { min-height: 0; height: auto; }
+  .lp-app-mock-main { padding: 28px 24px; gap: 28px; }
+  .lp-app-mock-cursor { display: none; }
 }
 
-/* MOBILE SPACING
-   Desktop paddings (100px sections, 100px hero top) leave huge empty
-   bands above the fold on phones — shrink them so content isn't pushed
-   off-screen. */
+@media (max-width: 480px) {
+  .lp-window-dots { display: none; }
+  .lp-browser-tab-new { display: none; }
+}
+
 @media (max-width: 640px) {
-  .lp-hero { padding: 40px 20px 48px; }
-  .lp-hero-actions { margin-bottom: 40px; gap: 12px; }
-  .lp-section { padding: 56px 20px; }
+  .lp-footer-top { flex-direction: column; align-items: center; text-align: center; padding: 40px 20px; }
+  .lp-footer-brand { align-items: center; }
+  .lp-footer-links { justify-content: center; align-items: center; flex-direction: column; gap: 16px; }
+  .lp-footer-bottom { grid-template-columns: 1fr; gap: 10px; padding: 20px 20px; }
+  .lp-footer-lang, .lp-footer-credit, .lp-footer-copyright { justify-self: center; }
+
+  .lp-hero { padding: 40px 16px 48px; }
+  .lp-hero-title { font-size: 2.5rem; }
+  .lp-hero-actions { flex-direction: column; margin-bottom: 40px; gap: 12px; width: 100%; }
+  .lp-btn-teal, .lp-btn-outline, .lp-download-wrapper, .lp-download-btn-container { width: 100%; justify-content: center; }
+  .lp-download-btn-main { width: 100%; justify-content: center; }
+  .lp-section { padding: 56px 16px; }
   .lp-section-header { margin-bottom: 40px; }
-  .lp-platforms { padding: 56px 20px; }
-  .lp-closing { padding: 56px 20px; }
+  .lp-platforms { padding: 56px 16px; }
+  .lp-closing { padding: 56px 16px; }
 
-  /* Icon-only sidebar so the app mockup doesn't overflow narrow screens */
-  .lp-app-mock-body { height: 320px; }
-  .lp-app-mock-sidebar { width: 52px; padding: 14px 6px; align-items: center; }
-  .lp-app-mock-brand span,
-  .lp-app-mock-newbtn span,
-  .lp-app-mock-search span,
-  .lp-app-mock-label,
-  .lp-app-mock-row span { display: none; }
-  .lp-app-mock-brand, .lp-app-mock-newbtn, .lp-app-mock-search, .lp-app-mock-row { justify-content: center; }
-  .lp-app-mock-doc { padding: 18px 16px; }
+  .lp-window-topbar { padding: 0 12px; }
+  .lp-window-wrapper { padding: 0 12px; }
 
-  .lp-fark-mock { aspect-ratio: 3 / 4; }
-  .lp-fark-mock-pane { padding: 16px; }
+  .lp-app-mock-main { padding: 20px 16px; gap: 20px; }
+  .lp-app-mock-hero-logo { width: 38px; height: 38px; }
+  .lp-app-mock-hero-area h2 { font-size: 19px; }
+
+  /* Make mockup internal cards stack properly */
+  .lp-app-mock-quick { flex-direction: column; gap: 8px; }
+  .lp-app-mock-card { padding: 10px 12px; gap: 8px; flex-direction: column; align-items: flex-start; }
+  .lp-app-mock-card span { font-size: 12px; }
 }
