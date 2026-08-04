@@ -43,19 +43,21 @@ function setupAutoUpdater(win) {
   ipcMain.handle("install-update", () => {
     isQuittingForUpdate = true;
 
-    // Tüm pencereleri kapat (dosya kilitlerini çözmek için)
-    BrowserWindow.getAllWindows().forEach((win) => {
-      if (!win.isDestroyed()) {
-        win.destroy();
-      }
-    });
-
-    // Renderer "yeniden başlatılıyor" ekranını göstersin diye kısa gecikme,
-    // sonra SESSİZ (isSilent=true) kurulumu başlat: NSIS çalışan uygulamayı
-    // kendisi kapatıp dosyaları sessizce günceller ve arayüz göstermez; 
-    // isForceRunAfter kurulum sonrası uygulamayı otomatik açar.
+    // 1. Renderer "yeniden başlatılıyor" ekranını göstersin diye 400ms bekle
     setTimeout(() => {
-      autoUpdater.quitAndInstall(true, true);
+      // 2. Tüm pencereleri kapat (renderer process'leri öldür ve dosya kilitlerini çöz)
+      BrowserWindow.getAllWindows().forEach((win) => {
+        if (!win.isDestroyed()) {
+          win.destroy();
+        }
+      });
+
+      // 3. Renderer process'lerin OS seviyesinde tamamen kapanması ve
+      // kilitlerin açılması için 500ms bekle, ardından SESSİZ kurulumu başlat.
+      // NSIS installer bu sayede kilitli dosya hatası vermez.
+      setTimeout(() => {
+        autoUpdater.quitAndInstall(true, true);
+      }, 500);
     }, 400);
   });
 
