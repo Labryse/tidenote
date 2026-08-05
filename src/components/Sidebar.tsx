@@ -12,7 +12,7 @@ import { FilePlus, PenSquare, LayoutTemplate, Users, CalendarDays, Lightbulb, Ka
 import BugReportModal from "./BugReportModal";
 import CollectionModal, { getCollectionIcon } from "./CollectionModal";
 import { extractTextFromBlocks } from "../lib/searchUtils";
-import { getResolvedName, isElectron, getLogoSrc } from "../lib/utils";
+import { getResolvedName, isElectron, useLogoSrc } from "../lib/utils";
 import { getNoteRoute, isCapacitor } from "../lib/platform";
 import { isWebOnly } from "../lib/platformDetect";
 import { getLatestRelease, findAssetForPlatform } from "../lib/githubReleases";
@@ -20,7 +20,7 @@ import { useIsMobile } from "../hooks/useIsMobile";
 import { useHardwareBack } from "../hooks/useHardwareBack";
 
 
-const logoSrc = getLogoSrc();
+// logoSrc moved into component
 
 const getNoteTextContent = (note: Note): string => {
   let text = "";
@@ -273,6 +273,7 @@ const TEMPLATES: Template[] = [
 ];
 
 export default function Sidebar() {
+  const logoSrc = useLogoSrc();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();

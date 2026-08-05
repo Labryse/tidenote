@@ -1,3 +1,4 @@
+import { useLogoSrc } from '../lib/utils';
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useNoteStore } from "../store/useNoteStore";
@@ -10,10 +11,7 @@ import {
 import DownloadButton from "../components/DownloadButton";
 import "./LandingPage.css";
 
-const logoSrc = (() => {
-  try { return new URL("/icon.png", import.meta.url).href; }
-  catch { return "/icon.png"; }
-})();
+
 
 function useScrollReveal() {
   useEffect(() => {
@@ -103,6 +101,7 @@ const lpContent = {
 };
 
 export default function LandingPage() {
+  const logoSrc = useLogoSrc();
   const { i18n } = useTranslation();
   const { theme, setTheme, user } = useNoteStore();
   useScrollReveal();

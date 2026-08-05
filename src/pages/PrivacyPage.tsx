@@ -1,15 +1,10 @@
+import { useLogoSrc } from '../lib/utils';
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useNoteStore } from "../store/useNoteStore";
 
-const logoSrc = (() => {
-  try {
-    return new URL("/icon.png", import.meta.url).href;
-  } catch {
-    return "/icon.png";
-  }
-})();
+
 
 const slugify = (text: string) => {
   const map: Record<string, string> = {
@@ -37,6 +32,7 @@ const Heading3 = ({ title }: { title: string }) => (
 );
 
 export default function PrivacyPage() {
+  const logoSrc = useLogoSrc();
   const { t, i18n } = useTranslation();
   const { theme, setTheme, user } = useNoteStore();
 

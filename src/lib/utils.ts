@@ -1,8 +1,11 @@
-export const getLogoSrc = (): string => {
+import { useNoteStore } from '../store/useNoteStore';
+export const useLogoSrc = (): string => {
+  const theme = useNoteStore(s => s.theme);
+  const icon = theme === 'dark' ? "/tnlogo.png" : "/icon.png";
   try {
-    return new URL("/icon.png", import.meta.url).href;
+    return new URL(icon, import.meta.url).href;
   } catch {
-    return "/icon.png";
+    return icon;
   }
 };
 

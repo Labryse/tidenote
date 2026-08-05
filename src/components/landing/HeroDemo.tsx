@@ -1,3 +1,4 @@
+import { useLogoSrc } from '../../lib/utils';
 import React from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -43,6 +44,7 @@ class ErrorBoundary extends React.Component<
 }
 
 function HeroDemoInner() {
+  const logoSrc = useLogoSrc();
   const { i18n } = useTranslation();
   const isTr = i18n.language?.startsWith("tr") ?? false;
 
@@ -79,7 +81,7 @@ function HeroDemoInner() {
           {/* Sidebar mockup */}
           <div className="hd-mock-sidebar">
             <div className="hd-mock-brand">
-              <img src="/icon.png" alt="" aria-hidden="true" className="hd-mock-brand-icon" />
+              <img src={logoSrc} alt="" aria-hidden="true" className="hd-mock-brand-icon" />
               <span className="hd-mock-brand-name">TideNote</span>
             </div>
 

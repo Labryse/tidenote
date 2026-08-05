@@ -3,11 +3,10 @@ import { useNoteStore } from "../store/useNoteStore";
 import { db } from "../lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useTranslation } from "react-i18next";
-import { getLogoSrc } from "../lib/utils";
-
-const logoSrc = getLogoSrc();
+import { useLogoSrc } from "../lib/utils";
 
 export default function QuickCapture() {
+  const logoSrc = useLogoSrc();
   const { t } = useTranslation();
   const { 
     isQuickCaptureOpen, 

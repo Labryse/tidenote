@@ -2,11 +2,10 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNoteStore, type Note } from "../store/useNoteStore";
 import { FilePlus, PenSquare } from "lucide-react";
-import { getResolvedName, getLogoSrc } from "../lib/utils";
-
-const logoSrc = getLogoSrc();
+import { getResolvedName, useLogoSrc } from "../lib/utils";
 
 export default function EmptyState() {
+  const logoSrc = useLogoSrc();
   const { t, i18n } = useTranslation();
   const { notes, setActiveNoteId, user, createNote, showToast, firestoreUser } = useNoteStore();
 

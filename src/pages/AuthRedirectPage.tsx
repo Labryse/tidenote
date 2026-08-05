@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { auth, googleProvider } from "../lib/firebase";
-import { getLogoSrc } from "../lib/utils";
+import { useLogoSrc } from "../lib/utils";
 import { CheckCircle2, XCircle } from "lucide-react";
 
-const logoSrc = getLogoSrc();
-
 export default function AuthRedirectPage() {
+  const logoSrc = useLogoSrc();
   const [status, setStatus] = useState("idle");
 
   const handleGoogleAuth = async () => {

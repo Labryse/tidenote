@@ -3,13 +3,12 @@ import { auth, googleProvider } from "../lib/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, sendEmailVerification, signInWithCredential, GoogleAuthProvider } from "firebase/auth";
 import { useNoteStore } from "../store/useNoteStore";
 import { useTranslation } from "react-i18next";
-import { isElectron, getLogoSrc } from "../lib/utils";
+import { isElectron, useLogoSrc } from "../lib/utils";
 import { getAuthRedirectUrl } from "../lib/platform";
 import { Capacitor } from "@capacitor/core";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
-const logoSrc = getLogoSrc();
-
 export default function Auth() {
+  const logoSrc = useLogoSrc();
   const { t } = useTranslation();
   const { theme, setTheme, showToast } = useNoteStore();
   const [isLogin, setIsLogin] = useState(true);

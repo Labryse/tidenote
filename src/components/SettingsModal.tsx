@@ -10,15 +10,14 @@ import { doc, deleteDoc, serverTimestamp, collection, addDoc } from "firebase/fi
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import ConfirmModal from "./ConfirmModal";
 import { deleteAllCanvasFiles } from "../lib/canvasFiles";
-import { getLogoSrc, calculateStorageBytes } from "../lib/utils";
+import { useLogoSrc, calculateStorageBytes } from "../lib/utils";
 import DownloadButton from "./DownloadButton";
 import { isWebOnly } from "../lib/platformDetect";
 import { useHardwareBack } from "../hooks/useHardwareBack";
 
 
-const logoSrc = getLogoSrc();
-
 export default function SettingsModal() {
+  const logoSrc = useLogoSrc();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const {
