@@ -187,15 +187,6 @@ function createWindow() {
     return { action: "deny" };
   });
 
-  mainWindow.on('close', (event) => {
-    if (!isQuitting) {
-      event.preventDefault();
-      // If we had a tray we would hide the window, but we don't have one here.
-      // But the instructions specifically say "minimize et/gizle".
-      mainWindow.hide();
-    }
-  });
-
   // Auto updater'ı başlat
   setupAutoUpdater(mainWindow);
 }

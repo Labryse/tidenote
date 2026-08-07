@@ -1,12 +1,11 @@
 import { useNoteStore } from '../store/useNoteStore';
+import darkLogo from '../../public/tnlogo.png';
+import lightLogo from '../../public/icon.png';
+
 export const useLogoSrc = (): string => {
   const theme = useNoteStore(s => s.theme);
-  const icon = theme === 'dark' ? "/tnlogo.png" : "/icon.png";
-  try {
-    return new URL(icon, import.meta.url).href;
-  } catch {
-    return icon;
-  }
+  // Vite'ın asset yönetimini kullanarak logoların her ortamda doğru yüklenmesini garanti ediyoruz
+  return theme === 'dark' ? darkLogo : lightLogo;
 };
 
 export const isElectron = (): boolean => {
