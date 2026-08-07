@@ -44,7 +44,12 @@
     "addToFavorites": "Add to Favorites",
     "unpin": "Unpin",
     "pin": "Pin",
-    "organization": "FOLDERS & COLLECTIONS"
+    "organization": "FOLDERS & COLLECTIONS",
+    "folders": "Folders",
+    "collections": "Collections",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "noMatchingNotes": "No matching notes found."
   },
   "journal": {
     "today": "Today",
@@ -88,7 +93,12 @@
   },
   "toast": {
     "comingSoon": "This feature will be available soon",
-    "loginError": "Sign in error"
+    "loginError": "Sign in error",
+    "createSuccess": "Successfully created",
+    "createError": "Error creating",
+    "saveError": "Error saving",
+    "deleteError": "Error deleting",
+    "deleteSuccess": "Successfully deleted"
   },
   "editor": {
     "placeholder": "Start writing or type '/' for commands...",
@@ -113,7 +123,8 @@
     }
   },
   "sidebar-extra": {
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "options": "Options"
   },
   "language": {
     "select": "Language",
@@ -209,7 +220,8 @@
   },
   "common": {
     "comingSoon": "Coming Soon",
-    "backToHome": "Back to Home"
+    "backToHome": "Back to Home",
+    "close": "Close"
   },
   "emptyState": {
     "title": "Your notes will appear here",
@@ -342,7 +354,10 @@
     "deleteConfirm": "This folder and its subfolders will be deleted. Notes inside will become unfiled. Are you sure?",
     "unfoldered": "Unfiled Notes",
     "allNotes": "All Notes",
-    "moveHere": "Move Here"
+    "moveHere": "Move Here",
+    "renameFolder": "Rename Folder",
+    "create": "Create",
+    "save": "Save"
   },
   "info": {
     "title": "Note Info",

@@ -457,7 +457,7 @@ export default function Sidebar() {
       day: "numeric",
       month: "short"
     });
-    return `${dateStr} — ${t("journal.sidebarSuffix", "Journal")}`;
+    return `${dateStr} — ${t("journal.sidebarSuffix")}`;
   };
 
   const formatJournalTitle = (dateStr: string) => {
@@ -756,7 +756,7 @@ export default function Sidebar() {
   const handleCreateFolder = async (parentId: string | null) => {
     if (!user) return;
     try {
-      const folderName = t("folders.untitledFolder", "Başlıksız Klasör");
+      const folderName = t("folders.untitledFolder");
       const folderRef = await addDoc(collection(db, "users", user.uid, "folders"), {
         name: folderName,
         parentId: parentId ?? null,
@@ -819,10 +819,10 @@ export default function Sidebar() {
       if (activeCollectionId === deletingCollectionId) {
         setActiveCollectionId(null);
       }
-      showToast(t("collections.deleteSuccess", "Koleksiyon silindi"), "success");
+      showToast(t("collections.deleteSuccess"), "success");
     } catch (error) {
       console.error("Error deleting collection:", error);
-      showToast(t("collections.deleteError", "Koleksiyon silinemedi"), "error");
+      showToast(t("collections.deleteError"), "error");
     } finally {
       setDeletingCollectionId(null);
     }
@@ -851,13 +851,13 @@ export default function Sidebar() {
           "filters.noteIds": updatedNoteIds,
           updatedAt: serverTimestamp()
         });
-        showToast(t("collections.noteAdded", "Not koleksiyona eklendi"), "success");
+        showToast(t("collections.noteAdded"), "success");
       } else {
-        showToast(t("collections.alreadyExists", "Not zaten bu koleksiyonda"), "warning");
+        showToast(t("collections.alreadyExists"), "warning");
       }
     } catch (error) {
       console.error("Error adding note to collection:", error);
-      showToast(t("collections.addError", "Not koleksiyona eklenemedi"), "error");
+      showToast(t("collections.addError"), "error");
     }
   };
 
@@ -946,15 +946,15 @@ export default function Sidebar() {
           {openFolderMenuId === folder.id && (
             <div className="folder-menu-dropdown" onClick={(e) => e.stopPropagation()}>
               <button type="button" className="folder-menu-item" onClick={() => startRenaming(folder)}>
-                {t("folders.rename", "Yeniden Adlandır")}
+                {t("folders.rename")}
               </button>
               {depth < 2 && (
                 <button type="button" className="folder-menu-item" onClick={() => { setOpenFolderMenuId(null); handleCreateFolder(folder.id); }}>
-                  {t("folders.addSubfolder", "Alt Klasör Ekle")}
+                  {t("folders.addSubfolder")}
                 </button>
               )}
               <button type="button" className="folder-menu-item" onClick={(e) => { e.stopPropagation(); setColorPickerFolderId(colorPickerFolderId === folder.id ? null : folder.id); }}>
-                <Palette size={12} style={{ marginRight: 4 }} />{t("noteMenu.colorLabel", "Renk Etiketi")}
+                <Palette size={12} style={{ marginRight: 4 }} />{t("noteMenu.colorLabel")}
               </button>
               {colorPickerFolderId === folder.id && (
                 <div className="color-picker-row" onClick={(e) => e.stopPropagation()}>
@@ -962,17 +962,17 @@ export default function Sidebar() {
                     <button key={c} type="button" className="color-dot" style={{ background: c }}
                       onClick={() => { handleFolderColorChange(folder.id, c); setColorPickerFolderId(null); setOpenFolderMenuId(null); }} />
                   ))}
-                  <button type="button" className="color-dot color-dot-custom" title={t("noteMenu.customColor", "Özel Renk")}
+                  <button type="button" className="color-dot color-dot-custom" title={t("noteMenu.customColor")}
                     onClick={() => { colorTargetRef.current = { type: "folder", id: folder.id }; nativeColorInputRef.current?.click(); setColorPickerFolderId(null); setOpenFolderMenuId(null); }} />
                   {folderColor && (
-                    <button type="button" className="color-dot color-dot-clear" title={t("noteMenu.clearColor", "Rengi Kaldır")}
+                    <button type="button" className="color-dot color-dot-clear" title={t("noteMenu.clearColor")}
                       onClick={() => { handleFolderColorChange(folder.id, ""); setColorPickerFolderId(null); setOpenFolderMenuId(null); }} />
                   )}
                 </div>
               )}
               <div className="dropdown-divider" />
               <button type="button" className="folder-menu-item danger" onClick={() => { setOpenFolderMenuId(null); setDeletingFolderId(folder.id); }}>
-                {t("folders.delete", "Klasörü Sil")}
+                {t("folders.delete")}
               </button>
             </div>
           )}
@@ -1048,7 +1048,7 @@ export default function Sidebar() {
                   setIsCollectionModalOpen(true);
                 }}
               >
-                {t("collections.edit", "Düzenle")}
+                {t("collections.edit")}
               </button>
               <button
                 type="button"
@@ -1058,7 +1058,7 @@ export default function Sidebar() {
                   setDeletingCollectionId(col.id);
                 }}
               >
-                {t("collections.delete", "Sil")}
+                {t("collections.delete")}
               </button>
             </div>
           )}
@@ -1428,7 +1428,7 @@ export default function Sidebar() {
               e.preventDefault();
               setOpenMenuNoteId(openMenuNoteId === note.id ? null : note.id);
             }}
-            title={t("sidebar-extra.options", "Seçenekler")}
+            title={t("sidebar-extra.options")}
           >
             <MoreVertical size={14} />
           </button>
@@ -1448,7 +1448,7 @@ export default function Sidebar() {
                   <line x1="12" y1="16" x2="12" y2="12" />
                   <line x1="12" y1="8" x2="12.01" y2="8" />
                 </svg>
-                {t("info.title", "Not Bilgileri")}
+                {t("info.title")}
               </button>
 
               <div className="dropdown-divider"></div>
@@ -1464,7 +1464,7 @@ export default function Sidebar() {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill={note.starred ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" style={{ color: note.starred ? "#f59e0b" : "inherit" }}>
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                 </svg>
-                {note.starred ? t("sidebar.removeFromFavorites", "Favorilerden Çıkar") : t("sidebar.addToFavorites", "Favorilere Ekle")}
+                {note.starred ? t("sidebar.removeFromFavorites") : t("sidebar.addToFavorites")}
               </button>
 
               <button
@@ -1478,7 +1478,7 @@ export default function Sidebar() {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill={note.pinned ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
                   <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
                 </svg>
-                {note.pinned ? t("sidebar.unpin", "Sabitlemeyi Kaldır") : t("sidebar.pin", "Sabitle")}
+                {note.pinned ? t("sidebar.unpin") : t("sidebar.pin")}
               </button>
 
               <button
@@ -1494,7 +1494,7 @@ export default function Sidebar() {
                   <rect x="1" y="3" width="22" height="5" />
                   <line x1="10" y1="12" x2="14" y2="12" />
                 </svg>
-                {note.archived ? t("sidebar.unarchive", "Arşivden Çıkar") : t("sidebar.archiveSection", "Arşivle")}
+                {note.archived ? t("sidebar.unarchive") : t("sidebar.archiveSection")}
               </button>
 
               <button
@@ -1503,7 +1503,7 @@ export default function Sidebar() {
                 onClick={(e) => { e.stopPropagation(); setColorPickerNoteId(colorPickerNoteId === note.id ? null : note.id); }}
               >
                 <Palette size={14} />
-                {t("noteMenu.colorLabel", "Renk Etiketi")}
+                {t("noteMenu.colorLabel")}
               </button>
               {colorPickerNoteId === note.id && (
                 <div className="color-picker-row" onClick={(e) => e.stopPropagation()}>
@@ -1511,10 +1511,10 @@ export default function Sidebar() {
                     <button key={c} type="button" className="color-dot" style={{ background: c }}
                       onClick={() => { handleNoteColorChange(note.id, c); setColorPickerNoteId(null); setOpenMenuNoteId(null); }} />
                   ))}
-                  <button type="button" className="color-dot color-dot-custom" title={t("noteMenu.customColor", "Özel Renk")}
+                  <button type="button" className="color-dot color-dot-custom" title={t("noteMenu.customColor")}
                     onClick={() => { colorTargetRef.current = { type: "note", id: note.id }; nativeColorInputRef.current?.click(); setColorPickerNoteId(null); setOpenMenuNoteId(null); }} />
                   {note.color && (
-                    <button type="button" className="color-dot color-dot-clear" title={t("noteMenu.clearColor", "Rengi Kaldır")}
+                    <button type="button" className="color-dot color-dot-clear" title={t("noteMenu.clearColor")}
                       onClick={() => { handleNoteColorChange(note.id, ""); setColorPickerNoteId(null); setOpenMenuNoteId(null); }} />
                   )}
                 </div>
@@ -1535,7 +1535,7 @@ export default function Sidebar() {
                   <polyline points="15 3 21 3 21 9" />
                   <line x1="10" y1="14" x2="21" y2="3" />
                 </svg>
-                {t("noteMenu.openInNewTab", "Yeni Sekmede Aç")}
+                {t("noteMenu.openInNewTab")}
               </button>
 
               {isElectron() && (
@@ -1553,7 +1553,7 @@ export default function Sidebar() {
                     <line x1="8" y1="21" x2="16" y2="21" />
                     <line x1="12" y1="17" x2="12" y2="21" />
                   </svg>
-                  {t("noteMenu.openInDesktop", "Masaüstü Uygulamasında Aç")}
+                  {t("noteMenu.openInDesktop")}
                 </button>
               )}
 
@@ -1571,7 +1571,7 @@ export default function Sidebar() {
                   <polyline points="3 6 5 6 21 6" />
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                 </svg>
-                {t("modal.deleteTitle", "Sil")}
+                {t("modal.deleteTitle")}
               </button>
             </div>
           )}
@@ -1605,7 +1605,7 @@ export default function Sidebar() {
         type="button"
         className="sidebar-collapse-btn"
         onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        title={effectiveIsCollapsed ? t("sidebar.expand", "Genişlet") : t("sidebar.collapse", "Daralt")}
+        title={effectiveIsCollapsed ? t("sidebar.expand") : t("sidebar.collapse")}
       >
         {effectiveIsCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>
@@ -1655,7 +1655,7 @@ export default function Sidebar() {
               type="button"
               className="mobile-sidebar-close-btn"
               onClick={() => setIsMobileSidebarOpen(false)}
-              aria-label={t("common.close", "Kapat")}
+              aria-label={t("common.close")}
             >
               <X size={20} />
             </button>
@@ -1706,7 +1706,7 @@ export default function Sidebar() {
               >
                 <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                   <LayoutTemplate size={14} style={{ flexShrink: 0 }} />
-                  {t("sidebar.createFromTemplate", "Şablondan Oluştur")}
+                  {t("sidebar.createFromTemplate")}
                 </span>
                 <span className="arrow-icon">›</span>
 
@@ -1744,7 +1744,7 @@ export default function Sidebar() {
             <button 
               className="today-journal-btn"
               onClick={handleTodayJournalClick}
-              title={effectiveIsCollapsed ? t("journal.today", "Bugün") : undefined}
+              title={effectiveIsCollapsed ? t("journal.today") : undefined}
             >
               <span className="today-journal-btn-icon">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1754,7 +1754,7 @@ export default function Sidebar() {
                   <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
               </span>
-              {!effectiveIsCollapsed && <span>{t("journal.today", "Bugün")}</span>}
+              {!effectiveIsCollapsed && <span>{t("journal.today")}</span>}
               {!effectiveIsCollapsed && <span className="today-journal-btn-date">{getTodayShortDate()}</span>}
             </button>
             
@@ -1891,25 +1891,53 @@ export default function Sidebar() {
       </div>
 
       {!effectiveIsCollapsed && (
-        <div className={`notes-list density-${listDensity}`}>
-          {/* Folders & Collections section */}
+        <div className={`notes-list density-${listDensity}`} style={{ overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          {/* Folders Section */}
           {user && (
-            <div className="sidebar-folders-section">
-              <div className="folders-section-header">
-                <span className="folders-section-label">{t("sidebar.organization", "KLASÖRLER & KOLEKSİYONLAR")}</span>
+            <div className="sidebar-folders-section" style={{ flex: "0 0 auto", maxHeight: "30vh", display: "flex", flexDirection: "column", minHeight: 0, paddingBottom: 0 }}>
+              <div className="folders-section-header" style={{ flexShrink: 0 }}>
+                <span className="folders-section-label">{t("sidebar.folders")}</span>
                 <div style={{ display: "flex", gap: "6px" }}>
                   <button
                     type="button"
                     className="folder-plus-btn"
-                    title={t("folders.newFolder", "Yeni Klasör")}
+                    title={t("folders.newFolder")}
                     onClick={() => handleCreateFolder(null)}
                   >
                     <FolderPlus size={13} />
                   </button>
+                </div>
+              </div>
+              <div style={{ flex: "1 1 auto", overflowY: "auto", minHeight: 0, paddingRight: "4px" }}>
+                {rootFolders.map((f) => renderFolderItem(f, 0))}
+                <div
+                  className={`folder-item${activeFolderId === "unfiled" ? " active" : ""}`}
+                  style={{ paddingLeft: "8px" }}
+                  onClick={() => { setActiveFolderId(activeFolderId === "unfiled" ? null : "unfiled"); setActiveCollectionId(null); }}
+                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; (e.currentTarget as HTMLElement).classList.add("drag-over"); }}
+                  onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) { (e.currentTarget as HTMLElement).classList.remove("drag-over"); } }}
+                  onDrop={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement).classList.remove("drag-over"); draggedNoteIdRef.current = draggedNoteIdRef.current || e.dataTransfer.getData("text/plain"); handleDropNoteToFolder(null); }}
+                >
+                  <span style={{ width: 10, display: "inline-block", flexShrink: 0 }} />
+                  <FolderIcon size={13} className="folder-icon" style={{ opacity: 0.45 }} />
+                  <span className="folder-name" style={{ color: "var(--color-text-muted)", fontStyle: "italic" }}>
+                    {t("folders.unfoldered")}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Collections Section */}
+          {user && (
+            <div className="sidebar-collections-section" style={{ flex: "0 0 auto", maxHeight: "30vh", display: "flex", flexDirection: "column", minHeight: 0, borderTop: "1px solid var(--color-border)", paddingTop: "8px", marginTop: "4px" }}>
+              <div className="folders-section-header" style={{ flexShrink: 0 }}>
+                <span className="folders-section-label">{t("sidebar.collections")}</span>
+                <div style={{ display: "flex", gap: "6px" }}>
                   <button
                     type="button"
                     className="folder-plus-btn"
-                    title={t("collections.newCollection", "Yeni Koleksiyon")}
+                    title={t("collections.newCollection")}
                     onClick={() => {
                       setCollectionToEdit(null);
                       setIsCollectionModalOpen(true);
@@ -1919,30 +1947,14 @@ export default function Sidebar() {
                   </button>
                 </div>
               </div>
-              {/* Folders */}
-              {rootFolders.map((f) => renderFolderItem(f, 0))}
-              <div
-                className={`folder-item${activeFolderId === "unfiled" ? " active" : ""}`}
-                style={{ paddingLeft: "8px" }}
-                onClick={() => { setActiveFolderId(activeFolderId === "unfiled" ? null : "unfiled"); setActiveCollectionId(null); }}
-                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; (e.currentTarget as HTMLElement).classList.add("drag-over"); }}
-                onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) { (e.currentTarget as HTMLElement).classList.remove("drag-over"); } }}
-                onDrop={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement).classList.remove("drag-over"); draggedNoteIdRef.current = draggedNoteIdRef.current || e.dataTransfer.getData("text/plain"); handleDropNoteToFolder(null); }}
-              >
-                <span style={{ width: 10, display: "inline-block", flexShrink: 0 }} />
-                <FolderIcon size={13} className="folder-icon" style={{ opacity: 0.45 }} />
-                <span className="folder-name" style={{ color: "var(--color-text-muted)", fontStyle: "italic" }}>
-                  {t("folders.unfoldered", "Klasörsüz Notlar")}
-                </span>
+              <div style={{ flex: "1 1 auto", overflowY: "auto", minHeight: 0, paddingRight: "4px" }}>
+                {collections.map((col) => renderCollectionItem(col))}
               </div>
-              
-              {/* Divider between Folders and Collections inside the same section list */}
-              {collections.length > 0 && <div style={{ height: 1, background: "var(--color-border)", margin: "8px 4px 4px 4px", opacity: 0.5 }} />}
-              
-              {/* Collections */}
-              {collections.map((col) => renderCollectionItem(col))}
             </div>
           )}
+
+          {/* Notes Area */}
+          <div style={{ flex: "1 1 auto", overflowY: "auto", minHeight: 0, display: "flex", flexDirection: "column", borderTop: "1px solid var(--color-border)", paddingTop: "8px", marginTop: "4px" }}>
 
           {notes.length === 0 ? (
             <div style={{ whiteSpace: "pre-line", textAlign: "center", padding: "2rem 0", color: "var(--color-text-muted)", fontSize: "0.82rem", lineHeight: "1.5" }}>
@@ -1950,7 +1962,7 @@ export default function Sidebar() {
             </div>
           ) : filteredAndSortedNotes.length === 0 ? (
             <div style={{ textAlign: "center", padding: "2rem 0", color: "var(--color-text-muted)", fontSize: "0.82rem" }}>
-              {t("sidebar.noMatchingNotes", "Eşleşen not bulunamadı.")}
+              {t("sidebar.noMatchingNotes")}
             </div>
           ) : showArchived ? (
             <div className="notes-section-group">
@@ -2007,11 +2019,12 @@ export default function Sidebar() {
               >
                 <span style={{ fontSize: "9px" }}>{isUnfiledSectionOpen ? "▼" : "▶"}</span>
                 <FolderIcon size={10} style={{ opacity: 0.5 }} />
-                <span>{t("folders.unfoldered", "Klasörsüz Notlar")} ({unfiledNotesForSection.length})</span>
+                <span>{t("folders.unfoldered")} ({unfiledNotesForSection.length})</span>
               </button>
               {isUnfiledSectionOpen && unfiledNotesForSection.map(note => renderNoteItem(note))}
             </div>
           )}
+          </div>
         </div>
       )}
 
@@ -2076,7 +2089,7 @@ export default function Sidebar() {
               type="button"
               className="sidebar-theme-toggle-btn"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              title={theme === "dark" ? t("settings.themeLight", "Açık Tema") : t("settings.themeDark", "Koyu Tema")}
+              title={theme === "dark" ? t("settings.themeLight") : t("settings.themeDark")}
               aria-label="Toggle theme"
             >
               {theme === "dark" ? (
@@ -2105,7 +2118,7 @@ export default function Sidebar() {
               type="button"
               className="sidebar-settings-btn"
               onClick={() => setIsSettingsOpen(true)}
-              title={t("settings.title", "Ayarlar")}
+              title={t("settings.title")}
               aria-label="Settings"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -2179,7 +2192,7 @@ export default function Sidebar() {
         <div className={`modal-overlay${folderModal.isClosing ? " closing" : ""}`} onClick={closeFolderModal}>
           <div className="folder-name-modal" onClick={(e) => e.stopPropagation()}>
             <h3 className="folder-name-modal-title">
-              {folderModal.mode === "create" ? t("folders.newFolder", "Yeni Klasör") : t("folders.renameFolder", "Klasörü Yeniden Adlandır")}
+              {folderModal.mode === "create" ? t("folders.newFolder") : t("folders.renameFolder")}
             </h3>
             <input
               className="folder-name-modal-input"
@@ -2190,14 +2203,14 @@ export default function Sidebar() {
                 if (e.key === "Escape") closeFolderModal();
               }}
               autoFocus
-              placeholder={t("folders.untitledFolder", "Başlıksız Klasör")}
+              placeholder={t("folders.untitledFolder")}
             />
             <div className="folder-name-modal-actions">
               <button type="button" className="folder-name-modal-cancel" onClick={closeFolderModal}>
-                {t("modal.cancel", "İptal")}
+                {t("modal.cancel")}
               </button>
               <button type="button" className="folder-name-modal-confirm" onClick={confirmFolderModal}>
-                {folderModal.mode === "create" ? t("folders.create", "Oluştur") : t("folders.save", "Kaydet")}
+                {folderModal.mode === "create" ? t("folders.create") : t("folders.save")}
               </button>
             </div>
           </div>
@@ -2225,8 +2238,8 @@ export default function Sidebar() {
       />
       <ConfirmModal
         isOpen={deletingFolderId !== null}
-        title={t("folders.delete", "Klasörü Sil")}
-        message={t("folders.deleteConfirm", "Bu klasör ve alt klasörleri silinecek. İçindeki notlar klasörsüz kalacak. Emin misin?")}
+        title={t("folders.delete")}
+        message={t("folders.deleteConfirm")}
         onConfirm={confirmDeleteFolder}
         onCancel={() => setDeletingFolderId(null)}
       />
@@ -2245,8 +2258,8 @@ export default function Sidebar() {
       )}
       <ConfirmModal
         isOpen={deletingCollectionId !== null}
-        title={t("collections.deleteTitle", "Koleksiyonu Sil")}
-        message={t("collections.deleteConfirm", "Bu koleksiyonu silmek istediğinize emin misiniz? Notlarınız silinmeyecektir.")}
+        title={t("collections.deleteTitle")}
+        message={t("collections.deleteConfirm")}
         onConfirm={confirmDeleteCollection}
         onCancel={() => setDeletingCollectionId(null)}
       />

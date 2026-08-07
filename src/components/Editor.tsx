@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, startTransition } from "react";
 import { useNavigate } from "react-router-dom";
+import { Extension, InputRule } from "@tiptap/core";
 import "@blocknote/core/fonts/inter.css";
-import { useCreateBlockNote, SuggestionMenuController, getDefaultReactSlashMenuItems } from "@blocknote/react";
+import { useCreateBlockNote, SuggestionMenuController, getDefaultReactSlashMenuItems, GridSuggestionMenuController, getDefaultReactEmojiPickerItems } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import { defaultBlockSpecs } from "@blocknote/core";
 import { CalloutBlock } from "./CalloutBlock";
@@ -16,6 +17,31 @@ import { useNoteStore } from "../store/useNoteStore";
 import { useTranslation } from "react-i18next";
 import { en } from "@blocknote/core/locales";
 import { Table2 } from "lucide-react";
+
+const EMOTICONS: Record<string, string> = {
+  ":)": "🙂", ":-)": "🙂", ":(": "🙁", ":-(": "🙁",
+  ":D": "😃", ":P": "😛", ":p": "😛", ";)": "😉",
+  ":'(": "😢", ":O": "😮", "<3": "❤️", ":/": "😕"
+};
+
+const EmoticonExtension = Extension.create({
+  name: "emoticons",
+  addInputRules() {
+    return Object.entries(EMOTICONS).map(([token, emoji]) => {
+      const escapedToken = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`(?:^|(\\s))(${escapedToken}) $`);
+      
+      return new InputRule({
+        find: regex,
+        handler: ({ state, range, match }) => {
+          const prefix = match[1] || "";
+          const insert = prefix + emoji + " ";
+          state.tr.insertText(insert, range.from, range.to);
+        }
+      });
+    });
+  }
+});
 
 export default function Editor() {
   const { t, i18n } = useTranslation();
@@ -214,6 +240,9 @@ export default function Editor() {
   };
 
   const editor = useCreateBlockNote({
+    _tiptapOptions: {
+      extensions: [EmoticonExtension],
+    },
     blockSpecs: {
       ...defaultBlockSpecs,
       callout: CalloutBlock,
@@ -241,7 +270,7 @@ export default function Editor() {
     },
     dictionary: i18n.language.startsWith("tr") ? trLocale : undefined,
     placeholders: {
-      default: i18n.language.startsWith("tr") ? "✍️ Yazmaya başla..." : "✍️ Start writing...",
+      default: i18n.language.startsWith("tr") ? "Yazmaya başla..." : "Start writing...",
       heading: i18n.language.startsWith("tr") ? "Başlık yaz..." : "Write a heading...",
     },
   }, [i18n.language]);
@@ -407,6 +436,8 @@ export default function Editor() {
         if (textNode && textNode.nodeType === Node.TEXT_NODE) {
           const text = textNode.textContent || "";
           const offset = range.startOffset;
+          
+          // 2. Dropdown check
           const match = text.slice(0, offset).match(/\[\[([^\]]*)$/);
           if (match) {
             setDropdownOpen(true);
@@ -507,7 +538,32 @@ export default function Editor() {
             onChange={handleEditorChange}
             theme={theme}
             slashMenu={false}
+            emojiPicker={false}
           >
+          <GridSuggestionMenuController
+            triggerCharacter=":"
+            minQueryLength={2}
+            columns={5}
+            shouldOpen={(tr) => {
+              const { $from } = tr.selection;
+              if (!$from) return false;
+              const textBefore = $from.parent.textBetween(0, $from.parentOffset);
+              const match = /(?::)([^:\s]*)$/.exec(textBefore);
+              if (!match) return false;
+              const query = match[1];
+              if (query.length < 2) return false;
+              if (!/^[a-zA-Z]/.test(query)) return false;
+              if (!/^[a-zA-Z0-9_]*$/.test(query)) return false;
+              return true;
+            }}
+            getItems={async (query) => {
+              if (query.length < 2) return [];
+              if (!/^[a-zA-Z]/.test(query)) return [];
+              if (!/^[a-zA-Z0-9_]*$/.test(query)) return [];
+              const items = await getDefaultReactEmojiPickerItems(editor, query);
+              return items.slice(0, 30);
+            }}
+          />
           <SuggestionMenuController
             triggerCharacter="/"
             getItems={async (query) => {
@@ -660,23 +716,23 @@ export default function Editor() {
               };
 
               const calloutItems = [
-                { title: `💡 ${t("editor.callout.infoTitle", "Bilgi Notu")}`, group: t("editor.callout.group", "Callout"),
+                { title: `💡 ${t("editor.callout.infoTitle")}`, group: t("editor.callout.group"),
                   onItemClick: () => editor.insertBlocks(
                     [{ type: 'callout' as any, props: { type: 'info' } }],
                     editor.getTextCursorPosition().block, 'after') },
-                { title: `⚠️ ${t("editor.callout.warningTitle", "Uyarı")}`, group: t("editor.callout.group", "Callout"),
+                { title: `⚠️ ${t("editor.callout.warningTitle")}`, group: t("editor.callout.group"),
                   onItemClick: () => editor.insertBlocks(
                     [{ type: 'callout' as any, props: { type: 'warning' } }],
                     editor.getTextCursorPosition().block, 'after') },
-                { title: `✅ ${t("editor.callout.successTitle", "Başarı")}`, group: t("editor.callout.group", "Callout"),
+                { title: `✅ ${t("editor.callout.successTitle")}`, group: t("editor.callout.group"),
                   onItemClick: () => editor.insertBlocks(
                     [{ type: 'callout' as any, props: { type: 'success' } }],
                     editor.getTextCursorPosition().block, 'after') },
-                { title: `❌ ${t("editor.callout.dangerTitle", "Hata")}`, group: t("editor.callout.group", "Callout"),
+                { title: `❌ ${t("editor.callout.dangerTitle")}`, group: t("editor.callout.group"),
                   onItemClick: () => editor.insertBlocks(
                     [{ type: 'callout' as any, props: { type: 'danger' } }],
                     editor.getTextCursorPosition().block, 'after') },
-                { title: `🔥 ${t("editor.callout.tipTitle", "İpucu")}`, group: t("editor.callout.group", "Callout"),
+                { title: `🔥 ${t("editor.callout.tipTitle")}`, group: t("editor.callout.group"),
                   onItemClick: () => editor.insertBlocks(
                     [{ type: 'callout' as any, props: { type: 'tip' } }],
                     editor.getTextCursorPosition().block, 'after') },

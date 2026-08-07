@@ -44,7 +44,12 @@
     "addToFavorites": "Favorilere Ekle",
     "unpin": "Sabitlemeyi Kaldır",
     "pin": "Sabitle",
-    "organization": "KLASÖRLER & KOLEKSİYONLAR"
+    "organization": "KLASÖRLER & KOLEKSİYONLAR",
+    "folders": "Klasörler",
+    "collections": "Koleksiyonlar",
+    "expand": "Genişlet",
+    "collapse": "Daralt",
+    "noMatchingNotes": "Eşleşen not bulunamadı."
   },
   "journal": {
     "today": "Bugün",
@@ -88,7 +93,12 @@
   },
   "toast": {
     "comingSoon": "Bu özellik yakında aktif olacak",
-    "loginError": "Giriş hatası"
+    "loginError": "Giriş hatası",
+    "createSuccess": "Başarıyla oluşturuldu",
+    "createError": "Oluştururken hata oluştu",
+    "saveError": "Kaydederken hata oluştu",
+    "deleteError": "Silerken hata oluştu",
+    "deleteSuccess": "Başarıyla silindi"
   },
   "editor": {
     "placeholder": "Yazmaya başla veya '/' ile komut gir...",
@@ -113,7 +123,8 @@
     }
   },
   "sidebar-extra": {
-    "saving": "Kaydediliyor..."
+    "saving": "Kaydediliyor...",
+    "options": "Seçenekler"
   },
   "language": {
     "select": "Dil",
@@ -209,7 +220,8 @@
   },
   "common": {
     "comingSoon": "Çok Yakında",
-    "backToHome": "Ana Sayfaya Dön"
+    "backToHome": "Ana Sayfaya Dön",
+    "close": "Kapat"
   },
   "emptyState": {
     "title": "Notlarınız burada görünecek",
@@ -342,7 +354,10 @@
     "deleteConfirm": "Bu klasör ve alt klasörleri silinecek. İçindeki notlar klasörsüz kalacak. Emin misin?",
     "unfoldered": "Klasörsüz Notlar",
     "allNotes": "Tüm Notlar",
-    "moveHere": "Buraya Taşı"
+    "moveHere": "Buraya Taşı",
+    "renameFolder": "Klasörü Yeniden Adlandır",
+    "create": "Oluştur",
+    "save": "Kaydet"
   },
   "info": {
     "title": "Not Bilgileri",

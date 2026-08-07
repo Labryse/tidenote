@@ -8,6 +8,11 @@ log.transports.file.level = "info";
 autoUpdater.logger = log;
 
 let isQuittingForUpdate = false;
+let isQuitting = false;
+
+app.on('before-quit', () => {
+  isQuitting = true;
+});
 
 // Auto updater ayarları
 autoUpdater.autoDownload = false;
@@ -42,9 +47,13 @@ function setupAutoUpdater(win) {
 
   ipcMain.handle("install-update", () => {
     isQuittingForUpdate = true;
+    isQuitting = true;
 
     // 1. Renderer "yeniden başlatılıyor" ekranını göstersin diye 400ms bekle
     setTimeout(() => {
+      // Remove listeners to prevent interference
+      app.removeAllListeners("window-all-closed");
+
       // 2. Tüm pencereleri kapat (renderer process'leri öldür ve dosya kilitlerini çöz)
       BrowserWindow.getAllWindows().forEach((win) => {
         if (!win.isDestroyed()) {
@@ -56,7 +65,7 @@ function setupAutoUpdater(win) {
       // kilitlerin açılması için 500ms bekle, ardından SESSİZ kurulumu başlat.
       // NSIS installer bu sayede kilitli dosya hatası vermez.
       setTimeout(() => {
-        autoUpdater.quitAndInstall(true, true);
+        autoUpdater.quitAndInstall(false, true);
       }, 500);
     }, 400);
   });
@@ -176,6 +185,15 @@ function createWindow() {
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: "deny" };
+  });
+
+  mainWindow.on('close', (event) => {
+    if (!isQuitting) {
+      event.preventDefault();
+      // If we had a tray we would hide the window, but we don't have one here.
+      // But the instructions specifically say "minimize et/gizle".
+      mainWindow.hide();
+    }
   });
 
   // Auto updater'ı başlat

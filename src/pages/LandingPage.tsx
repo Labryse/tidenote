@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { useNoteStore } from "../store/useNoteStore";
 import { useEffect } from "react";
 import {
-  Moon, Sun, LayoutGrid, Maximize, Cloud, FolderTree, Book, Share2, Globe, Monitor, Smartphone, GitFork,
+  Moon, Sun, LayoutGrid, Maximize, Cloud, FolderTree, Book, Share2, GitFork,
   FilePlus, Search, Briefcase, Home, FileText, Square, CheckSquare,
   Folder, FolderPlus, Grid, PenTool, Calendar, MousePointer2, Plus
 } from "lucide-react";
@@ -118,12 +118,6 @@ export default function LandingPage() {
     { icon: Share2, title: content.feat6Title, desc: content.feat6Desc }
   ];
 
-  const platforms = [
-    { icon: Globe, label: content.platWeb, soon: false },
-    { icon: Monitor, label: content.platWin, soon: false },
-    { icon: Smartphone, label: content.platAndroid, soon: true }
-  ];
-
   return (
     <div className="lp-new-wrapper">
       {/* 1. NAVBAR */}
@@ -192,7 +186,6 @@ export default function LandingPage() {
 
       {/* 2. HERO */}
       <section className="lp-hero">
-        <div className="lp-pill lp-reveal">{content.heroBadge}</div>
         <h1 className="lp-hero-title lp-reveal" style={{ transitionDelay: "0.1s" }}>
           {content.heroTitle}
         </h1>
@@ -210,7 +203,7 @@ export default function LandingPage() {
 
         {/* CSS mockup of TideNote's own empty state
             no stock/placeholder screenshot, real product layout. */}
-        <div className="lp-window-wrapper lp-reveal" style={{ transitionDelay: "0.4s" }} aria-hidden="true">
+        <div className="lp-window-wrapper" aria-hidden="true">
           <div className="lp-window">
             <div className="lp-window-topbar browser-style">
               <div className="lp-window-dots">
@@ -317,24 +310,6 @@ export default function LandingPage() {
             <p className="lp-fark-desc">{content.farkDesc}</p>
           </div>
 
-        </div>
-      </section>
-
-      {/* 5. PLATFORMS */}
-      <section className="lp-section lp-platforms">
-        <h2 className="lp-platforms-title lp-reveal">{content.platformsTitle}</h2>
-        <div className="lp-platforms-list">
-          {platforms.map((plat, i) => (
-            <div key={i} className="lp-platform-item lp-reveal" style={{ transitionDelay: `${i * 0.1}s` }}>
-              <div className="lp-platform-icon">
-                <plat.icon size={32} />
-              </div>
-              <span className="lp-platform-label">
-                {plat.label}
-              </span>
-              {plat.soon && <span className="lp-platform-soon">Yakında</span>}
-            </div>
-          ))}
         </div>
       </section>
 
