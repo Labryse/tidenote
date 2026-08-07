@@ -65,7 +65,7 @@ function setupAutoUpdater(win) {
       // kilitlerin açılması için 500ms bekle, ardından SESSİZ kurulumu başlat.
       // NSIS installer bu sayede kilitli dosya hatası vermez.
       setTimeout(() => {
-        autoUpdater.quitAndInstall(false, true);
+        autoUpdater.quitAndInstall(true, true);
       }, 500);
     }, 400);
   });
